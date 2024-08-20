@@ -53,6 +53,7 @@ div.dt-container .dt-input {
 	max-width: 80%;
 	min-height: 200px;
 	max-height: 80%;
+	text-align: left;
 }
 .aaa-option-optimizer-popover pre {
 	padding: 10px;
@@ -62,7 +63,6 @@ div.dt-container .dt-input {
 	border: 1px solid #ccc;
 	background-color: #eee;
 	overflow: scroll;
-	text-align: left;
 	white-space: pre-wrap;
 	word-wrap: anywhere;
 }

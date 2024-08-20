@@ -148,7 +148,7 @@ class REST {
 			$output[] = [
 				'name'     => $option->option_name,
 				'plugin'   => $this->map_plugin_to_options->get_plugin_name( $option->option_name ),
-				'value'    => $option->option_value,
+				'value'    => htmlentities( $option->option_value, ENT_QUOTES | ENT_SUBSTITUTE ),
 				'size'     => number_format( strlen( $option->option_value ) / 1024, 2 ),
 				'autoload' => $option->autoload,
 				'row_id'   => 'option_' . $option->option_name,

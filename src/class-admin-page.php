@@ -435,7 +435,7 @@ class Admin_Page {
 		<button class="aaa-option-optimizer-popover__close" popovertarget="' . $id . '" popovertargetaction="hide">X</button>' .
 		// translators: %s is the name of the option.
 		'<p><strong>' . sprintf( esc_html__( 'Value of %s', 'aaa-option-optimizer' ), '<code>' . esc_html( $name ) . '</code>' ) . '</strong></p>
-		<pre>' . esc_html( $string ) . '</pre>
+		<pre>' . htmlentities( $string, ENT_QUOTES | ENT_SUBSTITUTE ) . '</pre>
 		</div>';
 	}
 
