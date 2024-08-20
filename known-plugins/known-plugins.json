@@ -15,15 +15,15 @@
         "name": "Affiliate WP",
         "option_prefixes": ["affwp_"]
     },
-	"all-in-one-seo-pack": {
+    "all-in-one-seo-pack": {
         "name": "AIOSEO - The Best WordPress SEO Plugin & Toolkit",
         "option_prefixes": ["aioseo_","widget_aioseo"]
     },
-	"breeze": {
+    "breeze": {
         "name": "Breeze - WordPress Cache Plugin",
         "option_prefixes": ["breeze_"]
     },
-	"bunnycdn": {
+    "bunnycdn": {
         "name": "bunny.net - WordPress CDN Plugin",
         "option_prefixes": ["bunny"]
     },
@@ -31,11 +31,15 @@
         "name": "Burst Statistics",
         "option_prefixes": ["burst_"]
     },
+    "chaty": {
+        "name": "Floating Chat Widget: Contact Chat Icons, WhatsApp, Telegram Chat, Line Messenger, WeChat, Email, SMS, Call Button – Chaty",
+        "option_prefixes": ["chaty_"]
+    },
     "complianz": {
         "name": "Complianz GDPR",
         "option_prefixes": ["cmplz_", "complianz_"]
     },
-	"cookiebot": {
+    "cookiebot": {
         "name": "Cookie banner plugin for WordPress – Cookiebot CMP by Usercentrics",
         "option_prefixes": ["cookiebot_", "cookiebot-"]
     },
@@ -55,11 +59,11 @@
         "name": "Fewer Tags",
         "option_prefixes": ["fewer_tags"]
     },
-	"fluentform": {
+    "fluentform": {
         "name": "Fluent Forms",
         "option_prefixes": ["_fluentform_", "fluentform_"]
     },
-	"generateblocks": {
+    "generateblocks": {
         "name": "GenerateBlocks",
         "option_prefixes": ["generateblocks_"]
     },
@@ -71,17 +75,37 @@
         "name": "Gravity Forms",
         "option_prefixes": ["gf_","gforms_"]
     },
-	"js_composer": {
+    "indeed-membership-pro": {
+        "name": "Indeed Ultimate Membership Pro",
+        "option_prefixes": ["ihc_"]
+    },
+    "jetpack": {
+        "name": "Jetpack",
+        "option_prefixes": ["jetpack_"]
+    },
+    "js_composer": {
         "name": "Visual Composer Website Builder, Landing Page Builder, Custom Theme Builder, Maintenance Mode & Coming Soon Pages",
         "option_prefixes": ["vcv-"]
     },
-	"litespeed-cache": {
+    "litespeed-cache": {
         "name": "LiteSpeed Cache",
         "option_prefixes": ["litespeed-", "_litespeed_"]
     },
-	"perfmatters": {
+    "loginizer": {
+        "name": "Loginizer",
+        "option_prefixes": ["loginizer_"]
+    },
+    "perfmatters": {
         "name": "Perfmatters",
         "option_prefixes": ["perfmatters_"]
+    },
+    "pixel-caffeine": {
+        "name": "Pixel Caffeine",
+        "option_prefixes": ["aepc_"]
+    },
+    "pojo-accessibility": {
+        "name": "One Click Accessibility",
+        "option_prefixes": ["pojo_a11y"]
     },
     "porto-functionality": {
         "name": "Porto Theme - Functionality",
@@ -95,17 +119,21 @@
         "name": "Redirection",
         "option_prefixes": ["redirection_"]
     },
-	"revslider": {
+    "revslider": {
         "name": "Slider Revolution",
         "option_prefixes": ["revslider-"]
     },
-	"seo-by-rank-math": {
+    "seedprod": {
+        "name": "Seedprod",
+        "option_prefixes": ["seedprod", "seed_"]
+    },
+    "seo-by-rank-math": {
         "name": "Rank Math SEO with AI Best SEO Tools",
         "option_prefixes": ["rank_math_"]
     },
     "updraft": {
         "name": "Updraft Plus",
-        "option_prefixes": ["updraft_"]
+        "option_prefixes": ["updraft_", "updraftplus_"]
     },
     "yoast": {
         "name": "Yoast SEO",
@@ -114,6 +142,10 @@
     "woocommerce": {
         "name": "WooCommerce",
         "option_prefixes": ["wc_", "_transient__woocommerce_", "woocommerce_"]
+    },
+    "wordfence": {
+        "name": "Wordfence",
+        "option_prefixes": ["wordfence_"]
     },
     "wordpress": {
         "name": "WordPress",
@@ -254,17 +286,29 @@
             "WPLANG"
         ]
     },
-	"worker": {
+    "worker": {
         "name": "ManageWP Worker",
         "option_prefixes": ["mwp_", "worker_"]
+    },
+    "wpcf7": {
+        "name": "Contact From 7",
+        "option_prefixes": ["wpcf7"]
+    },
+    "wpforms": {
+        "name": "WPForms",
+        "option_prefixes": ["wpforms_"]
     },
     "wpml": {
         "name": "WPML",
         "option_prefixes": ["_wpml_", "wpml_", "otgs-", "otgs_", "_icl_"]
     },
+    "wp-optimize": {
+        "name": "WP Optimize",
+        "option_prefixes": ["wpo_", "wp-optimize"]
+    },
     "wp-rocket": {
         "name": "WP Rocket",
-        "option_prefixes": ["wp_rocket_"]
+        "option_prefixes": ["wp_rocket_", "rocket_"]
     },
     "wpvivid-backuprestore": {
         "name": "WPvivid Backup Plugin",
