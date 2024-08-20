@@ -7,10 +7,14 @@
 	text-align: left;
 }
 .aaa_option_table .actions {
+	width: 50%;
 	text-align: right;
 }
 .aaa_option_table .actions .button {
-	margin-right: 20px;
+	margin-right: 10px;
+}
+.aaa_option_table select {
+	max-width: 20% !important;
 }
 .aaa_option_table .actions .button-delete, .aaa-option-optimizer-reset .button-delete {
 	margin-right: 0;
@@ -78,11 +82,9 @@ div.dt-container .dt-input {
 .aaa-option-optimizer-popover__close:hover {
 	cursor: pointer;
 }
-
 .aaa-option-optimizer-reset {
 	float: right;
 }
-
 .aaa-option-optimizer-tabs {
 	clear: both;
 	display: flex;
@@ -90,12 +92,12 @@ div.dt-container .dt-input {
 	max-width: 100%;
 	background: #e5e5e5;
 	box-shadow: 0 48px 80px -32px rgba(0,0,0,0.3);
-	}
-	.aaa-option-optimizer-tabs .input {
+}
+.aaa-option-optimizer-tabs .input {
 	position: absolute;
 	opacity: 0;
-	}
-	.aaa-option-optimizer-tabs .label {
+}
+.aaa-option-optimizer-tabs .label {
 	width: 100%;
 	padding: 20px 30px;
 	background: #e5e5e5;
@@ -104,36 +106,37 @@ div.dt-container .dt-input {
 	font-size: 18px;
 	color: #7f7f7f;
 	transition: background 0.1s, color 0.1s;
-	}
-	.aaa-option-optimizer-tabs .label:hover {
+}
+.aaa-option-optimizer-tabs .label:hover {
 	background: #d8d8d8;
-	}
-	.aaa-option-optimizer-tabs .label:active {
+}
+.aaa-option-optimizer-tabs .label:active {
 	background: #ccc;
-	}
-	.aaa-option-optimizer-tabs .input:focus + .label {
+}
+.aaa-option-optimizer-tabs .input:focus + .label {
 	z-index: 1;
-	}
-	.aaa-option-optimizer-tabs .input:checked + .label {
+}
+.aaa-option-optimizer-tabs .input:checked + .label {
 	background: #fff;
 	color: #000;
-	}
-	@media (min-width: 600px) {
-	.aaa-option-optimizer-tabs .label {
-		width: auto;
-	}
-	}
-	.aaa-option-optimizer-tabs .panel {
+}
+.aaa-option-optimizer-tabs .panel {
 	display: none;
 	padding: 20px 30px 30px;
 	background: #fff;
-	}
-	@media (min-width: 600px) {
+}
+.aaa-option-optimizer-tabs .input:checked + .label + .panel {
+	display: block;
+	width: 100%;
+}
+@media (min-width: 600px) {
 	.aaa-option-optimizer-tabs .panel {
 		order: 99;
 	}
+	.aaa-option-optimizer-tabs .label {
+		width: auto;
 	}
-	.aaa-option-optimizer-tabs .input:checked + .label + .panel {
-	display: block;
-	width: 100%;
-	}
+}
+.aaa_option_table .source {
+	width: 20%;
+}

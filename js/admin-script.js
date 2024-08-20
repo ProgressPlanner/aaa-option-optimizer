@@ -39,6 +39,8 @@ jQuery( document ).ready(
 		function initializeDataTable(selector) {
 			const options = {
 				pageLength: 25,
+				autoWidth: false,
+				responsive: true,
 				columns: getColumns( selector ),
 				initComplete: function () {
 					this.api().columns( 'source:name' ).every( setupColumnFilters );
@@ -57,7 +59,7 @@ jQuery( document ).ready(
 
 			options.language = aaaOptionOptimizer.i18n;
 
-			const dataTable = new DataTable( selector, options );
+			const dataTable = new DataTable( selector, options ).columns.adjust().responsive.recalc();;
 		}
 
 		/**

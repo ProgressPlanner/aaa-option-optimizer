@@ -95,7 +95,7 @@ class Admin_Page {
 
 		\wp_enqueue_script(
 			'datatables',
-			plugin_dir_url( AAA_OPTION_OPTIMIZER_FILE ) . 'js/vendor/dataTables.min.js',
+			plugin_dir_url( AAA_OPTION_OPTIMIZER_FILE ) . 'js/vendor/datatables.min.js',
 			[], // Dependencies.
 			'2.0.1',
 			true // In footer.
@@ -103,7 +103,7 @@ class Admin_Page {
 
 		\wp_enqueue_style(
 			'datatables',
-			plugin_dir_url( AAA_OPTION_OPTIMIZER_FILE ) . 'js/vendor/dataTables.dataTables.min.css',
+			plugin_dir_url( AAA_OPTION_OPTIMIZER_FILE ) . 'js/vendor/datatables.min.css',
 			[],
 			'2.0.1'
 		);
@@ -124,10 +124,10 @@ class Admin_Page {
 				'nonce' => wp_create_nonce( 'wp_rest' ),
 				'i18n'  => [
 					'filterBySource' => esc_html__( 'Filter by source', 'aaa-option-optimizer' ),
-					'showValue'      => esc_html__( 'Show value', 'aaa-option-optimizer' ),
+					'showValue'      => esc_html__( 'Show', 'aaa-option-optimizer' ),
 					'addAutoload'    => esc_html__( 'Add autoload', 'aaa-option-optimizer' ),
 					'removeAutoload' => esc_html__( 'Remove autoload', 'aaa-option-optimizer' ),
-					'deleteOption'   => esc_html__( 'Delete option', 'aaa-option-optimizer' ),
+					'deleteOption'   => esc_html__( 'Delete', 'aaa-option-optimizer' ),
 
 					'search'         => esc_html__( 'Search:', 'aaa-option-optimizer' ),
 					'entries'        => [
@@ -192,10 +192,10 @@ class Admin_Page {
 					echo '<th>' . esc_html__( 'Option', 'aaa-option-optimizer' ) . '</th>';
 					break;
 				case 'size':
-					echo '<th>' . esc_html__( 'Size (in KB)', 'aaa-option-optimizer' ) . '</th>';
+					echo '<th>' . esc_html__( 'Size (KB)', 'aaa-option-optimizer' ) . '</th>';
 					break;
 				case 'source':
-					echo '<th>' . esc_html__( 'Source', 'aaa-option-optimizer' ) . '</th>';
+					echo '<th class="source">' . esc_html__( 'Source', 'aaa-option-optimizer' ) . '</th>';
 					break;
 			}
 		}
@@ -329,7 +329,7 @@ class Admin_Page {
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- output escaped in get_value_button.
 				echo $this->get_value_button( $option, $value );
 				echo '<button class="button button-primary remove-autoload" data-option="' . esc_attr( $option ) . '"><span class="dashicons dashicons-minus"></span> ' . esc_html__( 'Remove autoload', 'aaa-option-optimizer' ) . '</button> ';
-				echo ' <button class="button button-delete delete-option" data-option="' . esc_attr( $option ) . '"><span class="dashicons dashicons-trash"></span> ' . esc_html__( 'Delete option', 'aaa-option-optimizer' ) . '</button>';
+				echo ' <button class="button button-delete delete-option" data-option="' . esc_attr( $option ) . '"><span class="dashicons dashicons-trash"></span> ' . esc_html__( 'Delete', 'aaa-option-optimizer' ) . '</button>';
 				echo '</td></tr>';
 			}
 			echo '</tbody>';
@@ -430,7 +430,7 @@ class Admin_Page {
 		$string = is_string( $value ) ? $value : wp_json_encode( $value );
 		$id     = 'aaa-option-optimizer-' . esc_attr( $name );
 		return '
-		<button class="button" popovertarget="' . $id . '"><span class="dashicons dashicons-search"></span> ' . esc_html__( 'Show value', 'aaa-option-optimizer' ) . '</button>
+		<button class="button" popovertarget="' . $id . '"><span class="dashicons dashicons-search"></span> ' . esc_html__( 'Show', 'aaa-option-optimizer' ) . '</button>
 		<div id="' . $id . '" popover class="aaa-option-optimizer-popover">
 		<button class="aaa-option-optimizer-popover__close" popovertarget="' . $id . '" popovertargetaction="hide">X</button>' .
 		// translators: %s is the name of the option.
