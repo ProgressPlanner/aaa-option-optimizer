@@ -2,7 +2,7 @@
 /**
  * Uninstall the plugin.
  *
- * Remove autoload from the plugin option.
+ * Delete the plugin option.
  *
  * @package Progress_Planner
  */
@@ -12,6 +12,5 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
 }
 
-// Remove autoload from the plugin option.
-$aaa_option_value = get_option( 'option_optimizer' );
-update_option( 'option_optimizer', $aaa_option_value, false );
+// Delete the plugin option.
+delete_option( 'option_optimizer' );
