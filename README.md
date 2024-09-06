@@ -3,6 +3,8 @@
 [![Lint](https://github.com/emilia-capital/aaa-option-optimizer/actions/workflows/lint.yml/badge.svg)](https://github.com/emilia-capital/aaa-option-optimizer/actions/workflows/lint.yml)
 [![Security](https://github.com/emilia-capital/aaa-option-optimizer/actions/workflows/security.yml/badge.svg)](https://github.com/emilia-capital/aaa-option-optimizer/actions/workflows/security.yml)
 
+[![Try this plugin on the WordPress playground](https://img.shields.io/badge/Try%20this%20plugin%20on%20the%20WordPress%20Playground-%23117AC9.svg?style=for-the-badge&logo=WordPress&logoColor=ddd)](https://playground.wordpress.net/#%7B%22landingPage%22:%22/wp-admin/tools.php?page=aaa-option-optimizer%22,%22features%22:%7B%22networking%22:true%7D,%22steps%22:%5B%7B%22step%22:%22defineWpConfigConsts%22,%22consts%22:%7B%22IS_PLAYGROUND_PREVIEW%22:true%7D%7D,%7B%22step%22:%22login%22,%22username%22:%22admin%22,%22password%22:%22password%22%7D,%7B%22step%22:%22installPlugin%22,%22pluginZipFile%22:%7B%22resource%22:%22url%22,%22url%22:%22https://bypass-cors.altha.workers.dev/https://github.com/Emilia-Capital/aaa-option-optimizer/archive/refs/heads/develop.zip%22%7D,%22options%22:%7B%22activate%22:true%7D%7D%5D%7D)
+
 # AAA Option Optimizer
 This plugin tracks which of the autoloaded options are used on a page, and stores that data at the end of page render. It keeps an array of options that it has seen as being used. On the admin page, it compares all the autoloaded options to the array of stored options, and shows the autoloaded options that have not been used as you were browsing the site. If you've been to every page on your site, or you've kept the plugin around for a week or so, this means that those options probably don't need to be autoloaded.
 
