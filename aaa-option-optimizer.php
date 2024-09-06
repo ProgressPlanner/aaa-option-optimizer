@@ -24,6 +24,7 @@ define( 'AAA_OPTION_OPTIMIZER_DIR', __DIR__ );
 require_once __DIR__ . '/src/autoload.php';
 
 register_activation_hook( __FILE__, 'aaa_option_optimizer_activation' );
+register_deactivation_hook( __FILE__, 'aaa_option_optimizer_deactivation' );
 
 /**
  * Activation hooked function to store start stats.
@@ -51,6 +52,16 @@ function aaa_option_optimizer_activation() {
 		],
 		true
 	);
+}
+
+/**
+ * Deactivation hooked function to remove autoload from the plugin option.
+ *
+ * @return void
+ */
+function aaa_option_optimizer_deactivation() {
+	$aaa_option_value = get_option( 'option_optimizer' );
+	update_option( 'option_optimizer', $aaa_option_value, false );
 }
 
 /**
