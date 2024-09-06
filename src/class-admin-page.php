@@ -287,7 +287,7 @@ class Admin_Page {
 		$placeholders    = implode( ',', array_fill( 0, count( $autoload_values ), '%s' ) );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
 		$result = $wpdb->get_row(
-			$wpdb->prepare( "SELECT count(*) AS count, SUM( LENGTH( option_value ) ) as autoload_size FROM {$wpdb->options} WHERE autoload IN ( %s )", $placeholders )
+			$wpdb->prepare( "SELECT count(*) AS count, SUM( LENGTH( option_value ) ) as autoload_size FROM {$wpdb->options} WHERE autoload IN ( $placeholders )", $autoload_values )
 		);
 
 		echo '<h2>' . esc_html__( 'Stats', 'aaa-option-optimizer' ) . '</h2>';
