@@ -35,10 +35,13 @@ function aaa_option_optimizer_activation() {
 	global $wpdb;
 	$autoload_values = \wp_autoload_values_to_autoload();
 	$placeholders    = implode( ',', array_fill( 0, count( $autoload_values ), '%s' ) );
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time query, no caching needed.
+
+	// phpcs:disable WordPress.DB
 	$result = $wpdb->get_row(
 		$wpdb->prepare( "SELECT count(*) AS count, SUM( LENGTH( option_value ) ) as autoload_size FROM {$wpdb->options} WHERE autoload IN ( $placeholders )", $autoload_values )
 	);
+	// phpcs:enable WordPress.DB
+
 	update_option(
 		'option_optimizer',
 		[

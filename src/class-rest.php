@@ -168,7 +168,7 @@ class REST {
 		$option_name  = $request['option_name'];
 		$autoload     = $request['autoload'];
 		$option_value = get_option( $option_name );
-		
+
 		if ( ! in_array( $autoload, [ 'yes', 'on', 'no', 'off','auto', 'auto-on', 'auto-off' ], true ) ) {
 			return new \WP_Error( 'invalid_autoload_value', 'Invalid autoload value', [ 'status' => 400 ] );
 		}
