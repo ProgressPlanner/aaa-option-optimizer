@@ -5,4 +5,5 @@ parameters:
   excludePaths:
     - vendor
     - tests
-  checkGenericClassInNonGenericObjectType: false
+  ignoreErrors:
+    - identifier: missingType.generics
