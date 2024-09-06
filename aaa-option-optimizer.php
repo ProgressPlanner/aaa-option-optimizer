@@ -32,8 +32,15 @@ register_activation_hook( __FILE__, 'aaa_option_optimizer_activation' );
  */
 function aaa_option_optimizer_activation() {
 	global $wpdb;
-	//phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- one time query, no caching needed.
-	$result = $wpdb->get_row( "SELECT count(*) AS count, SUM(LENGTH(option_value)) as autoload_size FROM {$wpdb->options} WHERE autoload='yes'" );
+	$autoload_values = \wp_autoload_values_to_autoload();
+	$placeholders    = implode( ',', array_fill( 0, count( $autoload_values ), '%s' ) );
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time query, no caching needed.
+	$result = $wpdb->get_row(
+		$wpdb->prepare(
+			"SELECT COUNT(*) AS count, SUM(LENGTH(option_value)) AS autoload_size FROM {$wpdb->options} WHERE autoload IN ( %s )",
+			$placeholders
+		)
+	);
 	update_option(
 		'option_optimizer',
 		[

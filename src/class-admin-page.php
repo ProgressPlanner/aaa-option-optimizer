@@ -283,8 +283,12 @@ class Admin_Page {
 		echo '<div class="wrap"><h1>' . esc_html__( 'AAA Option Optimizer', 'aaa-option-optimizer' ) . '</h1>';
 
 		global $wpdb;
+		$autoload_values = \wp_autoload_values_to_autoload();
+		$placeholders    = implode( ',', array_fill( 0, count( $autoload_values ), '%s' ) );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
-		$result = $wpdb->get_row( "SELECT count(*) AS count, SUM(LENGTH(option_value)) as autoload_size FROM {$wpdb->options} WHERE autoload='yes'" );
+		$result = $wpdb->get_row(
+			$wpdb->prepare( "SELECT count(*) AS count, SUM( LENGTH( option_value ) ) as autoload_size FROM {$wpdb->options} WHERE autoload IN ( %s )", $placeholders )
+		);
 
 		echo '<h2>' . esc_html__( 'Stats', 'aaa-option-optimizer' ) . '</h2>';
 		echo '<p>' .
