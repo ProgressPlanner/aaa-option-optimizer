@@ -2,7 +2,7 @@
 Contributors: joostdevalk
 Tags: options, database, cleanup
 Requires at least: 6.6
-Tested up to: 6.6
+Tested up to: 6.7
 Requires PHP: 7.4
 Stable tag: 1.3
 License: GPL3+
@@ -53,6 +53,10 @@ Please do a pull request via GitHub on [this file](https://github.com/Emilia-Cap
 2. Screenshot of the "All options" screen, showing you can browse all the options.
 
 == Changelog ==
+
+= 1.3 =
+
+* Make plugin work with the latest autoload changes.
 
 = 1.2.1 =
 
