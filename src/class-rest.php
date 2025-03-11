@@ -148,7 +148,7 @@ class REST {
 			$output[] = [
 				'name'     => $option->option_name,
 				'plugin'   => $this->map_plugin_to_options->get_plugin_name( $option->option_name ),
-				'value'    => $option->option_value,
+				'value'    => htmlentities( $option->option_value, ENT_QUOTES | ENT_SUBSTITUTE ),
 				'size'     => number_format( strlen( $option->option_value ) / 1024, 2 ),
 				'autoload' => $option->autoload,
 				'row_id'   => 'option_' . $option->option_name,
@@ -169,7 +169,7 @@ class REST {
 		$autoload     = $request['autoload'];
 		$option_value = get_option( $option_name );
 
-		if ( ! in_array( $autoload, [ 'yes', 'no' ], true ) ) {
+		if ( ! in_array( $autoload, [ 'yes', 'on', 'no', 'off','auto', 'auto-on', 'auto-off' ], true ) ) {
 			return new \WP_Error( 'invalid_autoload_value', 'Invalid autoload value', [ 'status' => 400 ] );
 		}
 
@@ -178,7 +178,12 @@ class REST {
 		}
 
 		delete_option( $option_name );
-		$succeeded = add_option( $option_name, $option_value, '', $autoload );
+		$autoload_values = \wp_autoload_values_to_autoload();
+		$bool_autoload   = false;
+		if ( in_array( $autoload, $autoload_values, true ) ) {
+			$bool_autoload = true;
+		}
+		$succeeded = add_option( $option_name, $option_value, '', $bool_autoload );
 
 		if ( ! $succeeded ) {
 			return new \WP_Error( 'update_failed', 'Updating the option failed', [ 'status' => 400 ] );
@@ -210,7 +215,7 @@ class REST {
 	 */
 	public function create_option_false( $request ) {
 		$option_name = $request['option_name'];
-		if ( add_option( $option_name, false, '', 'no' ) ) {
+		if ( add_option( $option_name, false, '', false ) ) {
 			return new \WP_REST_Response( [ 'success' => true ], 200 );
 		}
 		return new \WP_Error( 'option_not_created', 'Option could not be created', [ 'status' => 400 ] );

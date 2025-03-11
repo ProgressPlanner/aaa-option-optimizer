@@ -1,10 +1,10 @@
 === AAA Option Optimizer ===
 Contributors: joostdevalk
 Tags: options, database, cleanup
-Requires at least: 6.2
-Tested up to: 6.5
+Requires at least: 6.6
+Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.2.1
+Stable tag: 1.3
 License: GPL3+
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -33,13 +33,13 @@ Please use [our GitHub](https://github.com/emilia-Capital/aaa-option-optimizer/)
 
 For security issues, please see the next question.
 
+= How can I report security issues? =
+
+You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team help validate, triage and handle any security vulnerabilities. [Report a security vulnerability.](https://patchstack.com/database/vdp/aaa-option-optimizer)
+
 = How can I add recognized plugins? =
 
 Please do a pull request via GitHub on [this file](https://github.com/Emilia-Capital/aaa-option-optimizer/blob/develop/known-plugins/known-plugins.json) in the plugin.
-
-= How can I report security bugs? =
-
-You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team help validate, triage and handle any security vulnerabilities. [Report a security vulnerability.](https://patchstack.com/database/vdp/aaa-option-optimizer)
 
 == Installation ==
 1. Search for AAA Option Optimizer on the repository.
@@ -53,6 +53,10 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 2. Screenshot of the "All options" screen, showing you can browse all the options.
 
 == Changelog ==
+
+= 1.3 =
+
+* Make plugin work with the latest autoload changes.
 
 = 1.2.1 =
 

@@ -93,7 +93,7 @@
 	the wiki:
 	https://github.com/WordPress/WordPress-Coding-Standards/wiki/Customizable-sniff-properties
 	-->
-	<config name="minimum_wp_version" value="6.0"/>
+	<config name="minimum_wp_version" value="6.6"/>
 
 	<rule ref="WordPress.WP.I18n">
 		<properties>

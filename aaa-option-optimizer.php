@@ -7,7 +7,7 @@
  * Plugin Name: AAA Option Optimizer
  * Plugin URI: https://joost.blog/plugins/aaa-option-optimizer/
  * Description: Tracks autoloaded options usage and allows the user to optimize them.
- * Version: 1.2.1
+ * Version: 1.3
  * License: GPL-3.0+
  * Author: Joost de Valk
  * Author URI: https://joost.blog/
@@ -24,6 +24,7 @@ define( 'AAA_OPTION_OPTIMIZER_DIR', __DIR__ );
 require_once __DIR__ . '/src/autoload.php';
 
 register_activation_hook( __FILE__, 'aaa_option_optimizer_activation' );
+register_deactivation_hook( __FILE__, 'aaa_option_optimizer_deactivation' );
 
 /**
  * Activation hooked function to store start stats.
@@ -32,8 +33,15 @@ register_activation_hook( __FILE__, 'aaa_option_optimizer_activation' );
  */
 function aaa_option_optimizer_activation() {
 	global $wpdb;
-	//phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- one time query, no caching needed.
-	$result = $wpdb->get_row( "SELECT count(*) AS count, SUM(LENGTH(option_value)) as autoload_size FROM {$wpdb->options} WHERE autoload='yes'" );
+	$autoload_values = \wp_autoload_values_to_autoload();
+	$placeholders    = implode( ',', array_fill( 0, count( $autoload_values ), '%s' ) );
+
+	// phpcs:disable WordPress.DB
+	$result = $wpdb->get_row(
+		$wpdb->prepare( "SELECT count(*) AS count, SUM( LENGTH( option_value ) ) as autoload_size FROM {$wpdb->options} WHERE autoload IN ( $placeholders )", $autoload_values )
+	);
+	// phpcs:enable WordPress.DB
+
 	update_option(
 		'option_optimizer',
 		[
@@ -44,6 +52,16 @@ function aaa_option_optimizer_activation() {
 		],
 		true
 	);
+}
+
+/**
+ * Deactivation hooked function to remove autoload from the plugin option.
+ *
+ * @return void
+ */
+function aaa_option_optimizer_deactivation() {
+	$aaa_option_value = get_option( 'option_optimizer' );
+	update_option( 'option_optimizer', $aaa_option_value, false );
 }
 
 /**
