@@ -13,4 +13,4 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 }
 
 // Delete the plugin option.
-delete_option( 'option_optimizer' );
+delete_option( 'meta_optimizer' );

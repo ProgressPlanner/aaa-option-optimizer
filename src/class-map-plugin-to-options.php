@@ -2,15 +2,15 @@
 /**
  * Functionality to map options to plugins.
  *
- * @package Emilia\OptionOptimizer
+ * @package Emilia\MetaOptimizer
  */
 
-namespace Emilia\OptionOptimizer;
+namespace Emilia\MetaOptimizer;
 
 /**
  * Class Map_Plugin_To_Options
  *
- * @package Emilia\OptionOptimizer
+ * @package Emilia\MetaOptimizer
  */
 class Map_Plugin_To_Options {
 	/**
@@ -30,7 +30,7 @@ class Map_Plugin_To_Options {
 	public function get_plugin_name( string $option ): string {
 		$plugins_list = [];
 		if ( empty( $this->plugins_list ) ) {
-			$this->plugins_list = json_decode( file_get_contents( plugin_dir_path( AAA_OPTION_OPTIMIZER_FILE ) . 'known-plugins/known-plugins.json' ), true );
+			$this->plugins_list = json_decode( file_get_contents( plugin_dir_path( AAA_META_OPTIMIZER_FILE ) . 'known-plugins/known-plugins.json' ), true );
 		}
 
 		// for each plugin in the list, check if the option starts with the prefix.
@@ -44,6 +44,6 @@ class Map_Plugin_To_Options {
 			}
 		}
 
-		return __( 'Unknown', 'aaa-option-optimizer' );
+		return __( 'Unknown', 'aaa-meta-optimizer' );
 	}
 }
