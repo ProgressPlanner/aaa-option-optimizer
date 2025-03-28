@@ -2,10 +2,10 @@
 /**
  * Plugin functionality for AAA Option Optimizer.
  *
- * @package Emilia\OptionOptimizer
+ * @package Emilia\MetaOptimizer
  */
 
-namespace Emilia\OptionOptimizer;
+namespace Emilia\MetaOptimizer;
 
 /**
  * Core functionality of AAA Option Optimizer.
@@ -19,11 +19,11 @@ class Plugin {
 	public static $instance;
 
 	/**
-	 * Holds the names of the options accessed during the request.
+	 * Holds the names of the meta fields accessed during the request.
 	 *
 	 * @var string[]
 	 */
-	protected $accessed_options = [];
+	protected $accessed_meta_fields = [];
 
 	/**
 	 * Whether the plugin should reset the option_optimizer data.
@@ -60,14 +60,14 @@ class Plugin {
 	 * @return void
 	 */
 	public function register_hooks() {
-		$this->accessed_options = \get_option( 'option_optimizer', [ 'used_options' => [] ] )['used_options'];
+		$this->accessed_meta_fields = \get_option( 'meta_optimizer', [ 'used_meta_fields' => [] ] )['used_meta_fields'];
 
 		// Hook into all actions and filters to monitor option accesses.
 		// @phpstan-ignore-next-line -- The 'all' hook does not need a return.
-		\add_filter( 'all', [ $this, 'monitor_option_accesses' ] );
+		\add_filter( 'all', [ $this, 'monitor_meta_field_accesses' ] );
 
 		// Use the shutdown action to update the option with tracked data.
-		\add_action( 'shutdown', [ $this, 'update_tracked_options' ] );
+		\add_action( 'shutdown', [ $this, 'update_tracked_meta_fields' ] );
 
 		// Register the REST routes.
 		$rest = new REST();
@@ -98,11 +98,13 @@ class Plugin {
 	 *
 	 * @return void
 	 */
-	public function monitor_option_accesses( $tag ) {
+	public function monitor_meta_field_accesses( $tag ) {
+
 		// Check if the tag is related to an option access.
-		if ( strpos( $tag, 'option_' ) === 0 ) {
-			$option_name = substr( $tag, strlen( 'option_' ) );
-			$this->add_option_usage( $option_name );
+		if ( strpos( $tag, 'get_post_metadata' ) === 0 ) {
+			$args = func_get_args(); // Get all arguments passed to the hook.
+			$meta_key = $args[3];
+			$this->add_meta_field_usage( $meta_key );
 		}
 	}
 
@@ -113,35 +115,35 @@ class Plugin {
 	 *
 	 * @return void
 	 */
-	protected function add_option_usage( $option_name ) {
+	protected function add_meta_field_usage( $meta_key ) {
 		// Check if this option hasn't been tracked yet and add it to the array.
-		if ( ! array_key_exists( $option_name, $this->accessed_options ) ) {
-			$this->accessed_options[ $option_name ] = 1;
+		if ( ! array_key_exists( $meta_key, $this->accessed_meta_fields ) ) {
+			$this->accessed_meta_fields[ $meta_key ] = 1;
 			return;
 		}
-		++$this->accessed_options[ $option_name ];
+		++$this->accessed_meta_fields[ $meta_key ];
 	}
 
 	/**
-	 * Update the 'option_optimizer' option with the list of used options at the end of the page load.
+	 * Update the 'meta_optimizer' option with the list of used options at the end of the page load.
 	 *
 	 * @return void
 	 */
-	public function update_tracked_options() {
+	public function update_tracked_meta_fields() {
 		// phpcs:ignore WordPress.Security.NonceVerification -- not doing anything.
-		if ( isset( $_GET['page'] ) && $_GET['page'] === 'aaa-option-optimizer' ) {
+		if ( isset( $_GET['page'] ) && $_GET['page'] === 'aaa-meta-optimizer' ) {
 			return;
 		}
-		// Retrieve the existing option_optimizer data.
-		$option_optimizer = get_option( 'option_optimizer', [ 'used_options' => [] ] );
+		// Retrieve the existing meta_optimizer data.
+		$meta_optimizer = get_option( 'meta_optimizer', [ 'used_meta_fields' => [] ] );
 
-		$option_optimizer['used_options'] = $this->accessed_options;
+		$meta_optimizer['used_meta_fields'] = $this->accessed_meta_fields;
 
 		if ( $this->should_reset ) {
-			$option_optimizer['used_options'] = [];
+			$meta_optimizer['used_meta_fields'] = [];
 		}
 
-		// Update the 'option_optimizer' option with the new list.
-		update_option( 'option_optimizer', $option_optimizer, true );
+		// Update the 'meta_optimizer' option with the new list.
+		update_option( 'meta_optimizer', $meta_optimizer, true );
 	}
 }

@@ -1,7 +1,7 @@
 /**
  * JavaScript for the admin page.
  *
- * @package Emilia\OptionOptimizer
+ * @package Emilia\MetaOptimizer
  */
 
 /**
@@ -17,7 +17,6 @@ jQuery( document ).ready(
 		const tablesToInitialize = [
 			'#unused_options_table',
 			'#used_not_autoloaded_table',
-			'#requested_do_not_exist_table',
 		];
 
 		$( '#all_options_table' ).hide();
@@ -49,15 +48,15 @@ jQuery( document ).ready(
 
 			if (selector === '#all_options_table') {
 				options.ajax  = {
-					url: aaaOptionOptimizer.root + 'aaa-option-optimizer/v1/all-options',
-					headers: { 'X-WP-Nonce': aaaOptionOptimizer.nonce },
+					url: aaaMetaOptimizer.root + 'aaa-option-optimizer/v1/all-options',
+					headers: { 'X-WP-Nonce': aaaMetaOptimizer.nonce },
 					type: 'GET',
 					dataSrc: 'data'
 				};
 				options.rowId = 'row_id';
 			}
 
-			options.language = aaaOptionOptimizer.i18n;
+			options.language = aaaMetaOptimizer.i18n;
 
 			const dataTable = new DataTable( selector, options ).columns.adjust().responsive.recalc();;
 		}
@@ -73,8 +72,6 @@ jQuery( document ).ready(
 			const commonColumns = [
 				{ name: 'name' },
 				{ name: 'source' },
-				{ name: 'size', searchable: false },
-				{ name: 'autoload', className: 'autoload', searchable: false },
 				{ name: 'actions', searchable: false, orderable: false }
 			];
 
@@ -89,8 +86,6 @@ jQuery( document ).ready(
 				return [
 					{ name: 'name' },
 					{ name: 'source' },
-					{ name: 'size', searchable: false },
-					{ name: 'autoload', className: 'autoload', searchable: false },
 					{ name: 'calls', searchable: false },
 					{ name: 'actions', searchable: false, orderable: false }
 				]
@@ -125,7 +120,7 @@ jQuery( document ).ready(
 		function setupColumnFilters() {
 			const column = this;
 			const select = document.createElement( 'select' );
-			select.add( new Option( aaaOptionOptimizer.i18n.filterBySource, '', true, true ) );
+			select.add( new Option( aaaMetaOptimizer.i18n.filterBySource, '', true, true ) );
 			column.footer().replaceChildren( select );
 
 			select.addEventListener(
@@ -157,26 +152,26 @@ jQuery( document ).ready(
 			'</div>';
 
 			const actions = [
-				'<button class="button dashicon" popovertarget="popover_' + row.name + '"><span class="dashicons dashicons-search"></span>' + aaaOptionOptimizer.i18n.showValue + '</button>',
+				'<button class="button dashicon" popovertarget="popover_' + row.name + '"><span class="dashicons dashicons-search"></span>' + aaaMetaOptimizer.i18n.showValue + '</button>',
 				popoverContent,
 				row.autoload === 'no' ?
-					'<button class="button dashicon add-autoload" data-option="' + row.name + '"><span class="dashicons dashicons-plus"></span>' + aaaOptionOptimizer.i18n.addAutoload + '</button>' :
-					'<button class="button dashicon remove-autoload" data-option="' + row.name + '"><span class="dashicons dashicons-minus"></span>' + aaaOptionOptimizer.i18n.removeAutoload + '</button>',
-					'<button class="button button-delete delete-option" data-option="' + row.name + '"><span class="dashicons dashicons-trash"></span>' + aaaOptionOptimizer.i18n.deleteOption + '</button >'
+					'<button class="button dashicon add-autoload" data-option="' + row.name + '"><span class="dashicons dashicons-plus"></span>' + aaaMetaOptimizer.i18n.addAutoload + '</button>' :
+					'<button class="button dashicon remove-autoload" data-option="' + row.name + '"><span class="dashicons dashicons-minus"></span>' + aaaMetaOptimizer.i18n.removeAutoload + '</button>',
+					'<button class="button button-delete delete-option" data-option="' + row.name + '"><span class="dashicons dashicons-trash"></span>' + aaaMetaOptimizer.i18n.deleteOption + '</button >'
 			];
 
 			return actions.join( '' );
 		}
 
-		$( '#aaa-option-reset-data' ).on(
+		$( '#aaa-meta-reset-data' ).on(
 			'click',
 			function (e) {
 				e.preventDefault();
 				$.ajax(
 					{
-						url: aaaOptionOptimizer.root + 'aaa-option-optimizer/v1/reset',
+						url: aaaMetaOptimizer.root + 'aaa-meta-optimizer/v1/reset',
 						method: 'POST',
-						beforeSend: xhr => xhr.setRequestHeader( 'X-WP-Nonce', aaaOptionOptimizer.nonce ),
+						beforeSend: xhr => xhr.setRequestHeader( 'X-WP-Nonce', aaaMetaOptimizer.nonce ),
 						success: response => window.location = window.location.href + '&tracking_reset=true',
 						error: response => console.error(
 							'Failed to reset tracking.',
@@ -214,9 +209,9 @@ jQuery( document ).ready(
 
 			$.ajax(
 				{
-					url: aaaOptionOptimizer.root + 'aaa-option-optimizer/v1/' + route,
+					url: aaaMetaOptimizer.root + 'aaa-option-optimizer/v1/' + route,
 					method: 'POST',
-					beforeSend: xhr => xhr.setRequestHeader( 'X-WP-Nonce', aaaOptionOptimizer.nonce ),
+					beforeSend: xhr => xhr.setRequestHeader( 'X-WP-Nonce', aaaMetaOptimizer.nonce ),
 					data: requestData,
 					success: response => updateRowOnSuccess( response, table, optionName, action ),
 					error: response => console.error(
@@ -241,8 +236,8 @@ jQuery( document ).ready(
 			} else if ( action === 'add-autoload' || action === 'remove-autoload' ) {
 				const autoloadStatus = action === 'add-autoload' ? 'yes' : 'no';
 				const buttonHTML     = action === 'add-autoload' ?
-				'<button class="button dashicon remove-autoload" data-option="' + optionName + '"><span class="dashicons dashicons-minus"></span>' + aaaOptionOptimizer.i18n.removeAutoload + '</button>':
-				'<button class="button dashicon add-autoload" data-option="' + optionName + '"><span class="dashicons dashicons-plus"></span>' + aaaOptionOptimizer.i18n.addAutoload + '</button>';
+				'<button class="button dashicon remove-autoload" data-option="' + optionName + '"><span class="dashicons dashicons-minus"></span>' + aaaMetaOptimizer.i18n.removeAutoload + '</button>':
+				'<button class="button dashicon add-autoload" data-option="' + optionName + '"><span class="dashicons dashicons-plus"></span>' + aaaMetaOptimizer.i18n.addAutoload + '</button>';
 
 				$( 'tr#option_' + optionName ).find( 'td.autoload' ).text( autoloadStatus );
 				const oldButton = 'button.' + ( action === 'add-autoload' ? 'add' : 'remove' ) + '-autoload';

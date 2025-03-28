@@ -1,54 +1,43 @@
 <?php
 /**
- * Plugin that tracks autoloaded options usage and allows the user to optimize them.
+ * Plugin that tracks post meta usage and allows the user to optimize them.
  *
- * @package Emilia\OptionOptimizer
+ * @package Emilia\MetaOptimizer
  *
- * Plugin Name: AAA Option Optimizer
- * Plugin URI: https://joost.blog/plugins/aaa-option-optimizer/
- * Description: Tracks autoloaded options usage and allows the user to optimize them.
- * Version: 1.3
+ * Plugin Name: AAA Meta Optimizer
+ * Plugin URI: https://joost.blog/plugins/aaa-meta-optimizer/
+ * Description: Tracks post meta usage and allows the user to optimize them.
+ * Version: 1.0
  * License: GPL-3.0+
  * Author: Joost de Valk
  * Author URI: https://joost.blog/
- * Text Domain: aaa-option-optimizer
+ * Text Domain: aaa-meta-optimizer
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
 
-define( 'AAA_OPTION_OPTIMIZER_FILE', __FILE__ );
-define( 'AAA_OPTION_OPTIMIZER_DIR', __DIR__ );
+define( 'AAA_META_OPTIMIZER_FILE', __FILE__ );
+define( 'AAA_META_OPTIMIZER_DIR', __DIR__ );
 
 require_once __DIR__ . '/src/autoload.php';
 
-register_activation_hook( __FILE__, 'aaa_option_optimizer_activation' );
-register_deactivation_hook( __FILE__, 'aaa_option_optimizer_deactivation' );
+register_activation_hook( __FILE__, 'aaa_meta_optimizer_activation' );
+register_deactivation_hook( __FILE__, 'aaa_meta_optimizer_deactivation' );
 
 /**
  * Activation hooked function to store start stats.
  *
  * @return void
  */
-function aaa_option_optimizer_activation() {
-	global $wpdb;
-	$autoload_values = \wp_autoload_values_to_autoload();
-	$placeholders    = implode( ',', array_fill( 0, count( $autoload_values ), '%s' ) );
-
-	// phpcs:disable WordPress.DB
-	$result = $wpdb->get_row(
-		$wpdb->prepare( "SELECT count(*) AS count, SUM( LENGTH( option_value ) ) as autoload_size FROM {$wpdb->options} WHERE autoload IN ( $placeholders )", $autoload_values )
-	);
-	// phpcs:enable WordPress.DB
+function aaa_meta_optimizer_activation() {
 
 	update_option(
-		'option_optimizer',
+		'meta_optimizer',
 		[
-			'starting_point_kb'   => ( $result->autoload_size / 1024 ),
-			'starting_point_num'  => $result->count,
 			'starting_point_date' => current_time( 'mysql' ),
-			'used_options'        => [],
+			'used_meta_fields'    => [],
 		],
 		true
 	);
@@ -59,9 +48,9 @@ function aaa_option_optimizer_activation() {
  *
  * @return void
  */
-function aaa_option_optimizer_deactivation() {
-	$aaa_option_value = get_option( 'option_optimizer' );
-	update_option( 'option_optimizer', $aaa_option_value, false );
+function aaa_meta_optimizer_deactivation() {
+	$aaa_option_value = get_option( 'meta_optimizer' );
+	update_option( 'meta_optimizer', $aaa_option_value, false );
 }
 
 /**
@@ -69,9 +58,9 @@ function aaa_option_optimizer_deactivation() {
  *
  * @return void
  */
-function aaa_option_optimizer_init() {
-	$optimizer = new Emilia\OptionOptimizer\Plugin();
+function aaa_meta_optimizer_init() {
+	$optimizer = new Emilia\MetaOptimizer\Plugin();
 	$optimizer->register_hooks();
 }
 
-aaa_option_optimizer_init();
+aaa_meta_optimizer_init();
