@@ -101,7 +101,7 @@ class Plugin {
 	public function monitor_meta_field_accesses( $tag ) {
 
 		// Check if the tag is related to an option access.
-		if ( strpos( $tag, 'get_post_metadata' ) === 0 ) {
+		if ( 'get_post_metadata' === $tag ) {
 			$args     = func_get_args(); // phpcs:ignore -- Get all arguments passed to the hook.
 			$meta_key = $args[3];
 			$this->add_meta_field_usage( $meta_key );

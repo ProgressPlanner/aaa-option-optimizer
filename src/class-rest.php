@@ -8,7 +8,6 @@
 namespace Emilia\MetaOptimizer;
 
 use WP_Error;
-use WP_REST_Request;
 use WP_REST_Response;
 
 /**
@@ -17,20 +16,11 @@ use WP_REST_Response;
 class REST {
 
 	/**
-	 * The map plugin to options class.
-	 *
-	 * @var Map_Plugin_To_Options
-	 */
-	private $map_plugin_to_options;
-
-	/**
 	 * Registers hooks.
 	 *
 	 * @return void
 	 */
 	public function register_hooks() {
-		$this->map_plugin_to_options = new Map_Plugin_To_Options();
-
 		add_action( 'rest_api_init', [ $this, 'register_rest_routes' ] );
 	}
 
