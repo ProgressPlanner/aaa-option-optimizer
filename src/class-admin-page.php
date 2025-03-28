@@ -182,9 +182,6 @@ class Admin_Page {
 				case 'actions':
 					echo '<th class="actions">' . esc_html__( 'Actions', 'aaa-meta-optimizer' ) . '</th>';
 					break;
-				case 'autoload':
-					echo '<th>' . esc_html__( 'Autoload', 'aaa-meta-optimizer' ) . '</th>';
-					break;
 				case 'calls':
 					echo '<th>' . esc_html__( '# Calls', 'aaa-meta-optimizer' ) . '</th>';
 					break;
@@ -212,14 +209,14 @@ class Admin_Page {
 		$all_meta_keys = $wpdb->get_results( "SELECT DISTINCT meta_key FROM {$wpdb->postmeta}", ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$all_meta_keys = wp_list_pluck( $all_meta_keys, 'meta_key' );
 
-		$unused_options = [];
+		$unused_meta_fields = [];
 
 		// Get the meta fields that aren't used.
-		foreach ( $all_meta_keys as $option ) {
-			if ( isset( $meta_optimizer['used_meta_fields'][ $option ] ) ) {
+		foreach ( $all_meta_keys as $meta_key ) {
+			if ( isset( $meta_optimizer['used_meta_fields'][ $meta_key ] ) ) {
 				continue;
 			}
-			$unused_options[ $option ] = true;
+			$unused_meta_fields[ $meta_key ] = true;
 		}
 
 		// Start HTML output.
@@ -240,12 +237,12 @@ class Admin_Page {
 			<div class="panel">
 		<?php
 		echo '<h2 id="unused-meta-fields">' . esc_html__( 'Unused meta fields', 'aaa-meta-optimizer' ) . '</h2>';
-		if ( ! empty( $unused_options ) ) {
+		if ( ! empty( $unused_meta_fields ) ) {
 			echo '<p>' . esc_html__( 'The following meta fields are not used.', 'aaa-meta-optimizer' );
 			echo '<table style="width:100%" id="unused_options_table" class="aaa_option_table">';
 			$this->table_section( 'thead', [ 'option', 'source', 'actions' ] );
 			echo '<tbody>';
-			foreach ( $unused_options as $option => $value ) {
+			foreach ( $unused_meta_fields as $option => $value ) {
 				echo '<tr id="option_' . esc_attr( str_replace( ':', '', str_replace( '.', '', $option ) ) ) . '"><td>' . esc_html( $option ) . '</td>';
 				echo '<td>' . esc_html( $this->get_plugin_name( $option ) ) . '</td>';
 				echo '<td class="actions">';
@@ -260,12 +257,12 @@ class Admin_Page {
 		?>
 		</div>
 		<input class="input" name="tabs" type="radio" id="tab-2"/>
-			<label class="label" for="tab-2"><?php esc_html_e( 'Fetched meta fields', 'aaa-meta-optimizer' ); ?></label>
+			<label class="label" for="tab-2"><?php esc_html_e( 'Used meta fields', 'aaa-meta-optimizer' ); ?></label>
 			<div class="panel">
 		<?php
 		if ( ! empty( $meta_optimizer['used_meta_fields'] ) ) {
 			echo '<h2 id="used-meta-fields">' . esc_html__( 'Used meta fields', 'aaa-meta-optimizer' ) . '</h2>';
-			echo '<p>' . esc_html__( 'The following meta fields are being fetched.', 'aaa-meta-optimizer' );
+			echo '<p>' . esc_html__( 'The following meta fields are being used.', 'aaa-meta-optimizer' );
 			echo '<table style="width:100%;" id="used_not_autoloaded_table" class="aaa_option_table">';
 			$this->table_section( 'thead', [ 'option', 'source', 'calls', 'actions' ] );
 			echo '<tbody>';
