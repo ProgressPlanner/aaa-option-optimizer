@@ -100,11 +100,18 @@ class Plugin {
 	 */
 	public function monitor_meta_field_accesses( $tag ) {
 
-		// Check if the tag is related to an option access.
+		// Check if the tag is related to a post meta field access.
 		if ( 'get_post_metadata' === $tag ) {
 			$args     = func_get_args(); // phpcs:ignore -- Get all arguments passed to the hook.
 			$meta_key = $args[3];
 			$this->add_meta_field_usage( $meta_key );
+		}
+
+		// Check if the tag is related to a default post meta field access, meaning that the meta field doesn't exist in the database yet.
+		if ( 'default_post_metadata' === $tag ) {
+			$args     = func_get_args(); // phpcs:ignore -- Get all arguments passed to the hook.
+			$meta_key = $args[3];
+			$this->remove_meta_field_usage( $meta_key );
 		}
 	}
 
@@ -122,6 +129,20 @@ class Plugin {
 			return;
 		}
 		++$this->accessed_meta_fields[ $meta_key ];
+	}
+
+	/**
+	 * Add a meta field to the list of used meta fields if it's not already there.
+	 *
+	 * @param string $meta_key Name of the meta field being accessed.
+	 *
+	 * @return void
+	 */
+	protected function remove_meta_field_usage( $meta_key ) {
+		// Check if this option hasn't been tracked yet and add it to the array.
+		if ( array_key_exists( $meta_key, $this->accessed_meta_fields ) ) {
+			unset( $this->accessed_meta_fields[ $meta_key ] );
+		}
 	}
 
 	/**
