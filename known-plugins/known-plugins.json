@@ -10,7 +10,8 @@
             "_wp_suggested_privacy_policy_content",
             "is_wp_suggestion",
             "origin",
-            "_edit_lock"
+            "_edit_lock",
+            "_wp_page_template"
         ]
     }
 }
