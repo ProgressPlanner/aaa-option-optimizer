@@ -209,10 +209,10 @@ class Admin_Page {
 		global $wpdb;
 		$meta_optimizer = get_option( 'meta_optimizer', [ 'used_meta_fields' => [] ] );
 
-		$all_meta_keys = $wpdb->get_results( "SELECT DISTINCT meta_key FROM {$wpdb->postmeta}", ARRAY_A );
+		$all_meta_keys = $wpdb->get_results( "SELECT DISTINCT meta_key FROM {$wpdb->postmeta}", ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$all_meta_keys = wp_list_pluck( $all_meta_keys, 'meta_key' );
 
-		$unused_options         = [];
+		$unused_options = [];
 
 		// Get the meta fields that aren't used.
 		foreach ( $all_meta_keys as $option ) {
@@ -263,7 +263,7 @@ class Admin_Page {
 			<label class="label" for="tab-2"><?php esc_html_e( 'Fetched meta fields', 'aaa-meta-optimizer' ); ?></label>
 			<div class="panel">
 		<?php
-		if ( ! empty( $meta_optimizer['used_meta_fields']) ) {
+		if ( ! empty( $meta_optimizer['used_meta_fields'] ) ) {
 			echo '<h2 id="used-meta-fields">' . esc_html__( 'Used meta fields', 'aaa-meta-optimizer' ) . '</h2>';
 			echo '<p>' . esc_html__( 'The following meta fields are being fetched.', 'aaa-meta-optimizer' );
 			echo '<table style="width:100%;" id="used_not_autoloaded_table" class="aaa_option_table">';

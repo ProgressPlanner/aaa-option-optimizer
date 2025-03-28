@@ -44,6 +44,6 @@ class Map_Plugin_To_Options {
 			}
 		}
 
-		return __( 'Unknown', 'aaa-option-optimizer' );
+		return __( 'Unknown', 'aaa-meta-optimizer' );
 	}
 }

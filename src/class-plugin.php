@@ -102,16 +102,16 @@ class Plugin {
 
 		// Check if the tag is related to an option access.
 		if ( strpos( $tag, 'get_post_metadata' ) === 0 ) {
-			$args = func_get_args(); // Get all arguments passed to the hook.
+			$args     = func_get_args(); // phpcs:ignore -- Get all arguments passed to the hook.
 			$meta_key = $args[3];
 			$this->add_meta_field_usage( $meta_key );
 		}
 	}
 
 	/**
-	 * Add an option to the list of used options if it's not already there.
+	 * Add a meta field to the list of used meta fields if it's not already there.
 	 *
-	 * @param string $option_name Name of the option being accessed.
+	 * @param string $meta_key Name of the meta field being accessed.
 	 *
 	 * @return void
 	 */
@@ -125,7 +125,7 @@ class Plugin {
 	}
 
 	/**
-	 * Update the 'meta_optimizer' option with the list of used options at the end of the page load.
+	 * Update the 'meta_optimizer' option with the list of used meta fields at the end of the page load.
 	 *
 	 * @return void
 	 */
