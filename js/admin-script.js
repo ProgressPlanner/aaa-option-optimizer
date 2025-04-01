@@ -237,7 +237,7 @@ jQuery( document ).ready(
 		 */
 		function updateRowOnSuccess(response, table, optionName, action) {
 			if ( action === 'delete-option' || action === 'create-option-false' ) {
-				table.row( 'tr#option_' + optionName ).remove().draw( 'page' );
+				table.row( 'tr#option_' + optionName ).remove().draw( 'full-hold' );
 			} else if ( action === 'add-autoload' || action === 'remove-autoload' ) {
 				const autoloadStatus = action === 'add-autoload' ? 'yes' : 'no';
 				const buttonHTML     = action === 'add-autoload' ?
