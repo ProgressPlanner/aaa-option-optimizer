@@ -100,8 +100,8 @@ class Plugin {
 	 */
 	public function monitor_option_accesses( $tag ) {
 		// Check if the tag is related to an option access.
-		if ( strpos( $tag, 'option_' ) === 0 ) {
-			$option_name = substr( $tag, strlen( 'option_' ) );
+		if ( str_starts_with( $tag, 'option_' ) || str_starts_with( $tag, 'default_option_' ) ) {
+			$option_name = preg_replace( '#^(default_)?option_#', '', $tag );
 			$this->add_option_usage( $option_name );
 		}
 	}
