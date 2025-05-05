@@ -50,7 +50,7 @@ function aaa_option_optimizer_activation() {
 			'starting_point_date' => current_time( 'mysql' ),
 			'used_options'        => [],
 		],
-		true
+		false
 	);
 }
 
