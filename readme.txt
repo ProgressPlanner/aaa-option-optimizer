@@ -4,7 +4,7 @@ Tags: options, database, cleanup
 Requires at least: 6.6
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.3
+Stable tag: 1.3.1
 License: GPL3+
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -53,6 +53,10 @@ Please do a pull request via GitHub on [this file](https://github.com/Emilia-Cap
 2. Screenshot of the "All options" screen, showing you can browse all the options.
 
 == Changelog ==
+
+= 1.3.1 =
+
+* Fix JS error when deleting an option.
 
 = 1.3 =
 
