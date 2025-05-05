@@ -142,6 +142,6 @@ class Plugin {
 		}
 
 		// Update the 'option_optimizer' option with the new list.
-		update_option( 'option_optimizer', $option_optimizer, true );
+		update_option( 'option_optimizer', $option_optimizer, false );
 	}
 }
