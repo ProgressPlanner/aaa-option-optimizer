@@ -47,6 +47,46 @@ jQuery( document ).ready(
 				}
 			};
 
+			if (selector === '#unused_options_table') {
+				options.ajax  = {
+					url: aaaOptionOptimizer.root + 'aaa-option-optimizer/v1/unused-options',
+					headers: { 'X-WP-Nonce': aaaOptionOptimizer.nonce },
+					type: 'GET',
+					dataSrc: 'data'
+				};
+				options.rowId = "row_id";
+				options.serverSide = true;
+				options.processing = true;
+			}
+
+			if (selector === "#used_not_autoloaded_table") {
+				options.ajax = {
+				url:
+					aaaOptionOptimizer.root +
+					"aaa-option-optimizer/v1/used-not-autoloaded-options",
+				headers: { "X-WP-Nonce": aaaOptionOptimizer.nonce },
+				type: "GET",
+				dataSrc: "data",
+				};
+				options.rowId = "row_id";
+				options.serverSide = true;
+				options.processing = true;
+			}
+
+			if (selector === "#requested_do_not_exist_table") {
+				options.ajax = {
+				url:
+					aaaOptionOptimizer.root +
+					"aaa-option-optimizer/v1/options-that-do-not-exist",
+				headers: { "X-WP-Nonce": aaaOptionOptimizer.nonce },
+				type: "GET",
+				dataSrc: "data",
+				};
+				options.rowId = "row_id";
+				options.serverSide = true;
+				options.processing = true;
+			}
+
 			if (selector === '#all_options_table') {
 				options.ajax  = {
 					url: aaaOptionOptimizer.root + 'aaa-option-optimizer/v1/all-options',
@@ -71,29 +111,60 @@ jQuery( document ).ready(
 		 */
 		function getColumns(selector) {
 			const commonColumns = [
-				{ name: 'name' },
-				{ name: 'source' },
-				{ name: 'size', searchable: false },
-				{ name: 'autoload', className: 'autoload', searchable: false },
-				{ name: 'actions', searchable: false, orderable: false }
+				{ name: "name", data: "name" },
+				{ name: "source", data: "plugin" },
+				{ name: "size", data: "size", searchable: false },
+				{
+				name: "autoload",
+				data: "autoload",
+				className: "autoload",
+				searchable: false,
+				},
+				{
+				name: "value",
+				data: "value",
+				render: (data, type, row) => renderValueColumn(row),
+				orderable: false,
+				searchable: false,
+				className: "actions",
+				},
 			];
 
 			if (selector === '#requested_do_not_exist_table') {
 				return [
-					{ name: 'name' },
-					{ name: 'source', searchable: false },
-					{ name: 'calls', searchable: false },
-					{ name: 'actions', searchable: false, orderable: false }
+					{ name: "option", data: "name" },
+					{ name: "source", data: "plugin", searchable: false },
+					{ name: "calls", data: "count", searchable: false },
+					{
+						name: "option_name",
+						data: "option_name",
+						render: (data, type, row) => renderNonExistingOptionsColumn(row),
+						searchable: false,
+						orderable: false,
+						className: "actions",
+					},
 				];
 			} else if (selector === '#used_not_autoloaded_table') {
 				return [
-					{ name: 'name' },
-					{ name: 'source' },
-					{ name: 'size', searchable: false },
-					{ name: 'autoload', className: 'autoload', searchable: false },
-					{ name: 'calls', searchable: false },
-					{ name: 'actions', searchable: false, orderable: false }
-				]
+					{ name: "name", data: "name" },
+					{ name: "source", data: "plugin" },
+					{ name: "size", data: "size", searchable: false },
+					{
+						name: "autoload",
+						data: "autoload",
+						className: "autoload",
+						searchable: false,
+					},
+					{ name: "calls", data: "count", searchable: false },
+					{
+						name: "value",
+						data: "value",
+						render: (data, type, row) => renderValueColumn(row),
+						orderable: false,
+						searchable: false,
+						className: "actions",
+					},
+				];
 			} else if (selector === '#all_options_table') {
 				return [
 				{ name: 'name', data: 'name' },
@@ -166,6 +237,43 @@ jQuery( document ).ready(
 			];
 
 			return actions.join( '' );
+		}
+
+		/**
+		 * Renders the value column for a row.
+		 *
+		 * @param {Object} row - The row data.
+		 *
+		 * @returns {string} - The HTML for the value column.
+		 */
+		function renderValueColumn(row) {
+			const popoverContent = '<div id="popover_' + row.name + '" popover class="aaa-option-optimizer-popover">' +
+			'<button class="aaa-option-optimizer-popover__close" popovertarget="popover_' + row.name + '" popovertargetaction="hide">X</button>' +
+			'<p><strong>Value of <code>' + row.name + '</code></strong></p>' +
+			'<pre>' + row.value + '</pre>' +
+			'</div>';
+
+			const actions = [
+				'<button class="button dashicon" popovertarget="popover_' + row.name + '"><span class="dashicons dashicons-search"></span>' + aaaOptionOptimizer.i18n.showValue + '</button>',
+				popoverContent,
+				row.autoload === 'no' ?
+					'<button class="button dashicon add-autoload" data-option="' + row.name + '"><span class="dashicons dashicons-plus"></span>' + aaaOptionOptimizer.i18n.addAutoload + '</button>' :
+					'<button class="button dashicon remove-autoload" data-option="' + row.name + '"><span class="dashicons dashicons-minus"></span>' + aaaOptionOptimizer.i18n.removeAutoload + '</button>',
+					'<button class="button button-delete delete-option" data-option="' + row.name + '"><span class="dashicons dashicons-trash"></span>' + aaaOptionOptimizer.i18n.deleteOption + '</button >'
+			];
+
+			return actions.join( '' );
+		}
+
+		/**
+		 * Renders the value column for a row.
+		 *
+		 * @param {Object} row - The row data.
+		 *
+		 * @returns {string} - The HTML for the value column.
+		 */
+		function renderNonExistingOptionsColumn(row) {
+			return '<button class="button button-primary create-option-false" data-option="' + row.name + '">' + aaaOptionOptimizer.i18n.createOptionFalse + '</button>';
 		}
 
 		$( '#aaa-option-reset-data' ).on(

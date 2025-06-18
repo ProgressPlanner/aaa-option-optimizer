@@ -121,6 +121,42 @@ class REST {
 				},
 			]
 		);
+
+		\register_rest_route(
+			'aaa-option-optimizer/v1',
+			'/unused-options',
+			[
+				'methods'             => 'GET',
+				'callback'            => [ $this, 'get_unused_options' ],
+				'permission_callback' => function () {
+					return current_user_can( 'manage_options' );
+				},
+			]
+		);
+
+		\register_rest_route(
+			'aaa-option-optimizer/v1',
+			'/used-not-autoloaded-options',
+			[
+				'methods'             => 'GET',
+				'callback'            => [ $this, 'get_used_not_autoloaded_options' ],
+				'permission_callback' => function () {
+					return current_user_can( 'manage_options' );
+				},
+			]
+		);
+
+		\register_rest_route(
+			'aaa-option-optimizer/v1',
+			'/options-that-do-not-exist',
+			[
+				'methods'             => 'GET',
+				'callback'            => [ $this, 'get_options_that_do_not_exist' ],
+				'permission_callback' => function () {
+					return current_user_can( 'manage_options' );
+				},
+			]
+		);
 	}
 
 	/**
@@ -156,6 +192,257 @@ class REST {
 		}
 		return new \WP_REST_Response( [ 'data' => $output ], 200 );
 	}
+
+	/**
+	 * Get unused options.
+	 *
+	 * @return \WP_Error|\WP_REST_Response
+	 */
+	public function get_unused_options() {
+		global $wpdb;
+
+		// 1. Load used options from option_optimizer
+		$option_optimizer = get_option( 'option_optimizer', [ 'used_options' => [] ] );
+		$used_options     = $option_optimizer['used_options'];
+
+		// 2. Normalize used option keys (remove 'option:' prefix if present)
+		// $used_options = array_combine( array_keys( $used_options_raw ), array_values( $used_options_raw ) );
+
+
+		// 3. Get autoloaded, non-transient option names
+		$autoloaded_option_names = $wpdb->get_col( "
+			SELECT option_name
+			FROM {$wpdb->options}
+			WHERE autoload IN ( '" . implode( "', '", esc_sql( \wp_autoload_values_to_autoload() ) ) . "' )
+			AND option_name NOT LIKE '%_transient_%'
+		" );
+
+		// 4. Find unused autoloaded option names
+		$autoload_option_keys = array_fill_keys( $autoloaded_option_names, true );
+		$unused_keys = array_diff_key( $autoload_option_keys, $used_options );
+		$total_unused = count( $unused_keys );
+
+		// 5. Pagination
+		$offset = isset( $_GET['start'] ) ? intval( $_GET['start'] ) : 0;
+		$limit  = isset( $_GET['length'] ) ? intval( $_GET['length'] ) : 25;
+		$paged_option_names = array_slice( array_keys( $unused_keys ), $offset, $limit );
+
+		$unused_options = [];
+
+		if ( ! empty( $paged_option_names ) ) {
+			// 6. Prepare placeholders and SQL query
+			$placeholders = implode( ',', array_fill( 0, count( $paged_option_names ), '%s' ) );
+
+			$query = "
+				SELECT option_name, option_value
+				FROM {$wpdb->options}
+				WHERE option_name IN ( {$placeholders} )
+			";
+
+			$results = $wpdb->get_results( $wpdb->prepare( $query, ...$paged_option_names ) );
+
+			// 7. Format output
+			foreach ( $results as $row ) {
+				$unused_options[] = [
+					'name'     => $row->option_name,
+					'plugin'   => $this->map_plugin_to_options->get_plugin_name( $row->option_name ),
+					'value'    => htmlentities( $row->option_value, ENT_QUOTES | ENT_SUBSTITUTE ),
+					'size'     => number_format( strlen( $row->option_value ) / 1024, 2 ),
+					'autoload' => 'yes',
+					'row_id'   => 'option_' . $row->option_name,
+				];
+			}
+		}
+
+		// 8. Return response
+		return new \WP_REST_Response( [
+			'draw'            => intval( $_GET['draw'] ?? 0 ),
+			'recordsTotal'    => $total_unused,
+			'recordsFiltered' => $total_unused,
+			'data'            => $unused_options,
+		], 200 );
+
+	}
+
+	/**
+	 * WIP: Get used, but not autoloaded options.
+	 *
+	 * @return \WP_Error|\WP_REST_Response
+	 */
+	public function get_used_not_autoloaded_options() {
+		global $wpdb;
+
+		// 1. Load and normalize used options
+		$option_optimizer = get_option( 'option_optimizer', [ 'used_options' => [] ] );
+		$used_options_raw = $option_optimizer['used_options'];
+
+		// Normalize keys like "option:foo" to just "foo"
+		$used_options = array_combine(
+			array_map( function ( $key ) {
+				return ( strpos( $key, 'option:' ) === 0 ) ? substr( $key, 7 ) : $key;
+			}, array_keys( $used_options_raw ) ),
+			array_values( $used_options_raw )
+		);
+
+		if ( empty( $used_options ) ) {
+			return new \WP_REST_Response( [
+				'draw'            => intval( $_GET['draw'] ?? 0 ),
+				'recordsTotal'    => 0,
+				'recordsFiltered' => 0,
+				'data'            => [],
+			], 200 );
+		}
+
+		// 2. Get all autoloaded, non-transient option names
+		$autoloaded_keys = $wpdb->get_col( "
+			SELECT option_name
+			FROM {$wpdb->options}
+			WHERE autoload IN ( 'yes', 'on', 'true', '1' )
+			AND option_name NOT LIKE '%_transient_%'
+		" );
+
+		$autoloaded_keys = array_fill_keys( $autoloaded_keys, true );
+
+		// 3. Find used options not autoloaded
+		$non_autoloaded_used_keys = array_diff_key( $used_options, $autoloaded_keys );
+
+		if ( empty( $non_autoloaded_used_keys ) ) {
+			return new \WP_REST_Response( [
+				'draw'            => intval( $_GET['draw'] ?? 0 ),
+				'recordsTotal'    => 0,
+				'recordsFiltered' => 0,
+				'data'            => [],
+			], 200 );
+		}
+
+		// 4. Pagination
+		$offset = isset( $_GET['start'] ) ? intval( $_GET['start'] ) : 0;
+		$limit  = isset( $_GET['length'] ) ? intval( $_GET['length'] ) : 25;
+
+		$keys_to_fetch = array_slice( array_keys( $non_autoloaded_used_keys ), $offset, $limit );
+
+		// 5. Fetch values directly from DB without touching get_option()
+		$placeholders = implode( ',', array_fill( 0, count( $keys_to_fetch ), '%s' ) );
+		$sql = "
+			SELECT option_name, option_value
+			FROM {$wpdb->options}
+			WHERE option_name IN ($placeholders)
+		";
+
+		$results = $wpdb->get_results( $wpdb->prepare( $sql, ...$keys_to_fetch ) );
+
+		// 6. Format response
+		$response_data = [];
+
+		foreach ( $results as $row ) {
+			$response_data[] = [
+				'name'     => $row->option_name,
+				'plugin'   => $this->map_plugin_to_options->get_plugin_name( $row->option_name ),
+				'value'    => htmlentities( maybe_serialize( $row->option_value ), ENT_QUOTES | ENT_SUBSTITUTE ),
+				'size'     => number_format( strlen( $row->option_value ) / 1024, 2 ),
+				'autoload' => 'no',
+				'count'    => $used_options[ $row->option_name ] ?? 0,
+			];
+		}
+
+		// 7. Return final response
+		return new \WP_REST_Response( [
+			'draw'            => intval( $_GET['draw'] ?? 0 ),
+			'recordsTotal'    => count( $non_autoloaded_used_keys ),
+			'recordsFiltered' => count( $non_autoloaded_used_keys ),
+			'data'            => $response_data,
+		], 200 );
+	}
+
+	/**
+	 * WIP: Get used, but not autoloaded options.
+	 *
+	 * @return \WP_Error|\WP_REST_Response
+	 */
+	public function get_options_that_do_not_exist() {
+		global $wpdb;
+
+		// 1. Load and normalize used options
+		$option_optimizer = get_option( 'option_optimizer', [ 'used_options' => [] ] );
+		$used_options_raw = $option_optimizer['used_options'] ?? [];
+
+		// Normalize keys (remove 'option:' prefix)
+		$used_options = array_combine(
+			array_map( function ( $key ) {
+				return ( strpos( $key, 'option:' ) === 0 ) ? substr( $key, 7 ) : $key;
+			}, array_keys( $used_options_raw ) ),
+			array_values( $used_options_raw )
+		);
+
+		if ( empty( $used_options ) ) {
+			return new \WP_REST_Response( [
+				'draw'            => intval( $_GET['draw'] ?? 0 ),
+				'recordsTotal'    => 0,
+				'recordsFiltered' => 0,
+				'data'            => [],
+			], 200 );
+		}
+
+		// 2. Get autoloaded, non-transient options
+		$autoloaded_option_names = $wpdb->get_col( "
+			SELECT option_name
+			FROM {$wpdb->options}
+			WHERE autoload IN ('yes', 'on', 'true', '1')
+			AND option_name NOT LIKE '%_transient_%'
+		" );
+		$autoloaded_option_keys = array_fill_keys( $autoloaded_option_names, true );
+
+		// 3. Get used options that are not autoloaded
+		$non_autoloaded_keys = array_diff_key( $used_options, $autoloaded_option_keys );
+
+		if ( empty( $non_autoloaded_keys ) ) {
+			return new \WP_REST_Response( [
+				'draw'            => intval( $_GET['draw'] ?? 0 ),
+				'recordsTotal'    => 0,
+				'recordsFiltered' => 0,
+				'data'            => [],
+			], 200 );
+		}
+
+		// 4. Check which of them actually exist in the options table
+		$option_names = array_keys( $non_autoloaded_keys );
+		$placeholders = implode( ',', array_fill( 0, count( $option_names ), '%s' ) );
+
+		$existing_option_names = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT option_name FROM {$wpdb->options} WHERE option_name IN ($placeholders)",
+				...$option_names
+			)
+		);
+		$existing_keys = array_fill_keys( $existing_option_names, true );
+
+		// 5. Filter only those that do NOT exist
+		$options_that_do_not_exist = [];
+		foreach ( $non_autoloaded_keys as $option => $count ) {
+			if ( ! isset( $existing_keys[ $option ] ) ) {
+				$options_that_do_not_exist[] = [
+					'name'        => $option,
+					'plugin'      => $this->map_plugin_to_options->get_plugin_name( $option ),
+					'count'       => $count,
+					'option_name' => $option,
+				];
+			}
+		}
+
+		// 6. Pagination
+		$offset = isset( $_GET['start'] ) ? intval( $_GET['start'] ) : 0;
+		$limit  = isset( $_GET['length'] ) ? intval( $_GET['length'] ) : 25;
+		$paged_data = array_slice( $options_that_do_not_exist, $offset, $limit );
+
+		// 7. Return response
+		return new \WP_REST_Response( [
+			'draw'            => intval( $_GET['draw'] ?? 0 ),
+			'recordsTotal'    => count( $options_that_do_not_exist ),
+			'recordsFiltered' => count( $options_that_do_not_exist ),
+			'data'            => $paged_data,
+		], 200 );
+	}
+
 
 	/**
 	 * Update autoload status of an option.

@@ -70,7 +70,7 @@ class Admin_Page {
 			__( 'Option Optimizer', 'aaa-option-optimizer' ),
 			'manage_options',
 			'aaa-option-optimizer',
-			[ $this, 'render_admin_page' ]
+			[ $this, 'render_admin_page_ajax' ]
 		);
 	}
 
@@ -128,6 +128,7 @@ class Admin_Page {
 					'addAutoload'    => esc_html__( 'Add autoload', 'aaa-option-optimizer' ),
 					'removeAutoload' => esc_html__( 'Remove autoload', 'aaa-option-optimizer' ),
 					'deleteOption'   => esc_html__( 'Delete', 'aaa-option-optimizer' ),
+					'createOptionFalse' => esc_html__( 'Create option with value false', 'aaa-option-optimizer' ),
 
 					'search'         => esc_html__( 'Search:', 'aaa-option-optimizer' ),
 					'entries'        => [
@@ -224,6 +225,154 @@ class Admin_Page {
 			return '0.00';
 		}
 		return number_format( ( $length / 1024 ), 2 );
+	}
+
+	/**
+	 * Renders the admin page.
+	 *
+	 * @return void
+	 */
+	public function render_admin_page_ajax() {
+		$option_optimizer = get_option( 'option_optimizer', [ 'used_options' => [] ] );
+
+		// Start HTML output.
+		echo '<div class="wrap"><h1>' . esc_html__( 'AAA Option Optimizer', 'aaa-option-optimizer' ) . '</h1>';
+
+		global $wpdb;
+		$autoload_values = \wp_autoload_values_to_autoload();
+		$placeholders    = implode( ',', array_fill( 0, count( $autoload_values ), '%s' ) );
+
+		// phpcs:disable WordPress.DB
+		$result = $wpdb->get_row(
+			$wpdb->prepare( "SELECT count(*) AS count, SUM( LENGTH( option_value ) ) as autoload_size FROM {$wpdb->options} WHERE autoload IN ( $placeholders )", $autoload_values )
+		);
+		// phpcs:enable WordPress.DB
+
+		echo '<h2>' . esc_html__( 'Stats', 'aaa-option-optimizer' ) . '</h2>';
+		echo '<p>' .
+			sprintf(
+				// translators: %1$s is the date, %2$s is the number of options at stat, %3$s is the size at start in KB, %4$s is the number of options now, %5$s is the size in KB now.
+				esc_html__( 'When you started on %1$s you had %2$s autoloaded options, for %3$sKB of memory. Now you have %4$s options, for %5$sKB of memory.', 'aaa-option-optimizer' ),
+				esc_html( gmdate( 'Y-m-d', strtotime( $option_optimizer['starting_point_date'] ) ) ),
+				isset( $option_optimizer['starting_point_num'] ) ? esc_html( $option_optimizer['starting_point_num'] ) : '-',
+				number_format( ( $option_optimizer['starting_point_kb'] ), 1 ),
+				esc_html( $result->count ),
+				number_format( ( $result->autoload_size / 1024 ), 1 )
+			) . '</p>';
+
+		echo '<h2>' . esc_html__( 'Optimize', 'aaa-option-optimizer' ) . '</h2>';
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce is used for REST API.
+		if ( isset( $_GET['tracking_reset'] ) && $_GET['tracking_reset'] === 'true' ) {
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Tracking data has been reset.', 'aaa-option-optimizer' ) . '</p></div>';
+			// Take the parameter out of the URL without reloading the page.
+			echo '<script>window.history.pushState({}, document.title, window.location.href.replace( \'&tracking_reset=true\', \'\' ) );</script>';
+		}
+		echo '<div class="aaa-option-optimizer-reset"><button id="aaa-option-reset-data" class="button button-delete reset-data">' . esc_html__( 'Reset data', 'aaa-option-optimizer' ) . '</button></div>';
+		echo '<p>' . esc_html__( 'We\'ve found the following things you can maybe optimize:', 'aaa-option-optimizer' ) . '</p>';
+
+		?>
+	<div class="aaa-option-optimizer-tabs">
+			<input class="input" name="tabs" type="radio" id="tab-1" checked="checked"/>
+			<label class="label" for="tab-1"><?php esc_html_e( 'Unused, but autoloaded', 'aaa-option-optimizer' ); ?></label>
+			<div class="panel">
+		<?php
+		echo '<h2 id="unused-autoloaded">' . esc_html__( 'Unused, but autoloaded', 'aaa-option-optimizer' ) . '</h2>';
+		if ( true || ! empty( $unused_options ) ) {
+			echo '<p>' . esc_html__( 'The following options are autoloaded on each pageload, but AAA Option Optimizer has not been able to detect them being used.', 'aaa-option-optimizer' );
+			echo '<table style="width:100%" id="unused_options_table" class="aaa_option_table">';
+			$this->table_section( 'thead', [ 'option', 'source', 'size', 'autoload', 'actions' ] );
+			echo '<tbody>';
+			?>
+			<tr>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td class="actions"></td>
+			</tr>
+			<?php
+			echo '</tbody>';
+			$this->table_section( 'tfoot', [ 'option', 'source', 'size', 'autoload', 'actions' ] );
+			echo '</table>';
+		} else {
+			echo '<p>' . esc_html__( 'All autoloaded options are in use.', 'aaa-option-optimizer' ) . '</p>';
+		}
+		?>
+		</div>
+		<input class="input" name="tabs" type="radio" id="tab-2"/>
+			<label class="label" for="tab-2"><?php esc_html_e( 'Used, but not autoloaded', 'aaa-option-optimizer' ); ?></label>
+			<div class="panel">
+		<?php
+		// Render differences.
+		if ( true || ! empty( $non_autoloaded_options ) ) {
+			echo '<h2 id="used-not-autoloaded">' . esc_html__( 'Used, but not autoloaded options', 'aaa-option-optimizer' ) . '</h2>';
+			echo '<p>' . esc_html__( 'The following options are *not* autoloaded on each pageload, but AAA Option Optimizer has detected that they are being used. If one of the options below has been called a lot and is not very big, you might consider adding autoload to that option.', 'aaa-option-optimizer' );
+			echo '<table style="width:100%;" id="used_not_autoloaded_table" class="aaa_option_table">';
+			$this->table_section( 'thead', [ 'option', 'source', 'size', 'autoload', 'calls', 'actions' ] );
+			echo '<tbody>';
+			?>
+			<tr>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td class="actions"></td>
+			</tr>
+			<?php
+			echo '</tbody>';
+			$this->table_section( 'tfoot', [ 'option', 'source', 'size', 'autoload', 'calls', 'actions' ] );
+			echo '</table>';
+		} else {
+			echo '<p>' . esc_html__( 'All options that are used are autoloaded.', 'aaa-option-optimizer' ) . '</p>';
+		}
+		?>
+		</div>
+		<input class="input" name="tabs" type="radio" id="tab-3"/>
+			<label class="label" for="tab-3"><?php esc_html_e( 'Requested options that do not exist', 'aaa-option-optimizer' ); ?></label>
+			<div class="panel">
+		<?php
+		if ( true || ! empty( $options_that_do_not_exist ) ) {
+			echo '<h2 id="requested-do-not-exist">' . esc_html__( 'Requested options that do not exist', 'aaa-option-optimizer' ) . '</h2>';
+			echo '<p>' . esc_html__( 'The following options are requested sometimes, but AAA Option Optimizer has detected that they do not exist. If one of the options below has been called a lot, it might help to create it with a value of false.', 'aaa-option-optimizer' );
+			echo '<table width="100%" id="requested_do_not_exist_table" class="aaa_option_table">';
+			$this->table_section( 'thead', [ 'option', 'source', 'calls', 'actions' ] );
+			echo '<tbody>';
+			?>
+			<tr>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td class="actions"></td>
+			</tr>
+			<?php
+			echo '</tbody>';
+			$this->table_section( 'tfoot', [ 'option', 'source', 'calls', 'actions' ] );
+			echo '</table>';
+		}
+		?>
+		</div>
+		<input class="input" name="tabs" type="radio" id="tab-4"/>
+		<label class="label" for="tab-4"><?php esc_html_e( 'All options', 'aaa-option-optimizer' ); ?></label>
+		<div class="panel">
+			<p><?php esc_html_e( 'If you want to browse all the options in the database, you can do so here:', 'aaa-option-optimizer' ); ?></p>
+			<button id="aaa_get_all_options" class="button button-primary"><?php esc_html_e( 'Get all options', 'aaa-option-optimizer' ); ?></button>
+			<table class="aaa_option_table" id="all_options_table" style="display:none;">
+				<?php $this->table_section( 'thead', [ 'option', 'source', 'size', 'autoload', 'actions' ] ); ?>
+				<tbody>
+					<tr>
+						<td></td>
+						<td></td>
+						<td></td>
+						<td></td>
+						<td class="actions"></td>
+					</tr>
+				</tbody>
+				<?php $this->table_section( 'tfoot', [ 'option', 'source', 'size', 'autoload', 'actions' ] ); ?>
+			</table>
+		</div>
+	</div>
+		<?php
 	}
 
 	/**
@@ -415,7 +564,7 @@ class Admin_Page {
 						<td></td>
 						<td></td>
 						<td class="actions"></td>
-					</tr>	
+					</tr>
 				</tbody>
 				<?php $this->table_section( 'tfoot', [ 'option', 'source', 'size', 'autoload', 'actions' ] ); ?>
 			</table>
