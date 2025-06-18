@@ -48,41 +48,41 @@ jQuery( document ).ready(
 			};
 
 			if (selector === '#unused_options_table') {
-				options.ajax  = {
+				options.ajax       = {
 					url: aaaOptionOptimizer.root + 'aaa-option-optimizer/v1/unused-options',
 					headers: { 'X-WP-Nonce': aaaOptionOptimizer.nonce },
 					type: 'GET',
 					dataSrc: 'data'
 				};
-				options.rowId = "row_id";
+				options.rowId      = "row_id";
 				options.serverSide = true;
 				options.processing = true;
 			}
 
 			if (selector === "#used_not_autoloaded_table") {
-				options.ajax = {
-				url:
+				options.ajax       = {
+					url:
 					aaaOptionOptimizer.root +
 					"aaa-option-optimizer/v1/used-not-autoloaded-options",
-				headers: { "X-WP-Nonce": aaaOptionOptimizer.nonce },
-				type: "GET",
-				dataSrc: "data",
+					headers: { "X-WP-Nonce": aaaOptionOptimizer.nonce },
+					type: "GET",
+					dataSrc: "data",
 				};
-				options.rowId = "row_id";
+				options.rowId      = "row_id";
 				options.serverSide = true;
 				options.processing = true;
 			}
 
 			if (selector === "#requested_do_not_exist_table") {
-				options.ajax = {
-				url:
+				options.ajax       = {
+					url:
 					aaaOptionOptimizer.root +
 					"aaa-option-optimizer/v1/options-that-do-not-exist",
-				headers: { "X-WP-Nonce": aaaOptionOptimizer.nonce },
-				type: "GET",
-				dataSrc: "data",
+					headers: { "X-WP-Nonce": aaaOptionOptimizer.nonce },
+					type: "GET",
+					dataSrc: "data",
 				};
-				options.rowId = "row_id";
+				options.rowId      = "row_id";
 				options.serverSide = true;
 				options.processing = true;
 			}
@@ -115,19 +115,19 @@ jQuery( document ).ready(
 				{ name: "source", data: "plugin" },
 				{ name: "size", data: "size", searchable: false },
 				{
-				name: "autoload",
-				data: "autoload",
-				className: "autoload",
-				searchable: false,
-				},
+					name: "autoload",
+					data: "autoload",
+					className: "autoload",
+					searchable: false,
+			},
 				{
-				name: "value",
-				data: "value",
-				render: (data, type, row) => renderValueColumn(row),
-				orderable: false,
-				searchable: false,
-				className: "actions",
-				},
+					name: "value",
+					data: "value",
+					render: (data, type, row) => renderValueColumn( row ),
+					orderable: false,
+					searchable: false,
+					className: "actions",
+			},
 			];
 
 			if (selector === '#requested_do_not_exist_table') {
@@ -138,11 +138,11 @@ jQuery( document ).ready(
 					{
 						name: "option_name",
 						data: "option_name",
-						render: (data, type, row) => renderNonExistingOptionsColumn(row),
+						render: (data, type, row) => renderNonExistingOptionsColumn( row ),
 						searchable: false,
 						orderable: false,
 						className: "actions",
-					},
+				},
 				];
 			} else if (selector === '#used_not_autoloaded_table') {
 				return [
@@ -154,16 +154,16 @@ jQuery( document ).ready(
 						data: "autoload",
 						className: "autoload",
 						searchable: false,
-					},
+				},
 					{ name: "calls", data: "count", searchable: false },
 					{
 						name: "value",
 						data: "value",
-						render: (data, type, row) => renderValueColumn(row),
+						render: (data, type, row) => renderValueColumn( row ),
 						orderable: false,
 						searchable: false,
 						className: "actions",
-					},
+				},
 				];
 			} else if (selector === '#all_options_table') {
 				return [

@@ -123,19 +123,19 @@ class Admin_Page {
 				'root'  => esc_url_raw( rest_url() ),
 				'nonce' => wp_create_nonce( 'wp_rest' ),
 				'i18n'  => [
-					'filterBySource' => esc_html__( 'Filter by source', 'aaa-option-optimizer' ),
-					'showValue'      => esc_html__( 'Show', 'aaa-option-optimizer' ),
-					'addAutoload'    => esc_html__( 'Add autoload', 'aaa-option-optimizer' ),
-					'removeAutoload' => esc_html__( 'Remove autoload', 'aaa-option-optimizer' ),
-					'deleteOption'   => esc_html__( 'Delete', 'aaa-option-optimizer' ),
+					'filterBySource'    => esc_html__( 'Filter by source', 'aaa-option-optimizer' ),
+					'showValue'         => esc_html__( 'Show', 'aaa-option-optimizer' ),
+					'addAutoload'       => esc_html__( 'Add autoload', 'aaa-option-optimizer' ),
+					'removeAutoload'    => esc_html__( 'Remove autoload', 'aaa-option-optimizer' ),
+					'deleteOption'      => esc_html__( 'Delete', 'aaa-option-optimizer' ),
 					'createOptionFalse' => esc_html__( 'Create option with value false', 'aaa-option-optimizer' ),
 
-					'search'         => esc_html__( 'Search:', 'aaa-option-optimizer' ),
-					'entries'        => [
+					'search'            => esc_html__( 'Search:', 'aaa-option-optimizer' ),
+					'entries'           => [
 						'_' => \esc_html__( 'entries', 'aaa-option-optimizer' ),
 						'1' => \esc_html__( 'entry', 'aaa-option-optimizer' ),
 					],
-					'sInfo'          => sprintf(
+					'sInfo'             => sprintf(
 						// translators: %1$s is the start, %2$s is the end, %3$s is the total, %4$s is the entries.
 						esc_html__( 'Showing %1$s to %2$s of %3$s %4$s', 'aaa-option-optimizer' ),
 						'_START_',
@@ -143,15 +143,15 @@ class Admin_Page {
 						'_TOTAL_',
 						'_ENTRIES-TOTAL_'
 					),
-					'sInfoEmpty'     => esc_html__( 'Showing 0 to 0 of 0 entries', 'aaa-option-optimizer' ),
-					'sInfoFiltered'  => sprintf(
+					'sInfoEmpty'        => esc_html__( 'Showing 0 to 0 of 0 entries', 'aaa-option-optimizer' ),
+					'sInfoFiltered'     => sprintf(
 						// translators: %1$s is the max, %2$s is the entries-max.
 						esc_html__( '(filtered from %1$s total %2$s)', 'aaa-option-optimizer' ),
 						'_MAX_',
 						'_ENTRIES-MAX_'
 					),
-					'sZeroRecords'   => esc_html__( 'No matching records found', 'aaa-option-optimizer' ),
-					'oAria'          => [
+					'sZeroRecords'      => esc_html__( 'No matching records found', 'aaa-option-optimizer' ),
+					'oAria'             => [
 						'orderable'        => esc_html__( ': Activate to sort', 'aaa-option-optimizer' ),
 						'orderableReverse' => esc_html__( ': Activate to invert sorting', 'aaa-option-optimizer' ),
 						'orderableRemove'  => esc_html__( ': Activate to remove sorting', 'aaa-option-optimizer' ),
