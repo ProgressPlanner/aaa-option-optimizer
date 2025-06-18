@@ -199,14 +199,15 @@ class REST {
 	 * @return \WP_Error|\WP_REST_Response
 	 */
 	public function get_unused_options() {
+		if ( ! isset( $_SERVER['HTTP_X_WP_NONCE'] ) || ! wp_verify_nonce( \sanitize_text_field( \wp_unslash( $_SERVER['HTTP_X_WP_NONCE'] ) ), 'wp_rest' ) ) {
+			return new \WP_REST_Response( [ 'error' => 'Invalid nonce' ], 403 );
+		}
+
 		global $wpdb;
 
 		// 1. Load used options from option_optimizer
 		$option_optimizer = get_option( 'option_optimizer', [ 'used_options' => [] ] );
 		$used_options     = $option_optimizer['used_options'];
-
-		// 2. Normalize used option keys (remove 'option:' prefix if present)
-		// $used_options = array_combine( array_keys( $used_options_raw ), array_values( $used_options_raw ) );
 
 		// 3. Get autoloaded, non-transient option names
 		$autoloaded_option_names = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -240,7 +241,7 @@ class REST {
 				WHERE option_name IN ( {$placeholders} )
 			";
 
-			$results = $wpdb->get_results( $wpdb->prepare( $query, ...$paged_option_names ) );  // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$results = $wpdb->get_results( $wpdb->prepare( $query, ...$paged_option_names ) );  // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 
 			// 7. Format output
 			foreach ( $results as $row ) {
@@ -273,22 +274,15 @@ class REST {
 	 * @return \WP_Error|\WP_REST_Response
 	 */
 	public function get_used_not_autoloaded_options() {
+		if ( ! isset( $_SERVER['HTTP_X_WP_NONCE'] ) || ! wp_verify_nonce( \sanitize_text_field( \wp_unslash( $_SERVER['HTTP_X_WP_NONCE'] ) ), 'wp_rest' ) ) {
+			return new \WP_REST_Response( [ 'error' => 'Invalid nonce' ], 403 );
+		}
+
 		global $wpdb;
 
 		// 1. Load and normalize used options
 		$option_optimizer = get_option( 'option_optimizer', [ 'used_options' => [] ] );
-		$used_options_raw = $option_optimizer['used_options'];
-
-		// Normalize keys like "option:foo" to just "foo"
-		$used_options = array_combine(
-			array_map(
-				function ( $key ) {
-					return ( strpos( $key, 'option:' ) === 0 ) ? substr( $key, 7 ) : $key;
-				},
-				array_keys( $used_options_raw )
-			),
-			array_values( $used_options_raw )
-		);
+		$used_options     = $option_optimizer['used_options'];
 
 		if ( empty( $used_options ) ) {
 			return new \WP_REST_Response(
@@ -303,7 +297,7 @@ class REST {
 		}
 
 		// 2. Get all autoloaded, non-transient option names
-		$autoloaded_keys = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$autoloaded_keys = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 			"
 			SELECT option_name
 			FROM {$wpdb->options}
@@ -340,10 +334,9 @@ class REST {
 		$sql          = "
 			SELECT option_name, option_value
 			FROM {$wpdb->options}
-			WHERE option_name IN ($placeholders)
-		";
+			WHERE option_name IN ($placeholders)"; // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
-		$results = $wpdb->get_results( $wpdb->prepare( $sql, ...$keys_to_fetch ) );
+		$results = $wpdb->get_results( $wpdb->prepare( $sql, ...$keys_to_fetch ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		// 6. Format response
 		$response_data = [];
@@ -377,22 +370,15 @@ class REST {
 	 * @return \WP_Error|\WP_REST_Response
 	 */
 	public function get_options_that_do_not_exist() {
+		if ( ! isset( $_SERVER['HTTP_X_WP_NONCE'] ) || ! wp_verify_nonce( \sanitize_text_field( \wp_unslash( $_SERVER['HTTP_X_WP_NONCE'] ) ), 'wp_rest' ) ) {
+			return new \WP_REST_Response( [ 'error' => 'Invalid nonce' ], 403 );
+		}
+
 		global $wpdb;
 
 		// 1. Load and normalize used options
 		$option_optimizer = get_option( 'option_optimizer', [ 'used_options' => [] ] );
-		$used_options_raw = $option_optimizer['used_options'] ?? [];
-
-		// Normalize keys (remove 'option:' prefix)
-		$used_options = array_combine(
-			array_map(
-				function ( $key ) {
-					return ( strpos( $key, 'option:' ) === 0 ) ? substr( $key, 7 ) : $key;
-				},
-				array_keys( $used_options_raw )
-			),
-			array_values( $used_options_raw )
-		);
+		$used_options     = $option_optimizer['used_options'] ?? [];
 
 		if ( empty( $used_options ) ) {
 			return new \WP_REST_Response(
@@ -436,9 +422,9 @@ class REST {
 		$option_names = array_keys( $non_autoloaded_keys );
 		$placeholders = implode( ',', array_fill( 0, count( $option_names ), '%s' ) );
 
-		$existing_option_names = $wpdb->get_col(
+		$existing_option_names = $wpdb->get_col(  // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->prepare(
-				"SELECT option_name FROM {$wpdb->options} WHERE option_name IN ($placeholders)",
+				"SELECT option_name FROM {$wpdb->options} WHERE option_name IN ($placeholders)", // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 				...$option_names
 			)
 		);
