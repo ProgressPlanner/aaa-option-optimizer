@@ -492,10 +492,10 @@ class REST {
 		$existing_keys         = array_fill_keys( $existing_option_names, true );
 
 		// Filter only those that do NOT exist.
-		$options_that_do_not_exist = [];
+		$response_data = [];
 		foreach ( $non_autoloaded_keys as $option => $count ) {
 			if ( ! isset( $existing_keys[ $option ] ) ) {
-				$options_that_do_not_exist[] = [
+				$response_data[] = [
 					'name'        => $option,
 					'plugin'      => $this->map_plugin_to_options->get_plugin_name( $option ),
 					'count'       => $count,
@@ -504,17 +504,24 @@ class REST {
 			}
 		}
 
+		$total_filtered = count( $response_data );
+
 		// Pagination.
 		[ $offset, $limit ] = $this->get_pagination_params();
 
-		$response_data = array_slice( $options_that_do_not_exist, $offset, $limit );
+		// Sort order.
+		[ $order_column, $order_dir ] = $this->get_sort_params();
+
+		// Sort and slice after.
+		$response_data = $this->sort_response_data_by_column( $response_data, $order_column, $order_dir );
+		$response_data = array_slice( $response_data, $offset, $limit );
 
 		// Return response.
 		return new \WP_REST_Response(
 			[
 				'draw'            => intval( $_GET['draw'] ?? 0 ),
-				'recordsTotal'    => count( $options_that_do_not_exist ),
-				'recordsFiltered' => count( $options_that_do_not_exist ),
+				'recordsTotal'    => $total_filtered,
+				'recordsFiltered' => $total_filtered,
 				'data'            => $response_data,
 			],
 			200
