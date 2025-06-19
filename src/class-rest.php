@@ -209,14 +209,22 @@ class REST {
 		$option_optimizer = get_option( 'option_optimizer', [ 'used_options' => [] ] );
 		$used_options     = $option_optimizer['used_options'];
 
-		// Get autoloaded, non-transient option names.
-		$autoloaded_option_names = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			"
+		$query = "
 			SELECT option_name
 			FROM {$wpdb->options}
 			WHERE autoload IN ( '" . implode( "', '", esc_sql( \wp_autoload_values_to_autoload() ) ) . "' )
 			AND option_name NOT LIKE '%_transient_%'
-		"
+		";
+
+		// Search.
+		$search = isset( $_GET['search']['value'] ) ? trim( \sanitize_text_field( \wp_unslash( $_GET['search']['value'] ) ) ) : '';
+		if ( '' !== $search ) {
+			$query .= " AND option_name LIKE '%" . esc_sql( $search ) . "%'";
+		}
+
+		// Get autoloaded, non-transient option names.
+		$autoloaded_option_names = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$query // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		);
 
 		// Find unused autoloaded option names.
@@ -310,6 +318,18 @@ class REST {
 
 		// Find used options not autoloaded.
 		$non_autoloaded_used_keys = array_diff_key( $used_options, $autoload_option_keys );
+
+		// Search.
+		$search = isset( $_GET['search']['value'] ) ? trim( \sanitize_text_field( \wp_unslash( $_GET['search']['value'] ) ) ) : '';
+		if ( '' !== $search ) {
+			$non_autoloaded_used_keys = array_filter(
+				$non_autoloaded_used_keys,
+				function ( $option_name ) use ( $search ) {
+					return false !== stripos( $option_name, $search );
+				},
+				ARRAY_FILTER_USE_KEY
+			);
+		}
 
 		if ( empty( $non_autoloaded_used_keys ) ) {
 			return new \WP_REST_Response(
@@ -408,6 +428,18 @@ class REST {
 		// Get used options that are not autoloaded.
 		$non_autoloaded_keys = array_diff_key( $used_options, $autoload_option_keys );
 
+		// Search.
+		$search = isset( $_GET['search']['value'] ) ? trim( \sanitize_text_field( \wp_unslash( $_GET['search']['value'] ) ) ) : '';
+		if ( '' !== $search ) {
+			$non_autoloaded_keys = array_filter(
+				$non_autoloaded_keys,
+				function ( $option_name ) use ( $search ) {
+					return stripos( $option_name, $search ) !== false;
+				},
+				ARRAY_FILTER_USE_KEY
+			);
+		}
+
 		if ( empty( $non_autoloaded_keys ) ) {
 			return new \WP_REST_Response(
 				[
@@ -461,7 +493,6 @@ class REST {
 			200
 		);
 	}
-
 
 	/**
 	 * Update autoload status of an option.
