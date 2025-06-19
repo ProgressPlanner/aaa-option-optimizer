@@ -233,7 +233,7 @@ class REST {
 		$total_unused         = count( $unused_keys );
 
 		// Sort order.
-		$order_column = isset( $_GET['order'][0]['name'] ) ? \sanitize_text_field( \wp_unslash( $_GET['order'][0]['name'] ) ) : 'name';
+		$order_column = isset( $_GET['order'][0]['data'] ) ? \sanitize_text_field( \wp_unslash( $_GET['order'][0]['data'] ) ) : 'name';
 		$order_dir    = isset( $_GET['order'][0]['dir'] ) ? \strtolower( \sanitize_text_field( \wp_unslash( $_GET['order'][0]['dir'] ) ) ) : 'asc';
 		$order_dir    = 'desc' === $order_dir ? SORT_DESC : SORT_ASC;
 
