@@ -183,9 +183,10 @@ class REST {
 		foreach ( $options as $option ) {
 			$output[] = [
 				'name'     => $option->option_name,
-				'plugin'   => $this->map_plugin_to_options->get_plugin_name( $option->option_name ),
+				'plugin'   => $this->get_plugin_name( $option->option_name ),
 				'value'    => htmlentities( $option->option_value, ENT_QUOTES | ENT_SUBSTITUTE ),
-				'size'     => number_format( strlen( $option->option_value ) / 1024, 2 ),
+				'size'     => $this->get_length( $option->option_value ),
+				'raw_size' => strlen( $option->option_value ),
 				'autoload' => $option->autoload,
 				'row_id'   => 'option_' . $option->option_name,
 			];
@@ -260,9 +261,9 @@ class REST {
 			foreach ( $results as $row ) {
 				$response_data[] = [
 					'name'     => $row->option_name,
-					'plugin'   => $this->map_plugin_to_options->get_plugin_name( $row->option_name ),
+					'plugin'   => $this->get_plugin_name( $row->option_name ),
 					'value'    => htmlentities( $row->option_value, ENT_QUOTES | ENT_SUBSTITUTE ),
-					'size'     => number_format( strlen( $row->option_value ) / 1024, 2 ),
+					'size'     => $this->get_length( $row->option_value ),
 					'raw_size' => strlen( $row->option_value ),
 					'autoload' => 'yes',
 					'row_id'   => 'option_' . $row->option_name,
@@ -371,27 +372,26 @@ class REST {
 
 		$response_data = [];
 
-		if ( ! empty( $paged_option_names ) ) {
-			// Fetch values directly from DB without using get_option().
-			$placeholders = implode( ',', array_fill( 0, count( $paged_option_names ), '%s' ) );
-			$sql          = "
-				SELECT option_name, option_value
-				FROM {$wpdb->options}
-				WHERE option_name IN ( {$placeholders} )"; // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// $paged_option_names is not empty.
+		// Fetch values directly from DB without using get_option().
+		$placeholders = implode( ',', array_fill( 0, count( $paged_option_names ), '%s' ) );
+		$sql          = "
+			SELECT option_name, option_value
+			FROM {$wpdb->options}
+			WHERE option_name IN ( {$placeholders} )"; // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
-			$results = $wpdb->get_results( $wpdb->prepare( $sql, ...$paged_option_names ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$results = $wpdb->get_results( $wpdb->prepare( $sql, ...$paged_option_names ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
-			foreach ( $results as $row ) {
-				$response_data[] = [
-					'name'     => $row->option_name,
-					'plugin'   => $this->map_plugin_to_options->get_plugin_name( $row->option_name ),
-					'value'    => htmlentities( maybe_serialize( $row->option_value ), ENT_QUOTES | ENT_SUBSTITUTE ),
-					'size'     => number_format( strlen( $row->option_value ) / 1024, 2 ),
-					'raw_size' => strlen( $row->option_value ),
-					'autoload' => 'no',
-					'count'    => $used_options[ $row->option_name ] ?? 0,
-				];
-			}
+		foreach ( $results as $row ) {
+			$response_data[] = [
+				'name'     => $row->option_name,
+				'plugin'   => $this->get_plugin_name( $row->option_name ),
+				'value'    => htmlentities( maybe_serialize( $row->option_value ), ENT_QUOTES | ENT_SUBSTITUTE ),
+				'size'     => $this->get_length( $row->option_value ),
+				'raw_size' => strlen( $row->option_value ),
+				'autoload' => 'no',
+				'count'    => $used_options[ $row->option_name ] ?? 0,
+			];
 		}
 
 		$total_filtered = count( $response_data );
@@ -497,7 +497,7 @@ class REST {
 			if ( ! isset( $existing_keys[ $option ] ) ) {
 				$response_data[] = [
 					'name'        => $option,
-					'plugin'      => $this->map_plugin_to_options->get_plugin_name( $option ),
+					'plugin'      => $this->get_plugin_name( $option ),
 					'count'       => $count,
 					'option_name' => $option,
 				];
@@ -595,11 +595,11 @@ class REST {
 	/**
 	 * Sort response data array by given column and direction.
 	 *
-	 * @param array  $data        The data array to sort.
-	 * @param string $column      The column key to sort by.
-	 * @param int    $direction   SORT_ASC or SORT_DESC.
+	 * @param array<int, array<string, mixed>> $data        The data array to sort.
+	 * @param string                           $column      The column key to sort by.
+	 * @param int                              $direction   SORT_ASC or SORT_DESC.
 	 *
-	 * @return array The sorted array.
+	 * @return array<int, array<string, mixed>> The sorted array.
 	 */
 	protected function sort_response_data_by_column( array $data, string $column, int $direction ): array {
 
@@ -628,7 +628,7 @@ class REST {
 	/**
 	 * Get pagination parameters from $_GET.
 	 *
-	 * @return array {
+	 * @return array{0: int, 1: int} {
 	 *     @type int $offset Pagination offset.
 	 *     @type int $limit  Number of items per page.
 	 * }
@@ -650,7 +650,7 @@ class REST {
 	/**
 	 * Get sort column and direction from DataTables-style request.
 	 *
-	 * @return array [ string $column, int $direction (SORT_ASC|SORT_DESC) ]
+	 * @return array{0: string, 1: int} [ string $column, int $direction (SORT_ASC|SORT_DESC) ]
 	 */
 	public function get_sort_params(): array {
 		if (
@@ -675,5 +675,39 @@ class REST {
 		$dir_flag = $dir === 'desc' ? SORT_DESC : SORT_ASC;
 
 		return [ $column_data, $dir_flag ];
+	}
+
+	/**
+	 * Get the length of a value.
+	 *
+	 * @param mixed $value The input value.
+	 *
+	 * @return string
+	 */
+	private function get_length( $value ) {
+		if ( empty( $value ) ) {
+			return '0.00';
+		}
+		if ( is_array( $value ) || is_object( $value ) ) {
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- intended here.
+			$length = strlen( serialize( $value ) );
+		} elseif ( is_string( $value ) || is_numeric( $value ) ) {
+			$length = strlen( strval( $value ) );
+		}
+		if ( ! isset( $length ) ) {
+			return '0.00';
+		}
+		return number_format( ( $length / 1024 ), 2 );
+	}
+
+	/**
+	 * Find plugin in known plugin prefixes list.
+	 *
+	 * @param string $option The option name.
+	 *
+	 * @return string
+	 */
+	private function get_plugin_name( $option ) {
+		return $this->map_plugin_to_options->get_plugin_name( $option );
 	}
 }

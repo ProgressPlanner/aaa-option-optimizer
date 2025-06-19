@@ -13,20 +13,11 @@ namespace Emilia\OptionOptimizer;
 class Admin_Page {
 
 	/**
-	 * The map plugin to options class.
-	 *
-	 * @var Map_Plugin_To_Options
-	 */
-	private $map_plugin_to_options;
-
-	/**
 	 * Register hooks.
 	 *
 	 * @return void
 	 */
 	public function register_hooks() {
-		$this->map_plugin_to_options = new Map_Plugin_To_Options();
-
 		// Register a link to the settings page on the plugins overview page.
 		\add_filter( 'plugin_action_links', [ $this, 'filter_plugin_actions' ], 10, 2 );
 
@@ -205,29 +196,6 @@ class Admin_Page {
 	}
 
 	/**
-	 * Get the length of a value.
-	 *
-	 * @param mixed $value The input value.
-	 *
-	 * @return string
-	 */
-	private function get_length( $value ) {
-		if ( empty( $value ) ) {
-			return '0.00';
-		}
-		if ( is_array( $value ) || is_object( $value ) ) {
-			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- intended here.
-			$length = strlen( serialize( $value ) );
-		} elseif ( is_string( $value ) || is_numeric( $value ) ) {
-			$length = strlen( strval( $value ) );
-		}
-		if ( ! isset( $length ) ) {
-			return '0.00';
-		}
-		return number_format( ( $length / 1024 ), 2 );
-	}
-
-	/**
 	 * Renders the admin page.
 	 *
 	 * @return void
@@ -394,16 +362,5 @@ class Admin_Page {
 		'<p><strong>' . sprintf( esc_html__( 'Value of %s', 'aaa-option-optimizer' ), '<code>' . esc_html( $name ) . '</code>' ) . '</strong></p>
 		<pre>' . htmlentities( $string, ENT_QUOTES | ENT_SUBSTITUTE ) . '</pre>
 		</div>';
-	}
-
-	/**
-	 * Find plugin in known plugin prefixes list.
-	 *
-	 * @param string $option The option name.
-	 *
-	 * @return string
-	 */
-	private function get_plugin_name( $option ) {
-		return $this->map_plugin_to_options->get_plugin_name( $option );
 	}
 }
