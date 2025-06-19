@@ -348,9 +348,7 @@ class REST {
 			);
 		}
 
-		$total_filtered = count( $non_autoloaded_used_keys );
-
-		if ( $total_filtered === 0 ) {
+		if ( empty( $non_autoloaded_used_keys ) ) {
 			return new \WP_REST_Response(
 				[
 					'draw'            => intval( $_GET['draw'] ?? 0 ),
@@ -395,6 +393,8 @@ class REST {
 				];
 			}
 		}
+
+		$total_filtered = count( $response_data );
 
 		// Sort and slice after.
 		$response_data = $this->sort_response_data_by_column( $response_data, $order_column, $order_dir );
