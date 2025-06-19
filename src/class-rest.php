@@ -242,7 +242,7 @@ class REST {
 		$limit              = isset( $_GET['length'] ) ? intval( $_GET['length'] ) : 25;
 		$paged_option_names = array_keys( $unused_keys );
 
-		// Slice early when default sorting.
+		// Optimize by slicing early for default sort, since we can sort $autoloaded_option_names in advance.
 		if ( 'name' === $order_column && SORT_ASC === $order_dir ) {
 			$paged_option_names = array_slice( $paged_option_names, $offset, $limit );
 		}
@@ -266,6 +266,7 @@ class REST {
 					'plugin'   => $this->map_plugin_to_options->get_plugin_name( $row->option_name ),
 					'value'    => htmlentities( $row->option_value, ENT_QUOTES | ENT_SUBSTITUTE ),
 					'size'     => number_format( strlen( $row->option_value ) / 1024, 2 ),
+					'raw_size' => strlen( $row->option_value ),
 					'autoload' => 'yes',
 					'row_id'   => 'option_' . $row->option_name,
 				];
@@ -298,13 +299,16 @@ class REST {
 	 * @return \WP_Error|\WP_REST_Response
 	 */
 	public function get_used_not_autoloaded_options() {
-		if ( ! isset( $_SERVER['HTTP_X_WP_NONCE'] ) || ! wp_verify_nonce( \sanitize_text_field( \wp_unslash( $_SERVER['HTTP_X_WP_NONCE'] ) ), 'wp_rest' ) ) {
+		if (
+			! isset( $_SERVER['HTTP_X_WP_NONCE'] ) ||
+			! wp_verify_nonce( sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_WP_NONCE'] ) ), 'wp_rest' )
+		) {
 			return new \WP_REST_Response( [ 'error' => 'Invalid nonce' ], 403 );
 		}
 
 		global $wpdb;
 
-		// Load used options.
+		// Load used options from option_optimizer.
 		$option_optimizer = get_option( 'option_optimizer', [ 'used_options' => [] ] );
 		$used_options     = $option_optimizer['used_options'];
 
@@ -323,16 +327,16 @@ class REST {
 		// Get all autoloaded, non-transient option names.
 		$autoloaded_option_names = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 			"
-			SELECT option_name
-			FROM {$wpdb->options}
-			WHERE autoload IN ( '" . implode( "', '", esc_sql( \wp_autoload_values_to_autoload() ) ) . "' )
-			AND option_name NOT LIKE '%_transient_%'
-		"
+				SELECT option_name
+				FROM {$wpdb->options}
+				WHERE autoload IN ( '" . implode( "', '", esc_sql( wp_autoload_values_to_autoload() ) ) . "' )
+				AND option_name NOT LIKE '%_transient_%'
+				ORDER BY option_name ASC
+			"
 		);
+		$autoload_option_keys    = array_fill_keys( $autoloaded_option_names, true );
 
-		$autoload_option_keys = array_fill_keys( $autoloaded_option_names, true );
-
-		// Find used options not autoloaded.
+		// Find used options that are not autoloaded.
 		$non_autoloaded_used_keys = array_diff_key( $used_options, $autoload_option_keys );
 
 		// Search.
@@ -347,7 +351,9 @@ class REST {
 			);
 		}
 
-		if ( empty( $non_autoloaded_used_keys ) ) {
+		$total_filtered = count( $non_autoloaded_used_keys );
+
+		if ( $total_filtered === 0 ) {
 			return new \WP_REST_Response(
 				[
 					'draw'            => intval( $_GET['draw'] ?? 0 ),
@@ -359,21 +365,25 @@ class REST {
 			);
 		}
 
+		// Sort order.
+		[ $order_column, $order_dir ] = $this->get_sort_params();
+
 		// Pagination.
-		$offset             = isset( $_GET['start'] ) ? intval( $_GET['start'] ) : 0;
-		$limit              = isset( $_GET['length'] ) ? intval( $_GET['length'] ) : 25;
-		$paged_option_names = array_slice( array_keys( $non_autoloaded_used_keys ), $offset, $limit );
+		$offset = isset( $_GET['start'] ) ? intval( $_GET['start'] ) : 0;
+		$limit  = isset( $_GET['length'] ) ? intval( $_GET['length'] ) : 25;
+
+		// We can't slice early here, because we can't sort $used_options in advance.
+		$paged_option_names = array_keys( $non_autoloaded_used_keys );
 
 		$response_data = [];
 
 		if ( ! empty( $paged_option_names ) ) {
-
 			// Fetch values directly from DB without using get_option().
 			$placeholders = implode( ',', array_fill( 0, count( $paged_option_names ), '%s' ) );
 			$sql          = "
 				SELECT option_name, option_value
 				FROM {$wpdb->options}
-				WHERE option_name IN ($placeholders)"; // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				WHERE option_name IN ( {$placeholders} )"; // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 			$results = $wpdb->get_results( $wpdb->prepare( $sql, ...$paged_option_names ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
@@ -383,18 +393,23 @@ class REST {
 					'plugin'   => $this->map_plugin_to_options->get_plugin_name( $row->option_name ),
 					'value'    => htmlentities( maybe_serialize( $row->option_value ), ENT_QUOTES | ENT_SUBSTITUTE ),
 					'size'     => number_format( strlen( $row->option_value ) / 1024, 2 ),
+					'raw_size' => strlen( $row->option_value ),
 					'autoload' => 'no',
 					'count'    => $used_options[ $row->option_name ] ?? 0,
 				];
 			}
 		}
 
+		// Sort and slice after.
+		$response_data = $this->sort_response_data_by_column( $response_data, $order_column, $order_dir );
+		$response_data = array_slice( $response_data, $offset, $limit );
+
 		// Return response.
 		return new \WP_REST_Response(
 			[
 				'draw'            => intval( $_GET['draw'] ?? 0 ),
-				'recordsTotal'    => count( $non_autoloaded_used_keys ),
-				'recordsFiltered' => count( $non_autoloaded_used_keys ),
+				'recordsTotal'    => $total_filtered,
+				'recordsFiltered' => $total_filtered,
 				'data'            => $response_data,
 			],
 			200
@@ -588,17 +603,52 @@ class REST {
 		usort(
 			$data,
 			function ( $a, $b ) use ( $column, $direction ) {
-				$val_a = $a[ $column ] ?? '';
-				$val_b = $b[ $column ] ?? '';
+				$val_a = $a[ "raw_$column" ] ?? $a[ $column ] ?? '';
+				$val_b = $b[ "raw_$column" ] ?? $b[ $column ] ?? '';
 
 				if ( is_numeric( $val_a ) && is_numeric( $val_b ) ) {
-					return SORT_DESC === $direction ? $val_b <=> $val_a : $val_a <=> $val_b;
+					$val_a = floatval( $val_a );
+					$val_b = floatval( $val_b );
+
+					return $direction === SORT_DESC ? $val_b <=> $val_a : $val_a <=> $val_b;
 				}
 
-				return SORT_DESC === $direction ? strnatcasecmp( $val_b, $val_a ) : strnatcasecmp( $val_a, $val_b );
+				return $direction === SORT_DESC
+					? strnatcasecmp( $val_b, $val_a )
+					: strnatcasecmp( $val_a, $val_b );
 			}
 		);
 
 		return $data;
+	}
+
+	/**
+	 * Get sort column and direction from DataTables-style request.
+	 *
+	 * @return array [ string $column, int $direction (SORT_ASC|SORT_DESC) ]
+	 */
+	public function get_sort_params(): array {
+		if (
+			! isset( $_SERVER['HTTP_X_WP_NONCE'] ) ||
+			! wp_verify_nonce( sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_WP_NONCE'] ) ), 'wp_rest' )
+		) {
+			return [ 'name', SORT_ASC ]; // Fallback default.
+		}
+
+		if (
+			! isset( $_GET['order'][0]['column'], $_GET['columns'] )
+			|| ! is_array( $_GET['columns'] )
+			|| ! isset( $_GET['columns'][ $_GET['order'][0]['column'] ]['data'] )
+		) {
+			return [ 'name', SORT_ASC ]; // Fallback default.
+		}
+
+		$column_index = isset( $_GET['order'][0]['column'] ) ? intval( $_GET['order'][0]['column'] ) : 0;
+		$column_data  = isset( $_GET['columns'][ $column_index ]['data'] ) ? \sanitize_text_field( \wp_unslash( $_GET['columns'][ $column_index ]['data'] ) ) : 'name';
+
+		$dir      = strtolower( \sanitize_text_field( \wp_unslash( $_GET['order'][0]['dir'] ?? 'asc' ) ) );
+		$dir_flag = $dir === 'desc' ? SORT_DESC : SORT_ASC;
+
+		return [ $column_data, $dir_flag ];
 	}
 }
