@@ -44,7 +44,8 @@ jQuery( document ).ready(
 				columns: getColumns( selector ),
 				initComplete: function () {
 					this.api().columns( 'source:name' ).every( setupColumnFilters );
-				}
+				},
+				language: aaaOptionOptimizer.i18n,
 			};
 
 			if (selector === '#unused_options_table') {
@@ -57,6 +58,9 @@ jQuery( document ).ready(
 				options.rowId      = "row_id";
 				options.serverSide = true;
 				options.processing = true;
+				options.language   = {
+					sZeroRecords: aaaOptionOptimizer.i18n.noAutoloadedButNotUsed,
+				};
 			}
 
 			if (selector === "#used_not_autoloaded_table") {
@@ -71,6 +75,9 @@ jQuery( document ).ready(
 				options.rowId      = "row_id";
 				options.serverSide = true;
 				options.processing = true;
+				options.language   = {
+					sZeroRecords: aaaOptionOptimizer.i18n.noUsedButNotAutoloaded,
+				};
 			}
 
 			if (selector === "#requested_do_not_exist_table") {
@@ -96,8 +103,6 @@ jQuery( document ).ready(
 				};
 				options.rowId = 'row_id';
 			}
-
-			options.language = aaaOptionOptimizer.i18n;
 
 			const dataTable = new DataTable( selector, options ).columns.adjust().responsive.recalc();;
 		}
