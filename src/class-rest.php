@@ -367,6 +367,7 @@ class REST {
 
 	/**
 	 * Get options that do not exist.
+	 * Some of the options that are used but not auto-loaded, may not exist.
 	 *
 	 * @return \WP_Error|\WP_REST_Response
 	 */
