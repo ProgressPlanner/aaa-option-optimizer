@@ -323,11 +323,10 @@ class REST {
 			);
 		}
 
-		// Pagination
+		// Pagination.
 		$offset             = isset( $_GET['start'] ) ? intval( $_GET['start'] ) : 0;
 		$limit              = isset( $_GET['length'] ) ? intval( $_GET['length'] ) : 25;
 		$paged_option_names = array_slice( array_keys( $non_autoloaded_used_keys ), $offset, $limit );
-
 
 		$response_data = [];
 
