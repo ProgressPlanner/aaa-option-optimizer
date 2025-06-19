@@ -402,7 +402,7 @@ class REST {
 			AND option_name NOT LIKE '%_transient_%'
 		"
 		);
-		$autoload_option_keys  = array_fill_keys( $autoloaded_option_names, true );
+		$autoload_option_keys    = array_fill_keys( $autoloaded_option_names, true );
 
 		// Get used options that are not autoloaded.
 		$non_autoloaded_keys = array_diff_key( $used_options, $autoload_option_keys );
