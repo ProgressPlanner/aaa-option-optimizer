@@ -111,6 +111,10 @@
         "name": "Porto Theme - Functionality",
         "option_prefixes": ["porto_"]
     },
+    "progress-planner": {
+        "name": "Progress Planner",
+        "option_prefixes": ["progress_planner_"]
+    },
     "really-simple-ssl": {
         "name": "Really Simple SSL",
         "option_prefixes": ["rsssl_"]
