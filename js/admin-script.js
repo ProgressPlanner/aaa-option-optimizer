@@ -115,19 +115,20 @@ jQuery( document ).ready(
 				{ name: "source", data: "plugin" },
 				{ name: "size", data: "size", searchable: false },
 				{
-					name: "autoload",
-					data: "autoload",
-					className: "autoload",
-					searchable: false,
-			},
+				name: "autoload",
+				data: "autoload",
+				className: "autoload",
+				searchable: false,
+				orderable: false,
+				},
 				{
-					name: "value",
-					data: "value",
-					render: (data, type, row) => renderValueColumn( row ),
-					orderable: false,
-					searchable: false,
-					className: "actions",
-			},
+				name: "value",
+				data: "value",
+				render: (data, type, row) => renderValueColumn(row),
+				orderable: false,
+				searchable: false,
+				className: "actions",
+				},
 			];
 
 			if (selector === '#requested_do_not_exist_table') {
@@ -154,16 +155,17 @@ jQuery( document ).ready(
 						data: "autoload",
 						className: "autoload",
 						searchable: false,
-				},
+						orderable: false,
+					},
 					{ name: "calls", data: "count", searchable: false },
 					{
 						name: "value",
 						data: "value",
-						render: (data, type, row) => renderValueColumn( row ),
+						render: (data, type, row) => renderValueColumn(row),
 						orderable: false,
 						searchable: false,
 						className: "actions",
-				},
+					},
 				];
 			} else if (selector === '#all_options_table') {
 				return [
