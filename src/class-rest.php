@@ -269,7 +269,7 @@ class REST {
 	}
 
 	/**
-	 * WIP: Get used, but not autoloaded options.
+	 * Get used, but not autoloaded options.
 	 *
 	 * @return \WP_Error|\WP_REST_Response
 	 */
