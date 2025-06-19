@@ -342,25 +342,4 @@ class Admin_Page {
 	</div>
 		<?php
 	}
-
-	/**
-	 * Get html to show a popover.
-	 *
-	 * @param string $name  The name of the option, used in the id of the popover.
-	 * @param mixed  $value The value to show.
-	 *
-	 * @return string
-	 */
-	private function get_value_button( string $name, $value ): string {
-		$string = is_string( $value ) ? $value : wp_json_encode( $value );
-		$id     = 'aaa-option-optimizer-' . esc_attr( $name );
-		return '
-		<button class="button" popovertarget="' . $id . '"><span class="dashicons dashicons-search"></span> ' . esc_html__( 'Show', 'aaa-option-optimizer' ) . '</button>
-		<div id="' . $id . '" popover class="aaa-option-optimizer-popover">
-		<button class="aaa-option-optimizer-popover__close" popovertarget="' . $id . '" popovertargetaction="hide">X</button>' .
-		// translators: %s is the name of the option.
-		'<p><strong>' . sprintf( esc_html__( 'Value of %s', 'aaa-option-optimizer' ), '<code>' . esc_html( $name ) . '</code>' ) . '</strong></p>
-		<pre>' . htmlentities( $string, ENT_QUOTES | ENT_SUBSTITUTE ) . '</pre>
-		</div>';
-	}
 }
