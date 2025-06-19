@@ -233,13 +233,10 @@ class REST {
 		$total_unused         = count( $unused_keys );
 
 		// Sort order.
-		$order_column = isset( $_GET['order'][0]['data'] ) ? \sanitize_text_field( \wp_unslash( $_GET['order'][0]['data'] ) ) : 'name';
-		$order_dir    = isset( $_GET['order'][0]['dir'] ) ? \strtolower( \sanitize_text_field( \wp_unslash( $_GET['order'][0]['dir'] ) ) ) : 'asc';
-		$order_dir    = 'desc' === $order_dir ? SORT_DESC : SORT_ASC;
+		[ $order_column, $order_dir ] = $this->get_sort_params();
 
 		// Pagination.
-		$offset             = isset( $_GET['start'] ) ? intval( $_GET['start'] ) : 0;
-		$limit              = isset( $_GET['length'] ) ? intval( $_GET['length'] ) : 25;
+		[ $offset, $limit ] = $this->get_pagination_params();
 		$paged_option_names = array_keys( $unused_keys );
 
 		// Optimize by slicing early for default sort, since we can sort $autoloaded_option_names in advance.
@@ -369,8 +366,7 @@ class REST {
 		[ $order_column, $order_dir ] = $this->get_sort_params();
 
 		// Pagination.
-		$offset = isset( $_GET['start'] ) ? intval( $_GET['start'] ) : 0;
-		$limit  = isset( $_GET['length'] ) ? intval( $_GET['length'] ) : 25;
+		[ $offset, $limit ] = $this->get_pagination_params();
 
 		// We can't slice early here, because we can't sort $used_options in advance.
 		$paged_option_names = array_keys( $non_autoloaded_used_keys );
@@ -509,8 +505,8 @@ class REST {
 		}
 
 		// Pagination.
-		$offset        = isset( $_GET['start'] ) ? intval( $_GET['start'] ) : 0;
-		$limit         = isset( $_GET['length'] ) ? intval( $_GET['length'] ) : 25;
+		[ $offset, $limit ] = $this->get_pagination_params();
+
 		$response_data = array_slice( $options_that_do_not_exist, $offset, $limit );
 
 		// Return response.
@@ -620,6 +616,28 @@ class REST {
 		);
 
 		return $data;
+	}
+
+	/**
+	 * Get pagination parameters from $_GET.
+	 *
+	 * @return array {
+	 *     @type int $offset Pagination offset.
+	 *     @type int $limit  Number of items per page.
+	 * }
+	 */
+	protected function get_pagination_params(): array {
+		if (
+			! isset( $_SERVER['HTTP_X_WP_NONCE'] ) ||
+			! wp_verify_nonce( sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_WP_NONCE'] ) ), 'wp_rest' )
+		) {
+			return [ 0, 25 ]; // Fallback default.
+		}
+
+		$offset = isset( $_GET['start'] ) ? intval( $_GET['start'] ) : 0;
+		$limit  = isset( $_GET['length'] ) ? intval( $_GET['length'] ) : 25;
+
+		return [ $offset, $limit ];
 	}
 
 	/**
