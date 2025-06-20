@@ -1,4 +1,4 @@
-/* global jQuery, aaaOptionOptimizer, Option */
+/* global jQuery, aaaOptionOptimizer, Option, DataTable */
 
 /**
  * JavaScript for the admin page.
@@ -106,9 +106,7 @@ jQuery( document ).ready( function () {
 			options.rowId = 'row_id';
 		}
 
-		const dataTable = new DataTable( selector, options ).columns
-			.adjust()
-			.responsive.recalc();
+		new DataTable( selector, options ).columns.adjust().responsive.recalc();
 	}
 
 	/**
@@ -289,57 +287,6 @@ jQuery( document ).ready( function () {
 	 *
 	 * @return {string} - The HTML for the value column.
 	 */
-	function renderValueColumn( row ) {
-		const popoverContent =
-			'<div id="popover_' +
-			row.name +
-			'" popover class="aaa-option-optimizer-popover">' +
-			'<button class="aaa-option-optimizer-popover__close" popovertarget="popover_' +
-			row.name +
-			'" popovertargetaction="hide">X</button>' +
-			'<p><strong>Value of <code>' +
-			row.name +
-			'</code></strong></p>' +
-			'<pre>' +
-			row.value +
-			'</pre>' +
-			'</div>';
-
-		const actions = [
-			'<button class="button dashicon" popovertarget="popover_' +
-				row.name +
-				'"><span class="dashicons dashicons-search"></span>' +
-				aaaOptionOptimizer.i18n.showValue +
-				'</button>',
-			popoverContent,
-			row.autoload === 'no'
-				? '<button class="button dashicon add-autoload" data-option="' +
-				  row.name +
-				  '"><span class="dashicons dashicons-plus"></span>' +
-				  aaaOptionOptimizer.i18n.addAutoload +
-				  '</button>'
-				: '<button class="button dashicon remove-autoload" data-option="' +
-				  row.name +
-				  '"><span class="dashicons dashicons-minus"></span>' +
-				  aaaOptionOptimizer.i18n.removeAutoload +
-				  '</button>',
-			'<button class="button button-delete delete-option" data-option="' +
-				row.name +
-				'"><span class="dashicons dashicons-trash"></span>' +
-				aaaOptionOptimizer.i18n.deleteOption +
-				'</button >',
-		];
-
-		return actions.join( '' );
-	}
-
-	/**
-	 * Renders the value column for a row.
-	 *
-	 * @param {Object} row - The row data.
-	 *
-	 * @return {string} - The HTML for the value column.
-	 */
 	function renderNonExistingOptionsColumn( row ) {
 		return (
 			'<button class="button button-primary create-option-false" data-option="' +
@@ -357,11 +304,13 @@ jQuery( document ).ready( function () {
 			method: 'POST',
 			beforeSend: ( xhr ) =>
 				xhr.setRequestHeader( 'X-WP-Nonce', aaaOptionOptimizer.nonce ),
-			success: ( response ) =>
+			success: (
+				response // eslint-disable-line no-unused-vars
+			) =>
 				( window.location =
 					window.location.href + '&tracking_reset=true' ),
 			error: ( response ) =>
-				console.error( 'Failed to reset tracking.', response ),
+				console.error( 'Failed to reset tracking.', response ), // eslint-disable-line no-console
 		} );
 	} );
 
@@ -401,6 +350,7 @@ jQuery( document ).ready( function () {
 			success: ( response ) =>
 				updateRowOnSuccess( response, table, optionName, action ),
 			error: ( response ) =>
+				// eslint-disable-next-line no-console
 				console.error(
 					'Failed to ' + action + ' for ' + optionName + '.',
 					response
