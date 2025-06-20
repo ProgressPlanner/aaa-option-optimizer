@@ -22,7 +22,7 @@ jQuery( document ).ready( function () {
 	];
 
 	jQuery( '#all_options_table' ).hide();
-	jQuery( '#aaa_get_all_options' ).on( 'click', function ( e ) {
+	jQuery( '#aaa_get_all_options' ).on( 'click', ( e ) => {
 		e.preventDefault();
 		jQuery( '#all_options_table' ).show();
 		initializeDataTable( '#all_options_table' );
@@ -46,64 +46,68 @@ jQuery( document ).ready( function () {
 			language: aaaOptionOptimizer.i18n,
 		};
 
-		if ( selector === '#unused_options_table' ) {
-			options.ajax = {
-				url:
-					aaaOptionOptimizer.root +
-					'aaa-option-optimizer/v1/unused-options',
-				headers: { 'X-WP-Nonce': aaaOptionOptimizer.nonce },
-				type: 'GET',
-				dataSrc: 'data',
-			};
-			options.rowId = 'row_id';
-			options.serverSide = true;
-			options.processing = true;
-			options.language = {
-				sZeroRecords: aaaOptionOptimizer.i18n.noAutoloadedButNotUsed,
-			};
-		}
+		switch ( selector ) {
+			case '#unused_options_table':
+				options.ajax = {
+					url:
+						aaaOptionOptimizer.root +
+						'aaa-option-optimizer/v1/unused-options',
+					headers: { 'X-WP-Nonce': aaaOptionOptimizer.nonce },
+					type: 'GET',
+					dataSrc: 'data',
+				};
+				options.rowId = 'row_id';
+				options.serverSide = true;
+				options.processing = true;
+				options.language = {
+					sZeroRecords:
+						aaaOptionOptimizer.i18n.noAutoloadedButNotUsed,
+				};
+				break;
 
-		if ( selector === '#used_not_autoloaded_table' ) {
-			options.ajax = {
-				url:
-					aaaOptionOptimizer.root +
-					'aaa-option-optimizer/v1/used-not-autoloaded-options',
-				headers: { 'X-WP-Nonce': aaaOptionOptimizer.nonce },
-				type: 'GET',
-				dataSrc: 'data',
-			};
-			options.rowId = 'row_id';
-			options.serverSide = true;
-			options.processing = true;
-			options.language = {
-				sZeroRecords: aaaOptionOptimizer.i18n.noUsedButNotAutoloaded,
-			};
-		}
+			case '#used_not_autoloaded_table':
+				options.ajax = {
+					url:
+						aaaOptionOptimizer.root +
+						'aaa-option-optimizer/v1/used-not-autoloaded-options',
+					headers: { 'X-WP-Nonce': aaaOptionOptimizer.nonce },
+					type: 'GET',
+					dataSrc: 'data',
+				};
+				options.rowId = 'row_id';
+				options.serverSide = true;
+				options.processing = true;
+				options.language = {
+					sZeroRecords:
+						aaaOptionOptimizer.i18n.noUsedButNotAutoloaded,
+				};
+				break;
 
-		if ( selector === '#requested_do_not_exist_table' ) {
-			options.ajax = {
-				url:
-					aaaOptionOptimizer.root +
-					'aaa-option-optimizer/v1/options-that-do-not-exist',
-				headers: { 'X-WP-Nonce': aaaOptionOptimizer.nonce },
-				type: 'GET',
-				dataSrc: 'data',
-			};
-			options.rowId = 'row_id';
-			options.serverSide = true;
-			options.processing = true;
-		}
+			case '#requested_do_not_exist_table':
+				options.ajax = {
+					url:
+						aaaOptionOptimizer.root +
+						'aaa-option-optimizer/v1/options-that-do-not-exist',
+					headers: { 'X-WP-Nonce': aaaOptionOptimizer.nonce },
+					type: 'GET',
+					dataSrc: 'data',
+				};
+				options.rowId = 'row_id';
+				options.serverSide = true;
+				options.processing = true;
+				break;
 
-		if ( selector === '#all_options_table' ) {
-			options.ajax = {
-				url:
-					aaaOptionOptimizer.root +
-					'aaa-option-optimizer/v1/all-options',
-				headers: { 'X-WP-Nonce': aaaOptionOptimizer.nonce },
-				type: 'GET',
-				dataSrc: 'data',
-			};
-			options.rowId = 'row_id';
+			case '#all_options_table':
+				options.ajax = {
+					url:
+						aaaOptionOptimizer.root +
+						'aaa-option-optimizer/v1/all-options',
+					headers: { 'X-WP-Nonce': aaaOptionOptimizer.nonce },
+					type: 'GET',
+					dataSrc: 'data',
+				};
+				options.rowId = 'row_id';
+				break;
 		}
 
 		new DataTable( selector, options ).columns.adjust().responsive.recalc();
@@ -116,7 +120,7 @@ jQuery( document ).ready( function () {
 	 *
 	 * @return {Object[]} - The columns configuration.
 	 */
-	function getColumns( selector ) {
+	const getColumns = ( selector ) => {
 		const commonColumns = [
 			{ name: 'name', data: 'name' },
 			{ name: 'source', data: 'plugin' },
@@ -138,72 +142,77 @@ jQuery( document ).ready( function () {
 			},
 		];
 
-		if ( selector === '#requested_do_not_exist_table' ) {
-			return [
-				{ name: 'option', data: 'name' },
-				{ name: 'source', data: 'plugin', searchable: false },
-				{ name: 'calls', data: 'count', searchable: false },
-				{
-					name: 'option_name',
-					data: 'option_name',
-					render: ( data, type, row ) =>
-						renderNonExistingOptionsColumn( row ),
-					searchable: false,
-					orderable: false,
-					className: 'actions',
-				},
-			];
-		} else if ( selector === '#used_not_autoloaded_table' ) {
-			return [
-				{ name: 'name', data: 'name' },
-				{ name: 'source', data: 'plugin' },
-				{ name: 'size', data: 'size', searchable: false },
-				{
-					name: 'autoload',
-					data: 'autoload',
-					className: 'autoload',
-					searchable: false,
-					orderable: false,
-				},
-				{ name: 'calls', data: 'count', searchable: false },
-				{
-					name: 'value',
-					data: 'value',
-					render: ( data, type, row ) => renderValueColumn( row ),
-					orderable: false,
-					searchable: false,
-					className: 'actions',
-				},
-			];
-		} else if ( selector === '#all_options_table' ) {
-			return [
-				{ name: 'name', data: 'name' },
-				{ name: 'source', data: 'plugin' },
-				{
-					name: 'size',
-					data: 'size',
-					searchable: false,
-					render: ( data ) => '<span class="num">' + data + '</span>',
-				},
-				{
-					name: 'autoload',
-					data: 'autoload',
-					className: 'autoload',
-					searchable: false,
-				},
-				{
-					name: 'value',
-					data: 'value',
-					render: ( data, type, row ) => renderValueColumn( row ),
-					orderable: false,
-					searchable: false,
-					className: 'actions',
-				},
-			];
-		}
+		switch ( selector ) {
+			case '#requested_do_not_exist_table':
+				return [
+					{ name: 'option', data: 'name' },
+					{ name: 'source', data: 'plugin', searchable: false },
+					{ name: 'calls', data: 'count', searchable: false },
+					{
+						name: 'option_name',
+						data: 'option_name',
+						render: ( data, type, row ) =>
+							renderNonExistingOptionsColumn( row ),
+						searchable: false,
+						orderable: false,
+						className: 'actions',
+					},
+				];
 
-		return commonColumns;
-	}
+			case '#used_not_autoloaded_table':
+				return [
+					{ name: 'name', data: 'name' },
+					{ name: 'source', data: 'plugin' },
+					{ name: 'size', data: 'size', searchable: false },
+					{
+						name: 'autoload',
+						data: 'autoload',
+						className: 'autoload',
+						searchable: false,
+						orderable: false,
+					},
+					{ name: 'calls', data: 'count', searchable: false },
+					{
+						name: 'value',
+						data: 'value',
+						render: ( data, type, row ) => renderValueColumn( row ),
+						orderable: false,
+						searchable: false,
+						className: 'actions',
+					},
+				];
+
+			case '#all_options_table':
+				return [
+					{ name: 'name', data: 'name' },
+					{ name: 'source', data: 'plugin' },
+					{
+						name: 'size',
+						data: 'size',
+						searchable: false,
+						render: ( data ) =>
+							'<span class="num">' + data + '</span>',
+					},
+					{
+						name: 'autoload',
+						data: 'autoload',
+						className: 'autoload',
+						searchable: false,
+					},
+					{
+						name: 'value',
+						data: 'value',
+						render: ( data, type, row ) => renderValueColumn( row ),
+						orderable: false,
+						searchable: false,
+						className: 'actions',
+					},
+				];
+
+			default:
+				return commonColumns;
+		}
+	};
 
 	/**
 	 * Sets up the column filters for the DataTable.
@@ -224,9 +233,7 @@ jQuery( document ).ready( function () {
 			.data()
 			.unique()
 			.sort()
-			.each( function ( d ) {
-				select.add( new Option( d ) );
-			} );
+			.each( ( d ) => select.add( new Option( d ) ) );
 	}
 
 	/**
@@ -237,44 +244,32 @@ jQuery( document ).ready( function () {
 	 * @return {string} - The HTML for the value column.
 	 */
 	function renderValueColumn( row ) {
-		const popoverContent =
-			'<div id="popover_' +
-			row.name +
-			'" popover class="aaa-option-optimizer-popover">' +
-			'<button class="aaa-option-optimizer-popover__close" popovertarget="popover_' +
-			row.name +
-			'" popovertargetaction="hide">X</button>' +
-			'<p><strong>Value of <code>' +
-			row.name +
-			'</code></strong></p>' +
-			'<pre>' +
-			row.value +
-			'</pre>' +
-			'</div>';
-
 		const actions = [
-			'<button class="button dashicon" popovertarget="popover_' +
-				row.name +
-				'"><span class="dashicons dashicons-search"></span>' +
-				aaaOptionOptimizer.i18n.showValue +
-				'</button>',
-			popoverContent,
+			`<button class="button dashicon" popovertarget="popover_${ row.name }">
+				<span class="dashicons dashicons-search"></span>
+				${ aaaOptionOptimizer.i18n.showValue }
+			</button>`,
+
+			`<div id="popover_${ row.name }" popover class="aaa-option-optimizer-popover">
+				<button class="aaa-option-optimizer-popover__close" popovertarget="popover_${ row.name }" popovertargetaction="hide">X</button>
+				<p><strong>Value of <code>${ row.name }</code></strong></p>
+				<pre>${ row.value }</pre>
+			</div>`,
+
 			row.autoload === 'no'
-				? '<button class="button dashicon add-autoload" data-option="' +
-				  row.name +
-				  '"><span class="dashicons dashicons-plus"></span>' +
-				  aaaOptionOptimizer.i18n.addAutoload +
-				  '</button>'
-				: '<button class="button dashicon remove-autoload" data-option="' +
-				  row.name +
-				  '"><span class="dashicons dashicons-minus"></span>' +
-				  aaaOptionOptimizer.i18n.removeAutoload +
-				  '</button>',
-			'<button class="button button-delete delete-option" data-option="' +
-				row.name +
-				'"><span class="dashicons dashicons-trash"></span>' +
-				aaaOptionOptimizer.i18n.deleteOption +
-				'</button >',
+				? `<button class="button dashicon add-autoload" data-option="${ row.name }">
+					<span class="dashicons dashicons-plus"></span>'
+					${ aaaOptionOptimizer.i18n.addAutoload }
+				</button>`
+				: `<button class="button dashicon remove-autoload" data-option="${ row.name }">
+					<span class="dashicons dashicons-minus"></span>
+					${ aaaOptionOptimizer.i18n.removeAutoload }
+				</button>`,
+
+			`<button class="button button-delete delete-option" data-option="${ row.name }">
+				<span class="dashicons dashicons-trash"></span>
+				${ aaaOptionOptimizer.i18n.deleteOption }
+			</button>`,
 		];
 
 		return actions.join( '' );
@@ -287,17 +282,12 @@ jQuery( document ).ready( function () {
 	 *
 	 * @return {string} - The HTML for the value column.
 	 */
-	function renderNonExistingOptionsColumn( row ) {
-		return (
-			'<button class="button button-primary create-option-false" data-option="' +
-			row.name +
-			'">' +
-			aaaOptionOptimizer.i18n.createOptionFalse +
-			'</button>'
-		);
-	}
+	const renderNonExistingOptionsColumn = ( row ) =>
+		`<button class="button button-primary create-option-false" data-option="${ row.name }">
+			${ aaaOptionOptimizer.i18n.createOptionFalse }
+		</button>`;
 
-	jQuery( '#aaa-option-reset-data' ).on( 'click', function ( e ) {
+	jQuery( '#aaa-option-reset-data' ).on( 'click', ( e ) => {
 		e.preventDefault();
 		jQuery.ajax( {
 			url: aaaOptionOptimizer.root + 'aaa-option-optimizer/v1/reset',
@@ -330,9 +320,11 @@ jQuery( document ).ready( function () {
 		let route = '';
 
 		if ( button.hasClass( 'create-option-false' ) ) {
-			action = route = 'create-option-false';
+			action = 'create-option-false';
+			route = 'create-option-false';
 		} else if ( button.hasClass( 'delete-option' ) ) {
-			action = route = 'delete-option';
+			action = 'delete-option';
+			route = 'delete-option';
 		} else {
 			action = button.hasClass( 'add-autoload' )
 				? 'add-autoload'
@@ -342,7 +334,7 @@ jQuery( document ).ready( function () {
 		}
 
 		jQuery.ajax( {
-			url: aaaOptionOptimizer.root + 'aaa-option-optimizer/v1/' + route,
+			url: `${ aaaOptionOptimizer.root }aaa-option-optimizer/v1/${ route }`,
 			method: 'POST',
 			beforeSend: ( xhr ) =>
 				xhr.setRequestHeader( 'X-WP-Nonce', aaaOptionOptimizer.nonce ),
@@ -369,7 +361,7 @@ jQuery( document ).ready( function () {
 	function updateRowOnSuccess( response, table, optionName, action ) {
 		if ( action === 'delete-option' || action === 'create-option-false' ) {
 			table
-				.row( 'tr#option_' + optionName )
+				.row( `tr#option_${ optionName }` )
 				.remove()
 				.draw( 'full-hold' );
 		} else if (
@@ -379,27 +371,23 @@ jQuery( document ).ready( function () {
 			const autoloadStatus = action === 'add-autoload' ? 'yes' : 'no';
 			const buttonHTML =
 				action === 'add-autoload'
-					? '<button class="button dashicon remove-autoload" data-option="' +
-					  optionName +
-					  '"><span class="dashicons dashicons-minus"></span>' +
-					  aaaOptionOptimizer.i18n.removeAutoload +
-					  '</button>'
-					: '<button class="button dashicon add-autoload" data-option="' +
-					  optionName +
-					  '"><span class="dashicons dashicons-plus"></span>' +
-					  aaaOptionOptimizer.i18n.addAutoload +
-					  '</button>';
+					? `<button class="button dashicon remove-autoload" data-option="${ optionName }">
+						<span class="dashicons dashicons-minus"></span>
+						${ aaaOptionOptimizer.i18n.removeAutoload }
+					</button>`
+					: `<button class="button dashicon add-autoload" data-option="${ optionName }">
+						<span class="dashicons dashicons-plus"></span>
+						${ aaaOptionOptimizer.i18n.addAutoload }
+					</button>`;
 
-			jQuery( 'tr#option_' + optionName )
+			jQuery( `tr#option_${ optionName }` )
 				.find( 'td.autoload' )
 				.text( autoloadStatus );
-			const oldButton =
-				'button.' +
-				( action === 'add-autoload' ? 'add' : 'remove' ) +
-				'-autoload';
-			jQuery( 'tr#option_' + optionName + ' ' + oldButton ).replaceWith(
-				buttonHTML
-			);
+			jQuery(
+				`tr#option_${ optionName } button.${
+					action === 'add-autoload' ? 'add' : 'remove'
+				}-autoload`
+			).replaceWith( buttonHTML );
 		}
 	}
 
