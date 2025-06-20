@@ -258,7 +258,7 @@ jQuery( document ).ready( function () {
 
 			row.autoload === 'no'
 				? `<button class="button dashicon add-autoload" data-option="${ row.name }">
-					<span class="dashicons dashicons-plus"></span>
+					<span class="dashicons dashicons-plus"></span>'
 					${ aaaOptionOptimizer.i18n.addAutoload }
 				</button>`
 				: `<button class="button dashicon remove-autoload" data-option="${ row.name }">
