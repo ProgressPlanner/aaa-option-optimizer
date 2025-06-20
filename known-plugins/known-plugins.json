@@ -35,6 +35,10 @@
         "name": "Floating Chat Widget: Contact Chat Icons, WhatsApp, Telegram Chat, Line Messenger, WeChat, Email, SMS, Call Button – Chaty",
         "option_prefixes": ["chaty_"]
     },
+    "comment_hacks": {
+        "name": "Comment Experience by Progress Planner",
+        "option_prefixes": ["comment_hacks"]
+    },
     "complianz": {
         "name": "Complianz GDPR",
         "option_prefixes": ["cmplz_", "complianz_"]
