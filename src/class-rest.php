@@ -157,6 +157,18 @@ class REST {
 				},
 			]
 		);
+
+		\register_rest_route(
+			'aaa-option-optimizer/v1',
+			'/delete-options',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ $this, 'delete_options' ],
+				'permission_callback' => function () {
+					return current_user_can( 'manage_options' );
+				},
+			]
+		);
 	}
 
 	/**
@@ -575,6 +587,18 @@ class REST {
 			return new \WP_REST_Response( [ 'success' => true ], 200 );
 		}
 		return new \WP_Error( 'option_not_found_or_deleted', 'Option does not exist or could not be deleted', [ 'status' => 404 ] );
+	}
+
+	public function delete_options( $request ) {
+		if ( ! isset( $_SERVER['HTTP_X_WP_NONCE'] ) || ! \wp_verify_nonce( \sanitize_text_field( \wp_unslash( $_SERVER['HTTP_X_WP_NONCE'] ) ), 'wp_rest' ) ) {
+			return new \WP_REST_Response( [ 'error' => 'Invalid nonce' ], 403 );
+		}
+
+		$option_names = $request['option_names'];
+		foreach ( $option_names as $option_name ) {
+			delete_option( $option_name );
+		}
+		return new \WP_REST_Response( [ 'success' => true ], 200 );
 	}
 
 	/**
