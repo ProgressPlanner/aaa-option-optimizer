@@ -589,6 +589,13 @@ class REST {
 		return new \WP_Error( 'option_not_found_or_deleted', 'Option does not exist or could not be deleted', [ 'status' => 404 ] );
 	}
 
+	/**
+	 * Delete multiple options.
+	 *
+	 * @param \WP_REST_Request $request The REST request object.
+	 *
+	 * @return \WP_Error|\WP_REST_Response
+	 */
 	public function delete_options( $request ) {
 		if ( ! isset( $_SERVER['HTTP_X_WP_NONCE'] ) || ! \wp_verify_nonce( \sanitize_text_field( \wp_unslash( $_SERVER['HTTP_X_WP_NONCE'] ) ), 'wp_rest' ) ) {
 			return new \WP_REST_Response( [ 'error' => 'Invalid nonce' ], 403 );

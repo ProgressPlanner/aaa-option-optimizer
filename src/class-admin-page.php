@@ -122,6 +122,7 @@ class Admin_Page {
 					'createOptionFalse'      => esc_html__( 'Create option with value false', 'aaa-option-optimizer' ),
 					'noAutoloadedButNotUsed' => esc_html__( 'All autoloaded options are in use.', 'aaa-option-optimizer' ),
 					'noUsedButNotAutoloaded' => esc_html__( 'All options that are used are autoloaded.', 'aaa-option-optimizer' ),
+					'noOptionsSelected'      => esc_html__( 'No options selected.', 'aaa-option-optimizer' ),
 
 					'search'                 => esc_html__( 'Search:', 'aaa-option-optimizer' ),
 					'entries'                => [

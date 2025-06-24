@@ -1,4 +1,4 @@
-/* global jQuery, aaaOptionOptimizer, Option, DataTable */
+/* global jQuery, aaaOptionOptimizer, Option, DataTable, alert */
 
 /**
  * JavaScript for the admin page.
@@ -121,46 +121,47 @@ jQuery( document ).ready( function () {
 	 */
 	function getColumns( selector ) {
 		const commonColumns = [
-			{ name: "name", data: "name" },
-			{ name: "source", data: "plugin" },
-			{ name: "size", data: "size", searchable: false },
+			{ name: 'name', data: 'name' },
+			{ name: 'source', data: 'plugin' },
+			{ name: 'size', data: 'size', searchable: false },
 			{
-				name: "autoload",
-				data: "autoload",
-				className: "autoload",
+				name: 'autoload',
+				data: 'autoload',
+				className: 'autoload',
 				searchable: false,
 				orderable: false,
 			},
 			{
-				name: "value",
-				data: "value",
-				render: (data, type, row) => renderValueColumn(row),
+				name: 'value',
+				data: 'value',
+				render: ( data, type, row ) => renderValueColumn( row ),
 				orderable: false,
 				searchable: false,
-				className: "actions",
+				className: 'actions',
 			},
 			{
-				name: "checkbox",
-				data: "name",
-				render: (data, type, row) => renderCheckboxColumn(row),
+				name: 'checkbox',
+				data: 'name',
+				render: ( data, type, row ) => renderCheckboxColumn( row ),
 				orderable: false,
 				searchable: false,
-				className: "select-all",
+				className: 'select-all',
 			},
 		];
 
 		if ( selector === '#requested_do_not_exist_table' ) {
 			return [
-				{ name: "option", data: "name" },
-				{ name: "source", data: "plugin", searchable: false },
-				{ name: "calls", data: "count", searchable: false },
+				{ name: 'option', data: 'name' },
+				{ name: 'source', data: 'plugin', searchable: false },
+				{ name: 'calls', data: 'count', searchable: false },
 				{
-				name: "option_name",
-				data: "option_name",
-				render: (data, type, row) => renderNonExistingOptionsColumn(row),
-				searchable: false,
-				orderable: false,
-				className: "actions",
+					name: 'option_name',
+					data: 'option_name',
+					render: ( data, type, row ) =>
+						renderNonExistingOptionsColumn( row ),
+					searchable: false,
+					orderable: false,
+					className: 'actions',
 				},
 			];
 		} else if ( selector === '#used_not_autoloaded_table' ) {
@@ -185,12 +186,12 @@ jQuery( document ).ready( function () {
 					className: 'actions',
 				},
 				{
-				name: "checkbox",
-				data: "name",
-				render: (data, type, row) => renderCheckboxColumn(row),
-				orderable: false,
-				searchable: false,
-				className: "select-all",
+					name: 'checkbox',
+					data: 'name',
+					render: ( data, type, row ) => renderCheckboxColumn( row ),
+					orderable: false,
+					searchable: false,
+					className: 'select-all',
 				},
 			];
 		} else if ( selector === '#all_options_table' ) {
@@ -218,12 +219,12 @@ jQuery( document ).ready( function () {
 					className: 'actions',
 				},
 				{
-				name: "checkbox",
-				data: "name",
-				render: (data, type, row) => renderCheckboxColumn(row),
-				orderable: false,
-				searchable: false,
-				className: "select-all",
+					name: 'checkbox',
+					data: 'name',
+					render: ( data, type, row ) => renderCheckboxColumn( row ),
+					orderable: false,
+					searchable: false,
+					className: 'select-all',
 				},
 			];
 		}
@@ -466,54 +467,49 @@ jQuery( document ).ready( function () {
 	} );
 
 	// Delete selected options.
-	jQuery( '.delete-selected' ).on(
-		'click',
-		function ( e ) {
-			e.preventDefault();
-			const button = jQuery( this );
-			const table = jQuery( 'table#' + button.data( 'table' ) );
-			const dt = table.DataTable();
-			const selectedOptions = table.find( 'input.select-option:checked' );
+	jQuery( '.delete-selected' ).on( 'click', function ( e ) {
+		e.preventDefault();
+		const button = jQuery( this );
+		const table = jQuery( 'table#' + button.data( 'table' ) );
+		const selectedOptions = table.find( 'input.select-option:checked' );
 
-			if ( selectedOptions.length === 0 ) {
-				alert( 'No options selected.' );
-				return;
-			}
-
-			const requestData = {
-				option_names: Array.from(selectedOptions).map((option) =>
-				option.getAttribute("data-option")
-				),
-			};
-
-			jQuery.ajax( {
-				url: aaaOptionOptimizer.root + "aaa-option-optimizer/v1/delete-options",
-				method: "POST",
-				beforeSend: (xhr) =>
-				xhr.setRequestHeader("X-WP-Nonce", aaaOptionOptimizer.nonce),
-				data: requestData,
-				success: ( response ) => {
-					console.log(response);
-
-
-					requestData.option_names.forEach( ( optionName ) => {
-						dt
-						.row( 'tr#option_' + optionName )
-						.remove();
-					} );
-
-					dt.draw( 'full-hold' );
-
-					// Clear the select-all checkbox.
-					table.find(".select-all-checkbox").prop("checked", false);
-				},
-				error: (response) => {
-					// eslint-disable-next-line no-console
-					console.error("Failed to delete options.", response);
-				}
-			} );
+		if ( selectedOptions.length === 0 ) {
+			alert( aaaOptionOptimizer.i18n.noOptionsSelected ); // eslint-disable-line no-alert
+			return;
 		}
-	);
+
+		const requestData = {
+			option_names: Array.from( selectedOptions ).map( ( option ) =>
+				option.getAttribute( 'data-option' )
+			),
+		};
+
+		jQuery.ajax( {
+			url:
+				aaaOptionOptimizer.root +
+				'aaa-option-optimizer/v1/delete-options',
+			method: 'POST',
+			beforeSend: ( xhr ) =>
+				xhr.setRequestHeader( 'X-WP-Nonce', aaaOptionOptimizer.nonce ),
+			data: requestData,
+			success: () => {
+				const dt = table.DataTable();
+
+				requestData.option_names.forEach( ( optionName ) => {
+					dt.row( 'tr#option_' + optionName ).remove();
+				} );
+
+				dt.draw( 'full-hold' );
+
+				// Clear the select-all checkbox.
+				table.find( '.select-all-checkbox' ).prop( 'checked', false );
+			},
+			error: ( response ) => {
+				// eslint-disable-next-line no-console
+				console.error( 'Failed to delete options.', response );
+			},
+		} );
+	} );
 
 	// Initialize data tables.
 	tablesToInitialize.forEach( function ( selector ) {
