@@ -123,6 +123,10 @@ class Admin_Page {
 					'noAutoloadedButNotUsed' => esc_html__( 'All autoloaded options are in use.', 'aaa-option-optimizer' ),
 					'noUsedButNotAutoloaded' => esc_html__( 'All options that are used are autoloaded.', 'aaa-option-optimizer' ),
 					'noOptionsSelected'      => esc_html__( 'No options selected.', 'aaa-option-optimizer' ),
+					'bulkActions'            => esc_html__( 'Bulk actions', 'aaa-option-optimizer' ),
+					'noBulkActionSelected'   => esc_html__( 'No action selected.', 'aaa-option-optimizer' ),
+					'delete'                 => esc_html__( 'Delete', 'aaa-option-optimizer' ),
+					'apply'                  => esc_html__( 'Apply', 'aaa-option-optimizer' ),
 
 					'search'                 => esc_html__( 'Search:', 'aaa-option-optimizer' ),
 					'entries'                => [
@@ -251,7 +255,6 @@ class Admin_Page {
 			<div class="panel">
 		<?php
 		echo '<h2 id="unused-autoloaded">' . esc_html__( 'Unused, but autoloaded', 'aaa-option-optimizer' ) . '</h2>';
-		echo '<button class="button button-delete delete-selected" data-table="unused_options_table">' . esc_html__( 'Delete selected options', 'aaa-option-optimizer' ) . '</button>';
 		echo '<p>' . esc_html__( 'The following options are autoloaded on each pageload, but AAA Option Optimizer has not been able to detect them being used.', 'aaa-option-optimizer' );
 		echo '<table style="width:100%" id="unused_options_table" class="aaa_option_table">';
 		$this->table_section( 'thead', [ 'option', 'source', 'size', 'autoload', 'actions', 'select-all' ] );
@@ -277,7 +280,6 @@ class Admin_Page {
 		<?php
 		// Render differences.
 			echo '<h2 id="used-not-autoloaded">' . esc_html__( 'Used, but not autoloaded options', 'aaa-option-optimizer' ) . '</h2>';
-			echo '<button class="button button-delete delete-selected" data-table="used_not_autoloaded_table">' . esc_html__( 'Delete selected options', 'aaa-option-optimizer' ) . '</button>';
 			echo '<p>' . esc_html__( 'The following options are *not* autoloaded on each pageload, but AAA Option Optimizer has detected that they are being used. If one of the options below has been called a lot and is not very big, you might consider adding autoload to that option.', 'aaa-option-optimizer' );
 			echo '<table style="width:100%;" id="used_not_autoloaded_table" class="aaa_option_table">';
 			$this->table_section( 'thead', [ 'option', 'source', 'size', 'autoload', 'calls', 'actions', 'select-all' ] );
@@ -322,7 +324,6 @@ class Admin_Page {
 		<label class="label" for="tab-4"><?php esc_html_e( 'All options', 'aaa-option-optimizer' ); ?></label>
 		<div class="panel">
 			<p><?php esc_html_e( 'If you want to browse all the options in the database, you can do so here:', 'aaa-option-optimizer' ); ?></p>
-			<button class="button button-delete delete-selected" data-table="all_options_table" style="display: none;"><?php echo esc_html__( 'Delete selected options', 'aaa-option-optimizer' ); ?></button>
 			<button id="aaa_get_all_options" class="button button-primary"><?php esc_html_e( 'Get all options', 'aaa-option-optimizer' ); ?></button>
 			<table class="aaa_option_table" id="all_options_table" style="display:none;">
 				<?php $this->table_section( 'thead', [ 'option', 'source', 'size', 'autoload', 'actions', 'select-all' ] ); ?>
