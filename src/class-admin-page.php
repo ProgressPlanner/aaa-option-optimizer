@@ -257,20 +257,20 @@ class Admin_Page {
 		echo '<h2 id="unused-autoloaded">' . esc_html__( 'Unused, but autoloaded', 'aaa-option-optimizer' ) . '</h2>';
 		echo '<p>' . esc_html__( 'The following options are autoloaded on each pageload, but AAA Option Optimizer has not been able to detect them being used.', 'aaa-option-optimizer' );
 		echo '<table style="width:100%" id="unused_options_table" class="aaa_option_table">';
-		$this->table_section( 'thead', [ 'option', 'source', 'size', 'autoload', 'actions', 'select-all' ] );
+		$this->table_section( 'thead', [ 'select-all', 'option', 'source', 'size', 'autoload', 'actions' ] );
 		?>
 		<tbody>
 		<tr>
+			<td class="select-all"></td>
 			<td></td>
 			<td></td>
 			<td></td>
 			<td></td>
 			<td class="actions"></td>
-			<td class="select-all"></td>
 		</tr>
 		</tbody>
 		<?php
-		$this->table_section( 'tfoot', [ 'option', 'source', 'size', 'autoload', 'actions', 'select-all' ] );
+		$this->table_section( 'tfoot', [ 'select-all', 'option', 'source', 'size', 'autoload', 'actions' ] );
 		?>
 		</table>
 		</div>
@@ -282,20 +282,20 @@ class Admin_Page {
 			echo '<h2 id="used-not-autoloaded">' . esc_html__( 'Used, but not autoloaded options', 'aaa-option-optimizer' ) . '</h2>';
 			echo '<p>' . esc_html__( 'The following options are *not* autoloaded on each pageload, but AAA Option Optimizer has detected that they are being used. If one of the options below has been called a lot and is not very big, you might consider adding autoload to that option.', 'aaa-option-optimizer' );
 			echo '<table style="width:100%;" id="used_not_autoloaded_table" class="aaa_option_table">';
-			$this->table_section( 'thead', [ 'option', 'source', 'size', 'autoload', 'calls', 'actions', 'select-all' ] );
+			$this->table_section( 'thead', [ 'select-all', 'option', 'source', 'size', 'autoload', 'calls', 'actions' ] );
 		?>
 			<tbody>
 			<tr>
+				<td class="select-all"></td>
 				<td></td>
 				<td></td>
 				<td></td>
 				<td></td>
 				<td></td>
 				<td class="actions"></td>
-				<td class="select-all"></td>
 			</tr>
 			</tbody>
-			<?php $this->table_section( 'tfoot', [ 'option', 'source', 'size', 'autoload', 'calls', 'actions', 'select-all' ] ); ?>
+			<?php $this->table_section( 'tfoot', [ 'select-all', 'option', 'source', 'size', 'autoload', 'calls', 'actions' ] ); ?>
 		</table>
 		</div>
 		<input class="input" name="tabs" type="radio" id="tab-3"/>
@@ -326,18 +326,18 @@ class Admin_Page {
 			<p><?php esc_html_e( 'If you want to browse all the options in the database, you can do so here:', 'aaa-option-optimizer' ); ?></p>
 			<button id="aaa_get_all_options" class="button button-primary"><?php esc_html_e( 'Get all options', 'aaa-option-optimizer' ); ?></button>
 			<table class="aaa_option_table" id="all_options_table" style="display:none;">
-				<?php $this->table_section( 'thead', [ 'option', 'source', 'size', 'autoload', 'actions', 'select-all' ] ); ?>
+				<?php $this->table_section( 'thead', [ 'select-all', 'option', 'source', 'size', 'autoload', 'actions' ] ); ?>
 				<tbody>
 					<tr>
+						<td class="select-all"></td>
 						<td></td>
 						<td></td>
 						<td></td>
 						<td></td>
 						<td class="actions"></td>
-						<td class="select-all"></td>
 					</tr>
 				</tbody>
-				<?php $this->table_section( 'tfoot', [ 'option', 'source', 'size', 'autoload', 'actions', 'select-all' ] ); ?>
+				<?php $this->table_section( 'tfoot', [ 'select-all', 'option', 'source', 'size', 'autoload', 'actions' ] ); ?>
 			</table>
 		</div>
 	</div>

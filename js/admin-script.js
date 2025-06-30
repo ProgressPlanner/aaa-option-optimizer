@@ -39,9 +39,9 @@ jQuery( document ).ready( function () {
 			pageLength: 25,
 			autoWidth: false,
 			responsive: true,
-			columns: getColumns(selector),
+			columns: getColumns( selector ),
 			initComplete() {
-				this.api().columns("source:name").every(setupColumnFilters);
+				this.api().columns( 'source:name' ).every( setupColumnFilters );
 			},
 			language: aaaOptionOptimizer.i18n,
 		};
@@ -58,10 +58,13 @@ jQuery( document ).ready( function () {
 			options.rowId = 'row_id';
 			options.serverSide = true;
 			options.processing = true;
-			options.language = {
+			( options.language = {
 				sZeroRecords: aaaOptionOptimizer.i18n.noAutoloadedButNotUsed,
-			},
-			options.initComplete = getBulkActionsForm( selector, [ 'autoload-off' ] );
+			} ),
+				( options.initComplete = getBulkActionsForm( selector, [
+					'autoload-off',
+				] ) );
+			options.order = [ [ 1, 'asc' ] ]; // Order by 2nd column, first column is checkbox.
 		}
 
 		if ( selector === '#used_not_autoloaded_table' ) {
@@ -79,7 +82,10 @@ jQuery( document ).ready( function () {
 			options.language = {
 				sZeroRecords: aaaOptionOptimizer.i18n.noUsedButNotAutoloaded,
 			};
-			options.initComplete = getBulkActionsForm( selector, [ 'autoload-on' ] );
+			options.initComplete = getBulkActionsForm( selector, [
+				'autoload-on',
+			] );
+			options.order = [ [ 1, 'asc' ] ]; // Order by 2nd column, first column is checkbox.
 		}
 
 		if ( selector === '#requested_do_not_exist_table' ) {
@@ -106,7 +112,11 @@ jQuery( document ).ready( function () {
 				dataSrc: 'data',
 			};
 			options.rowId = 'row_id';
-			options.initComplete = getBulkActionsForm( selector, [ 'autoload-on', 'autoload-off' ] );
+			options.initComplete = getBulkActionsForm( selector, [
+				'autoload-on',
+				'autoload-off',
+			] );
+			options.order = [ [ 1, 'asc' ] ]; // Order by 2nd column, first column is checkbox.
 		}
 
 		new DataTable( selector, options ).columns.adjust().responsive.recalc();
@@ -121,6 +131,14 @@ jQuery( document ).ready( function () {
 	 */
 	function getColumns( selector ) {
 		const commonColumns = [
+			{
+				name: 'checkbox',
+				data: 'name',
+				render: ( data, type, row ) => renderCheckboxColumn( row ),
+				orderable: false,
+				searchable: false,
+				className: 'select-all',
+			},
 			{ name: 'name', data: 'name' },
 			{ name: 'source', data: 'plugin' },
 			{ name: 'size', data: 'size', searchable: false },
@@ -139,16 +157,7 @@ jQuery( document ).ready( function () {
 				searchable: false,
 				className: 'actions',
 			},
-			{
-				name: 'checkbox',
-				data: 'name',
-				render: ( data, type, row ) => renderCheckboxColumn( row ),
-				orderable: false,
-				searchable: false,
-				className: 'select-all',
-			},
 		];
-
 		if ( selector === '#requested_do_not_exist_table' ) {
 			return [
 				{ name: 'option', data: 'name' },
@@ -166,6 +175,14 @@ jQuery( document ).ready( function () {
 			];
 		} else if ( selector === '#used_not_autoloaded_table' ) {
 			return [
+				{
+					name: 'checkbox',
+					data: 'name',
+					render: ( data, type, row ) => renderCheckboxColumn( row ),
+					orderable: false,
+					searchable: false,
+					className: 'select-all',
+				},
 				{ name: 'name', data: 'name' },
 				{ name: 'source', data: 'plugin' },
 				{ name: 'size', data: 'size', searchable: false },
@@ -185,6 +202,9 @@ jQuery( document ).ready( function () {
 					searchable: false,
 					className: 'actions',
 				},
+			];
+		} else if ( selector === '#all_options_table' ) {
+			return [
 				{
 					name: 'checkbox',
 					data: 'name',
@@ -193,9 +213,6 @@ jQuery( document ).ready( function () {
 					searchable: false,
 					className: 'select-all',
 				},
-			];
-		} else if ( selector === '#all_options_table' ) {
-			return [
 				{ name: 'name', data: 'name' },
 				{ name: 'source', data: 'plugin' },
 				{
@@ -217,14 +234,6 @@ jQuery( document ).ready( function () {
 					orderable: false,
 					searchable: false,
 					className: 'actions',
-				},
-				{
-					name: 'checkbox',
-					data: 'name',
-					render: ( data, type, row ) => renderCheckboxColumn( row ),
-					orderable: false,
-					searchable: false,
-					className: 'select-all',
 				},
 			];
 		}
@@ -468,111 +477,129 @@ jQuery( document ).ready( function () {
 
 	// Generates bulk actions form for DataTable.
 	function getBulkActionsForm( selector, options ) {
-		return function() {
-			const container = jQuery(this.api().table().container());
+		return function () {
+			const container = jQuery( this.api().table().container() );
 
 			const form = jQuery(
-			'<form class="aaaoo-bulk-form" action="#" method="post" style="display:flex;gap:10px;"></form>'
+				'<form class="aaaoo-bulk-form" action="#" method="post" style="display:flex;gap:10px;"></form>'
 			);
 
 			let selectOptions = '';
 
 			if ( options.includes( 'autoload-on' ) ) {
 				selectOptions =
-				'<option value="autoload-on">' +
-				aaaOptionOptimizer.i18n.addAutoload +
-				'</option>';
+					'<option value="autoload-on">' +
+					aaaOptionOptimizer.i18n.addAutoload +
+					'</option>';
 			}
 
 			if ( options.includes( 'autoload-off' ) ) {
 				selectOptions +=
-				'<option value="autoload-off">' +
-				aaaOptionOptimizer.i18n.removeAutoload +
-				'</option>';
+					'<option value="autoload-off">' +
+					aaaOptionOptimizer.i18n.removeAutoload +
+					'</option>';
 			}
 
 			const select = jQuery(
-			'<select class="aaaoo-bulk-select"><option value="">' +
-				aaaOptionOptimizer.i18n.bulkActions +
-				selectOptions +
-				'</option><option value="delete">' +
-				aaaOptionOptimizer.i18n.delete +
-				"</option></select>"
+				'<select class="aaaoo-bulk-select"><option value="">' +
+					aaaOptionOptimizer.i18n.bulkActions +
+					selectOptions +
+					'</option><option value="delete">' +
+					aaaOptionOptimizer.i18n.delete +
+					'</option></select>'
 			);
 
 			const button = jQuery(
-			'<button type="submit" class="button aaaoo-apply-bulk-action" data-table="' +
-				selector +
-				'">' +
-				aaaOptionOptimizer.i18n.apply +
-				"</button>"
+				'<button type="submit" class="button aaaoo-apply-bulk-action" data-table="' +
+					selector +
+					'">' +
+					aaaOptionOptimizer.i18n.apply +
+					'</button>'
 			);
 
-			form.append(select, button);
-			container.prepend(form);
-		}
+			form.append( select, button );
+
+			// Add the form to the .dt-start cell
+			container.find( '.dt-layout-cell.dt-start ' ).prepend( form );
+
+			// Move .dt-length to .dt-layout-cell.dt-end
+			// const lengthSelector = container.find(".dt-length"); // same as div.dt-length
+			// const targetEndCell = container.find(".dt-layout-cell.dt-end");
+			// if (lengthSelector.length && targetEndCell.length) {
+			// 	targetEndCell.append(lengthSelector);
+			// }
+		};
 	}
 
 	// Apply bulk action.
 	jQuery( '.aaa-option-optimizer-tabs' ).on(
 		'click',
 		'.aaaoo-apply-bulk-action',
-		function (e) {
-		e.preventDefault();
-		const button = jQuery(this);
-		const select = jQuery(button).siblings( '.aaaoo-bulk-select' );
-		const bulkAction = select.val();
-		const table = jQuery(button.data("table"));
-		const selectedOptions = table.find( 'input.select-option:checked' );
+		function ( e ) {
+			e.preventDefault();
+			const button = jQuery( this );
+			const select = jQuery( button ).siblings( '.aaaoo-bulk-select' );
+			const bulkAction = select.val();
+			const table = jQuery( button.data( 'table' ) );
+			const selectedOptions = table.find( 'input.select-option:checked' );
 
-		if (!bulkAction) {
-			alert(aaaOptionOptimizer.i18n.noBulkActionSelected); // eslint-disable-line no-alert
-			return;
-		}
+			if ( ! bulkAction ) {
+				alert( aaaOptionOptimizer.i18n.noBulkActionSelected ); // eslint-disable-line no-alert
+				return;
+			}
 
-		if (selectedOptions.length === 0) {
-			alert(aaaOptionOptimizer.i18n.noOptionsSelected); // eslint-disable-line no-alert
-			return;
-		}
+			if ( selectedOptions.length === 0 ) {
+				alert( aaaOptionOptimizer.i18n.noOptionsSelected ); // eslint-disable-line no-alert
+				return;
+			}
 
-		// For now we only have delete in bulk action.
+			// For now we only have delete in bulk action.
 
-		const requestData = {
-			option_names: Array.from(selectedOptions).map((option) =>
-			option.getAttribute( 'data-option' )
-			),
-		};
+			const requestData = {
+				option_names: Array.from( selectedOptions ).map( ( option ) =>
+					option.getAttribute( 'data-option' )
+				),
+			};
 
-		if ( bulkAction === 'delete' ) {
-			endpoint = 'delete-options';
-		} else {
-			endpoint = 'set-autoload-options';
-			requestData.autoload = bulkAction === 'autoload-on' ? 'yes' : 'no';
-		}
+			if ( bulkAction === 'delete' ) {
+				endpoint = 'delete-options';
+			} else {
+				endpoint = 'set-autoload-options';
+				requestData.autoload =
+					bulkAction === 'autoload-on' ? 'yes' : 'no';
+			}
 
-		jQuery.ajax({
-			url: aaaOptionOptimizer.root + 'aaa-option-optimizer/v1/' + endpoint,
-			method: 'POST',
-			beforeSend: (xhr) =>
-			xhr.setRequestHeader('X-WP-Nonce', aaaOptionOptimizer.nonce),
-			data: requestData,
-			success: () => {
-			const dt = table.DataTable();
+			jQuery.ajax( {
+				url:
+					aaaOptionOptimizer.root +
+					'aaa-option-optimizer/v1/' +
+					endpoint,
+				method: 'POST',
+				beforeSend: ( xhr ) =>
+					xhr.setRequestHeader(
+						'X-WP-Nonce',
+						aaaOptionOptimizer.nonce
+					),
+				data: requestData,
+				success: () => {
+					const dt = table.DataTable();
 
-			requestData.option_names.forEach((optionName) => {
-				dt.row('tr#option_' + optionName).remove();
-			});
+					requestData.option_names.forEach( ( optionName ) => {
+						dt.row( 'tr#option_' + optionName ).remove();
+					} );
 
-			dt.draw('full-hold');
+					dt.draw( 'full-hold' );
 
-			// Clear the select-all checkbox.
-			table.find('.select-all-checkbox').prop('checked', false);
-			},
-			error: (response) => {
-			// eslint-disable-next-line no-console
-			console.error('Failed to delete options.', response);
-			},
-		});
+					// Clear the select-all checkbox.
+					table
+						.find( '.select-all-checkbox' )
+						.prop( 'checked', false );
+				},
+				error: ( response ) => {
+					// eslint-disable-next-line no-console
+					console.error( 'Failed to delete options.', response );
+				},
+			} );
 		}
 	);
 
