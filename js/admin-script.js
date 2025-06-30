@@ -61,7 +61,7 @@ jQuery( document ).ready( function () {
 			options.language = {
 				sZeroRecords: aaaOptionOptimizer.i18n.noAutoloadedButNotUsed,
 			},
-			options.initComplete = getBulkActionsForm( selector );
+			options.initComplete = getBulkActionsForm( selector, [ 'autoload-off' ] );
 		}
 
 		if ( selector === '#used_not_autoloaded_table' ) {
@@ -79,7 +79,7 @@ jQuery( document ).ready( function () {
 			options.language = {
 				sZeroRecords: aaaOptionOptimizer.i18n.noUsedButNotAutoloaded,
 			};
-			options.initComplete = getBulkActionsForm( selector );
+			options.initComplete = getBulkActionsForm( selector, [ 'autoload-on' ] );
 		}
 
 		if ( selector === '#requested_do_not_exist_table' ) {
@@ -106,7 +106,7 @@ jQuery( document ).ready( function () {
 				dataSrc: 'data',
 			};
 			options.rowId = 'row_id';
-			options.initComplete = getBulkActionsForm( selector );
+			options.initComplete = getBulkActionsForm( selector, [ 'autoload-on', 'autoload-off' ] );
 		}
 
 		new DataTable( selector, options ).columns.adjust().responsive.recalc();
@@ -467,7 +467,7 @@ jQuery( document ).ready( function () {
 	} );
 
 	// Generates bulk actions form for DataTable.
-	function getBulkActionsForm( selector ) {
+	function getBulkActionsForm( selector, options ) {
 		return function() {
 			const container = jQuery(this.api().table().container());
 
@@ -475,9 +475,26 @@ jQuery( document ).ready( function () {
 			'<form class="aaaoo-bulk-form" action="#" method="post" style="display:flex;gap:10px;"></form>'
 			);
 
+			let selectOptions = '';
+
+			if ( options.includes( 'autoload-on' ) ) {
+				selectOptions =
+				'<option value="autoload-on">' +
+				aaaOptionOptimizer.i18n.addAutoload +
+				'</option>';
+			}
+
+			if ( options.includes( 'autoload-off' ) ) {
+				selectOptions +=
+				'<option value="autoload-off">' +
+				aaaOptionOptimizer.i18n.removeAutoload +
+				'</option>';
+			}
+
 			const select = jQuery(
 			'<select class="aaaoo-bulk-select"><option value="">' +
 				aaaOptionOptimizer.i18n.bulkActions +
+				selectOptions +
 				'</option><option value="delete">' +
 				aaaOptionOptimizer.i18n.delete +
 				"</option></select>"
@@ -526,8 +543,15 @@ jQuery( document ).ready( function () {
 			),
 		};
 
+		if ( bulkAction === 'delete' ) {
+			endpoint = 'delete-options';
+		} else {
+			endpoint = 'set-autoload-options';
+			requestData.autoload = bulkAction === 'autoload-on' ? 'yes' : 'no';
+		}
+
 		jQuery.ajax({
-			url: aaaOptionOptimizer.root + 'aaa-option-optimizer/v1/delete-options',
+			url: aaaOptionOptimizer.root + 'aaa-option-optimizer/v1/' + endpoint,
 			method: 'POST',
 			beforeSend: (xhr) =>
 			xhr.setRequestHeader('X-WP-Nonce', aaaOptionOptimizer.nonce),
