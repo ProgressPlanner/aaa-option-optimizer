@@ -61,9 +61,14 @@ jQuery( document ).ready( function () {
 			( options.language = {
 				sZeroRecords: aaaOptionOptimizer.i18n.noAutoloadedButNotUsed,
 			} ),
-				( options.initComplete = getBulkActionsForm( selector, [
-					'autoload-off',
-				] ) );
+				( options.initComplete = function () {
+					getBulkActionsForm( selector, [ 'autoload-off' ] ).call(
+						this
+					);
+					this.api()
+						.columns( 'source:name' )
+						.every( setupColumnFilters );
+				} );
 			options.order = [ [ 1, 'asc' ] ]; // Order by 2nd column, first column is checkbox.
 		}
 
@@ -82,9 +87,10 @@ jQuery( document ).ready( function () {
 			options.language = {
 				sZeroRecords: aaaOptionOptimizer.i18n.noUsedButNotAutoloaded,
 			};
-			options.initComplete = getBulkActionsForm( selector, [
-				'autoload-on',
-			] );
+			options.initComplete = function () {
+				getBulkActionsForm( selector, [ 'autoload-on' ] ).call( this );
+				this.api().columns( 'source:name' ).every( setupColumnFilters );
+			};
 			options.order = [ [ 1, 'asc' ] ]; // Order by 2nd column, first column is checkbox.
 		}
 
@@ -112,10 +118,13 @@ jQuery( document ).ready( function () {
 				dataSrc: 'data',
 			};
 			options.rowId = 'row_id';
-			options.initComplete = getBulkActionsForm( selector, [
-				'autoload-on',
-				'autoload-off',
-			] );
+			options.initComplete = function () {
+				getBulkActionsForm( selector, [
+					'autoload-on',
+					'autoload-off',
+				] ).call( this );
+				this.api().columns( 'source:name' ).every( setupColumnFilters );
+			};
 			options.order = [ [ 1, 'asc' ] ]; // Order by 2nd column, first column is checkbox.
 		}
 
