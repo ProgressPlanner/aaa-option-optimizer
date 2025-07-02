@@ -147,6 +147,10 @@
         "name": "Rank Math SEO with AI Best SEO Tools",
         "option_prefixes": ["rank_math_"]
     },
+    "shop-as-client": {
+        "name": "Shop as Client for WooCommerce",
+        "option_prefixes": ["shop_as_client"]
+    },
     "updraft": {
         "name": "Updraft Plus",
         "option_prefixes": ["updraft_", "updraftplus_"]
@@ -154,6 +158,14 @@
     "yoast": {
         "name": "Yoast SEO",
         "option_prefixes": ["wpseo", "yoast_"]
+    },
+    "woo-dpd-pickup": {
+        "name": "DPD / Geopost Pickup and Lockers network for WooCommerce",
+        "option_prefixes": ["woo_dpd_pickup"]
+    },
+    "woo-dpd-portugal": {
+        "name": "DPD Portugal for WooCommerce",
+        "option_prefixes": ["woo_dpd_portugal"]
     },
     "woocommerce": {
         "name": "WooCommerce",
