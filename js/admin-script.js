@@ -30,6 +30,16 @@ jQuery( document ).ready( function () {
 	} );
 
 	/**
+	 * Generate row ID for an option name.
+	 *
+	 * @param {string} optionName - The option name.
+	 * @return {string} The row ID.
+	 */
+	function generateRowId( optionName ) {
+		return 'option_' + optionName.replace( /\./g, '_' );
+	}
+
+	/**
 	 * Initializes the DataTable for the given selector.
 	 *
 	 * @param {string} selector - The table selector.
@@ -40,6 +50,9 @@ jQuery( document ).ready( function () {
 			autoWidth: false,
 			responsive: true,
 			columns: getColumns( selector ),
+			rowId( data ) {
+				return generateRowId( data.name );
+			},
 			initComplete() {
 				this.api().columns( 'source:name' ).every( setupColumnFilters );
 			},
@@ -55,7 +68,6 @@ jQuery( document ).ready( function () {
 				type: 'GET',
 				dataSrc: 'data',
 			};
-			options.rowId = 'row_id';
 			options.serverSide = true;
 			options.processing = true;
 			options.language = {
@@ -72,7 +84,6 @@ jQuery( document ).ready( function () {
 				type: 'GET',
 				dataSrc: 'data',
 			};
-			options.rowId = 'row_id';
 			options.serverSide = true;
 			options.processing = true;
 			options.language = {
@@ -89,7 +100,6 @@ jQuery( document ).ready( function () {
 				type: 'GET',
 				dataSrc: 'data',
 			};
-			options.rowId = 'row_id';
 			options.serverSide = true;
 			options.processing = true;
 		}
@@ -103,7 +113,6 @@ jQuery( document ).ready( function () {
 				type: 'GET',
 				dataSrc: 'data',
 			};
-			options.rowId = 'row_id';
 		}
 
 		new DataTable( selector, options ).columns.adjust().responsive.recalc();
@@ -367,9 +376,11 @@ jQuery( document ).ready( function () {
 	 * @param {string}    action     - The action performed.
 	 */
 	function updateRowOnSuccess( response, table, optionName, action ) {
+		// Get the row ID for the option name.
+		const rowId = generateRowId( optionName );
 		if ( action === 'delete-option' || action === 'create-option-false' ) {
 			table
-				.row( 'tr#option_' + optionName )
+				.row( 'tr#' + rowId )
 				.remove()
 				.draw( 'full-hold' );
 		} else if (
@@ -390,16 +401,14 @@ jQuery( document ).ready( function () {
 					  aaaOptionOptimizer.i18n.addAutoload +
 					  '</button>';
 
-			jQuery( 'tr#option_' + optionName )
+			jQuery( 'tr#' + rowId )
 				.find( 'td.autoload' )
 				.text( autoloadStatus );
 			const oldButton =
 				'button.' +
 				( action === 'add-autoload' ? 'add' : 'remove' ) +
 				'-autoload';
-			jQuery( 'tr#option_' + optionName + ' ' + oldButton ).replaceWith(
-				buttonHTML
-			);
+			jQuery( 'tr#' + rowId + ' ' + oldButton ).replaceWith( buttonHTML );
 		}
 	}
 

@@ -188,7 +188,6 @@ class REST {
 				'size'     => $this->get_length( $option->option_value ),
 				'raw_size' => strlen( $option->option_value ),
 				'autoload' => $option->autoload,
-				'row_id'   => 'option_' . $option->option_name,
 			];
 		}
 		return new \WP_REST_Response( [ 'data' => $output ], 200 );
@@ -266,7 +265,6 @@ class REST {
 					'size'     => $this->get_length( $row->option_value ),
 					'raw_size' => strlen( $row->option_value ),
 					'autoload' => 'yes',
-					'row_id'   => 'option_' . $row->option_name,
 				];
 			}
 
