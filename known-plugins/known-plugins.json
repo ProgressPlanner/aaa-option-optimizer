@@ -93,7 +93,7 @@
     },
     "litespeed-cache": {
         "name": "LiteSpeed Cache",
-        "option_prefixes": ["litespeed-", "_litespeed_"]
+        "option_prefixes": ["litespeed-", "_litespeed_", "litespeed."]
     },
     "loginizer": {
         "name": "Loginizer",
