@@ -7,7 +7,7 @@
  * Plugin Name: AAA Option Optimizer
  * Plugin URI: https://joost.blog/plugins/aaa-option-optimizer/
  * Description: Tracks autoloaded options usage and allows the user to optimize them.
- * Version: 1.3.1
+ * Version: 1.3.2
  * License: GPL-3.0+
  * Author: Joost de Valk
  * Author URI: https://joost.blog/
@@ -50,7 +50,7 @@ function aaa_option_optimizer_activation() {
 			'starting_point_date' => current_time( 'mysql' ),
 			'used_options'        => [],
 		],
-		true
+		false
 	);
 }
 
