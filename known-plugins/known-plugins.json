@@ -201,7 +201,7 @@
     },
     "woocommerce": {
         "name": "WooCommerce",
-        "option_prefixes": ["wc_", "_transient__woocommerce_", "woocommerce_"]
+        "option_prefixes": ["wc_", "_transient__woocommerce_", "woocommerce_", "wccom-"]
     },
     "woocommerce-max-quantity": {
         "name": "Maximum Quantity for WooCommerce Shops",
