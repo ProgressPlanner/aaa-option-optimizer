@@ -2,6 +2,12 @@
 	margin-left: -5px;
 	border-spacing: 0;
 }
+.aaa-option-optimizer-tabs .dt-layout-cell.dt-start:has(.dt-length) {
+	display: flex;
+	justify-content: flex-start;
+	gap: 20px;
+}
+
 .aaa_option_table td, .aaa_option_table th {
 	padding: 5px 10px 5px 5px;
 	text-align: left;

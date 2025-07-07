@@ -157,6 +157,30 @@ class REST {
 				},
 			]
 		);
+
+		\register_rest_route(
+			'aaa-option-optimizer/v1',
+			'/delete-options',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ $this, 'delete_options' ],
+				'permission_callback' => function () {
+					return current_user_can( 'manage_options' );
+				},
+			]
+		);
+
+		\register_rest_route(
+			'aaa-option-optimizer/v1',
+			'/set-autoload-options',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ $this, 'set_autoload_options' ],
+				'permission_callback' => function () {
+					return current_user_can( 'manage_options' );
+				},
+			]
+		);
 	}
 
 	/**
@@ -573,6 +597,65 @@ class REST {
 			return new \WP_REST_Response( [ 'success' => true ], 200 );
 		}
 		return new \WP_Error( 'option_not_found_or_deleted', 'Option does not exist or could not be deleted', [ 'status' => 404 ] );
+	}
+
+	/**
+	 * Delete multiple options.
+	 *
+	 * @param \WP_REST_Request $request The REST request object.
+	 *
+	 * @return \WP_Error|\WP_REST_Response
+	 */
+	public function delete_options( $request ) {
+		if ( ! isset( $_SERVER['HTTP_X_WP_NONCE'] ) || ! \wp_verify_nonce( \sanitize_text_field( \wp_unslash( $_SERVER['HTTP_X_WP_NONCE'] ) ), 'wp_rest' ) ) {
+			return new \WP_REST_Response( [ 'error' => 'Invalid nonce' ], 403 );
+		}
+
+		$option_names = $request['option_names'];
+		foreach ( $option_names as $option_name ) {
+			delete_option( $option_name );
+		}
+		return new \WP_REST_Response( [ 'success' => true ], 200 );
+	}
+
+	/**
+	 * Set autoload status of multiple options.
+	 *
+	 * @param \WP_REST_Request $request The REST request object.
+	 *
+	 * @return \WP_Error|\WP_REST_Response
+	 */
+	public function set_autoload_options( $request ) {
+		if ( ! isset( $_SERVER['HTTP_X_WP_NONCE'] ) || ! \wp_verify_nonce( \sanitize_text_field( \wp_unslash( $_SERVER['HTTP_X_WP_NONCE'] ) ), 'wp_rest' ) ) {
+			return new \WP_REST_Response( [ 'error' => 'Invalid nonce' ], 403 );
+		}
+
+		$autoload = \sanitize_text_field( \wp_unslash( $request['autoload'] ) );
+
+		if ( ! in_array( $autoload, [ 'yes', 'on', 'no', 'off','auto', 'auto-on', 'auto-off' ], true ) ) {
+			return new \WP_Error( 'invalid_autoload_value', 'Invalid autoload value', [ 'status' => 400 ] );
+		}
+
+		$autoload_values = \wp_autoload_values_to_autoload();
+		$bool_autoload   = false;
+		if ( in_array( $autoload, $autoload_values, true ) ) {
+			$bool_autoload = true;
+		}
+
+		$option_names = $request['option_names'];
+
+		foreach ( $option_names as $option_name ) {
+			$option_value = get_option( $option_name );
+
+			// If the option does not exist, skip it.
+			if ( false === $option_value ) {
+				continue;
+			}
+
+			delete_option( $option_name );
+			add_option( $option_name, $option_value, '', $bool_autoload );
+		}
+		return new \WP_REST_Response( [ 'success' => true ], 200 );
 	}
 
 	/**
