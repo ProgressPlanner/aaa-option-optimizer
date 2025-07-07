@@ -62,7 +62,7 @@
     "enhanced-e-commerce-for-woocommerce-store": {
         "name": "Conversios: Google Analytics 4 (GA4), Google Ads, Microsoft Ads, and Multi-Channel Conversion Tracking",
         "option_prefixes": ["ee_"]
-    }
+    },
     "fewer-tags": {
         "name": "Fewer Tags",
         "option_prefixes": ["fewer_tags"]
