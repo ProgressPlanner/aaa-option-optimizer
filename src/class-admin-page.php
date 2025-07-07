@@ -148,7 +148,7 @@ class Admin_Page {
 						'_MAX_',
 						'_ENTRIES-MAX_'
 					),
-					'sZeroRecords'           => esc_html__( 'No matching records found 123', 'aaa-option-optimizer' ),
+					'sZeroRecords'           => esc_html__( 'No matching records found', 'aaa-option-optimizer' ),
 					'oAria'                  => [
 						'orderable'        => esc_html__( ': Activate to sort', 'aaa-option-optimizer' ),
 						'orderableReverse' => esc_html__( ': Activate to invert sorting', 'aaa-option-optimizer' ),
