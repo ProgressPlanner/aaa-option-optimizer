@@ -175,6 +175,10 @@
         "name": "Simple WooCommerce Order Approval",
         "option_prefixes": ["swoa_"]
     },
+    "slicewp_": {
+        "name": "SliceWP Affiliates",
+        "option_prefixes": ["slicewp_"]
+    },
     "updraft": {
         "name": "Updraft Plus",
         "option_prefixes": ["updraft_", "updraftplus_"]
