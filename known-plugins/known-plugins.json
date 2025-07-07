@@ -86,7 +86,7 @@
     "woo-billing-with-invoicexpress": {
         "name": "Invoicing with InvoiceXpress for WooCommerce",
         "option_prefixes": ["hd_wc_ie_"]
-    }
+    },
     "indeed-membership-pro": {
         "name": "Indeed Ultimate Membership Pro",
         "option_prefixes": ["ihc_"]
