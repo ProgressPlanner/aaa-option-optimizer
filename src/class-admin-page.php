@@ -122,6 +122,11 @@ class Admin_Page {
 					'createOptionFalse'      => \esc_html__( 'Create option with value false', 'aaa-option-optimizer' ),
 					'noAutoloadedButNotUsed' => \esc_html__( 'All autoloaded options are in use.', 'aaa-option-optimizer' ),
 					'noUsedButNotAutoloaded' => \esc_html__( 'All options that are used are autoloaded.', 'aaa-option-optimizer' ),
+					'noOptionsSelected'      => \esc_html__( 'No options selected.', 'aaa-option-optimizer' ),
+					'bulkActions'            => \esc_html__( 'Bulk actions', 'aaa-option-optimizer' ),
+					'noBulkActionSelected'   => \esc_html__( 'No action selected.', 'aaa-option-optimizer' ),
+					'delete'                 => \esc_html__( 'Delete', 'aaa-option-optimizer' ),
+					'apply'                  => \esc_html__( 'Apply', 'aaa-option-optimizer' ),
 
 					'search'                 => \esc_html__( 'Search:', 'aaa-option-optimizer' ),
 					'entries'                => [
@@ -216,7 +221,7 @@ class Admin_Page {
 			<p><?php \esc_html_e( 'We\'ve found the following things you can maybe optimize:', 'aaa-option-optimizer' ); ?></p>
 
 			<div class="aaa-option-optimizer-tabs">
-				<input class="input" name="tabs" type="radio" id="tab-1" checked="checked"/>
+				<input class="input" name="tabs" type="radio" id="tab-1" checked="checked" />
 				<label class="label" for="tab-1"><?php \esc_html_e( 'Unused, but autoloaded', 'aaa-option-optimizer' ); ?></label>
 				<div class="panel">
 					<h2 id="unused-autoloaded"><?php \esc_html_e( 'Unused, but autoloaded', 'aaa-option-optimizer' ); ?></h2>
@@ -225,6 +230,7 @@ class Admin_Page {
 					<table style="width:100%" id="unused_options_table" class="aaa_option_table">
 						<thead>
 							<tr>
+								<th class="select-all"></th>
 								<th><?php \esc_html_e( 'Option', 'aaa-option-optimizer' ); ?></th>
 								<th><?php \esc_html_e( 'Source', 'aaa-option-optimizer' ); ?></th>
 								<th><?php \esc_html_e( 'Size (KB)', 'aaa-option-optimizer' ); ?></th>
@@ -234,6 +240,7 @@ class Admin_Page {
 						</thead>
 						<tbody>
 							<tr>
+								<td class="select-all"></td>
 								<td></td>
 								<td></td>
 								<td></td>
@@ -243,6 +250,7 @@ class Admin_Page {
 						</tbody>
 						<tfoot>
 							<tr>
+								<th class="select-all"></th>
 								<th><?php \esc_html_e( 'Option', 'aaa-option-optimizer' ); ?></th>
 								<th><?php \esc_html_e( 'Source', 'aaa-option-optimizer' ); ?></th>
 								<th><?php \esc_html_e( 'Size (KB)', 'aaa-option-optimizer' ); ?></th>
@@ -252,6 +260,7 @@ class Admin_Page {
 						</tfoot>
 					</table>
 				</div>
+
 				<input class="input" name="tabs" type="radio" id="tab-2"/>
 				<label class="label" for="tab-2"><?php \esc_html_e( 'Used, but not autoloaded', 'aaa-option-optimizer' ); ?></label>
 				<div class="panel">
@@ -261,6 +270,7 @@ class Admin_Page {
 					<table style="width:100%;" id="used_not_autoloaded_table" class="aaa_option_table">
 						<thead>
 							<tr>
+								<th class="select-all"></th>
 								<th><?php \esc_html_e( 'Option', 'aaa-option-optimizer' ); ?></th>
 								<th><?php \esc_html_e( 'Source', 'aaa-option-optimizer' ); ?></th>
 								<th><?php \esc_html_e( 'Size (KB)', 'aaa-option-optimizer' ); ?></th>
@@ -271,6 +281,7 @@ class Admin_Page {
 						</thead>
 						<tbody>
 							<tr>
+								<td class="select-all"></td>
 								<td></td>
 								<td></td>
 								<td></td>
@@ -281,6 +292,7 @@ class Admin_Page {
 						</tbody>
 						<tfoot>
 							<tr>
+								<th class="select-all"></th>
 								<th><?php \esc_html_e( 'Option', 'aaa-option-optimizer' ); ?></th>
 								<th><?php \esc_html_e( 'Source', 'aaa-option-optimizer' ); ?></th>
 								<th><?php \esc_html_e( 'Size (KB)', 'aaa-option-optimizer' ); ?></th>
@@ -291,6 +303,7 @@ class Admin_Page {
 						</tfoot>
 					</table>
 				</div>
+				
 				<input class="input" name="tabs" type="radio" id="tab-3"/>
 				<label class="label" for="tab-3"><?php \esc_html_e( 'Requested options that do not exist', 'aaa-option-optimizer' ); ?></label>
 				<div class="panel">
@@ -299,6 +312,7 @@ class Admin_Page {
 					<table width="100%" id="requested_do_not_exist_table" class="aaa_option_table">
 						<thead>
 							<tr>
+								<th class="select-all"></th>
 								<th><?php \esc_html_e( 'Option', 'aaa-option-optimizer' ); ?></th>
 								<th><?php \esc_html_e( 'Source', 'aaa-option-optimizer' ); ?></th>
 								<th><?php \esc_html_e( '# Calls', 'aaa-option-optimizer' ); ?></th>
@@ -307,6 +321,7 @@ class Admin_Page {
 						</thead>
 						<tbody>
 							<tr>
+								<td class="select-all"></td>
 								<td></td>
 								<td></td>
 								<td></td>
@@ -315,6 +330,7 @@ class Admin_Page {
 						</tbody>
 						<tfoot>
 							<tr>
+								<th class="select-all"></th>
 								<th><?php \esc_html_e( 'Option', 'aaa-option-optimizer' ); ?></th>
 								<th><?php \esc_html_e( 'Source', 'aaa-option-optimizer' ); ?></th>
 								<th><?php \esc_html_e( '# Calls', 'aaa-option-optimizer' ); ?></th>
@@ -323,6 +339,7 @@ class Admin_Page {
 						</tfoot>
 					</table>
 				</div>
+			
 				<input class="input" name="tabs" type="radio" id="tab-4"/>
 				<label class="label" for="tab-4"><?php \esc_html_e( 'All options', 'aaa-option-optimizer' ); ?></label>
 				<div class="panel">
@@ -331,6 +348,7 @@ class Admin_Page {
 					<table class="aaa_option_table" id="all_options_table" style="display:none;">
 						<thead>
 							<tr>
+								<th class="select-all"></th>
 								<th><?php \esc_html_e( 'Option', 'aaa-option-optimizer' ); ?></th>
 								<th><?php \esc_html_e( 'Source', 'aaa-option-optimizer' ); ?></th>
 								<th><?php \esc_html_e( 'Size (KB)', 'aaa-option-optimizer' ); ?></th>
@@ -340,6 +358,7 @@ class Admin_Page {
 						</thead>
 						<tbody>
 							<tr>
+								<td class="select-all"></td>
 								<td></td>
 								<td></td>
 								<td></td>
@@ -349,6 +368,7 @@ class Admin_Page {
 						</tbody>
 						<tfoot>
 							<tr>
+								<th class="select-all"></th>
 								<th><?php \esc_html_e( 'Option', 'aaa-option-optimizer' ); ?></th>
 								<th><?php \esc_html_e( 'Source', 'aaa-option-optimizer' ); ?></th>
 								<th><?php \esc_html_e( 'Size (KB)', 'aaa-option-optimizer' ); ?></th>

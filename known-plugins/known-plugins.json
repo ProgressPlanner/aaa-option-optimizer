@@ -79,6 +79,10 @@
         "name": "Google Analytics for WordPress by MonsterInsights",
         "option_prefixes": ["yst_"]
     },
+    "google-site-kit": {
+        "name": "Site Kit by Google",
+        "option_prefixes": ["googlesitekit_"]
+    },
     "gravity-forms": {
         "name": "Gravity Forms",
         "option_prefixes": ["gf_","gforms_"]
