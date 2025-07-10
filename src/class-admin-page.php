@@ -88,7 +88,7 @@ class Admin_Page {
 			'datatables',
 			plugin_dir_url( AAA_OPTION_OPTIMIZER_FILE ) . 'js/vendor/datatables.min.js',
 			[], // Dependencies.
-			'2.0.1',
+			'2.3.2',
 			true // In footer.
 		);
 
@@ -96,7 +96,7 @@ class Admin_Page {
 			'datatables',
 			plugin_dir_url( AAA_OPTION_OPTIMIZER_FILE ) . 'js/vendor/datatables.min.css',
 			[],
-			'2.0.1'
+			'2.3.2'
 		);
 
 		\wp_enqueue_script(
