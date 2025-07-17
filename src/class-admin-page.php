@@ -303,7 +303,7 @@ class Admin_Page {
 						</tfoot>
 					</table>
 				</div>
-				
+
 				<input class="input" name="tabs" type="radio" id="tab-3"/>
 				<label class="label" for="tab-3"><?php \esc_html_e( 'Requested options that do not exist', 'aaa-option-optimizer' ); ?></label>
 				<div class="panel">
@@ -312,7 +312,6 @@ class Admin_Page {
 					<table width="100%" id="requested_do_not_exist_table" class="aaa_option_table">
 						<thead>
 							<tr>
-								<th class="select-all"></th>
 								<th><?php \esc_html_e( 'Option', 'aaa-option-optimizer' ); ?></th>
 								<th><?php \esc_html_e( 'Source', 'aaa-option-optimizer' ); ?></th>
 								<th><?php \esc_html_e( '# Calls', 'aaa-option-optimizer' ); ?></th>
@@ -321,7 +320,6 @@ class Admin_Page {
 						</thead>
 						<tbody>
 							<tr>
-								<td class="select-all"></td>
 								<td></td>
 								<td></td>
 								<td></td>
@@ -330,7 +328,6 @@ class Admin_Page {
 						</tbody>
 						<tfoot>
 							<tr>
-								<th class="select-all"></th>
 								<th><?php \esc_html_e( 'Option', 'aaa-option-optimizer' ); ?></th>
 								<th><?php \esc_html_e( 'Source', 'aaa-option-optimizer' ); ?></th>
 								<th><?php \esc_html_e( '# Calls', 'aaa-option-optimizer' ); ?></th>
@@ -339,7 +336,7 @@ class Admin_Page {
 						</tfoot>
 					</table>
 				</div>
-			
+
 				<input class="input" name="tabs" type="radio" id="tab-4"/>
 				<label class="label" for="tab-4"><?php \esc_html_e( 'All options', 'aaa-option-optimizer' ); ?></label>
 				<div class="panel">
