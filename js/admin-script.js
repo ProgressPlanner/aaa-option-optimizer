@@ -477,7 +477,8 @@ jQuery( document ).ready( function () {
 
 			const select = jQuery(
 				`<select class="aaaoo-bulk-select">
-					<option value="">${ aaaOptionOptimizer.i18n.bulkActions }${ selectOptions }</option>
+					<option value="">${ aaaOptionOptimizer.i18n.bulkActions }</option>
+					${ selectOptions }
 					<option value="delete">${ aaaOptionOptimizer.i18n.delete }</option>
 				</select>`
 			);
