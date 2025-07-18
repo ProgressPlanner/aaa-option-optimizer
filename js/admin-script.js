@@ -492,7 +492,7 @@ jQuery( document ).ready( function () {
 			form.append( select, button );
 
 			// Add the form to the .dt-start cell
-			container.find( '.dt-layout-cell.dt-start ' ).prepend( form );
+			container.find( '.dt-layout-cell.dt-layout-start' ).prepend( form );
 
 			// Move .dt-length to .dt-layout-cell.dt-end
 			// const lengthSelector = container.find(".dt-length"); // same as div.dt-length
