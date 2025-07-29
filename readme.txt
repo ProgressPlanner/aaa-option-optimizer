@@ -20,7 +20,7 @@ Install this plugin, and go through your entire site. Best is to use it normally
 
 = Why the AAA prefix in the plugin name? =
 
-Because the plugin needs to measure options being loaded, it benefits from being loaded itself first. As WordPress loads plugins alphabetically, 
+Because the plugin needs to measure options being loaded, it benefits from being loaded itself first. As WordPress loads plugins alphabetically,
 starting the name with AAA made sense.
 
 = Do I need to take precautions? =
@@ -53,6 +53,10 @@ Please do a pull request via GitHub on [this file](https://github.com/Emilia-Cap
 2. Screenshot of the "All options" screen, showing you can browse all the options.
 
 == Changelog ==
+
+= 1.5.0 =
+
+* Prefix the Datatables script slug to avoid conflict with other plugins.
 
 = 1.4.0 =
 
@@ -95,7 +99,7 @@ Implement the missing functionality to create an option with value `false` when 
 
 = 1.1 =
 
-The plugin now recognizes plugins from which the options came (thanks to a great pull by [Rogier Lankhorst](https://profiles.wordpress.org/rogierlankhorst/)). If you're a plugin developer and want your plugin's options 
+The plugin now recognizes plugins from which the options came (thanks to a great pull by [Rogier Lankhorst](https://profiles.wordpress.org/rogierlankhorst/)). If you're a plugin developer and want your plugin's options
 properly recognized, please do a pull request [on this file](https://github.com/Emilia-Capital/aaa-option-optimizer/blob/main/known-plugins/known-plugins.json).
 
 Small enhancements:
