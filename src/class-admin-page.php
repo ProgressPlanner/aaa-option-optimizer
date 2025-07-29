@@ -85,7 +85,7 @@ class Admin_Page {
 		);
 
 		\wp_enqueue_script(
-			'datatables',
+			'aaaoo-datatables',
 			plugin_dir_url( AAA_OPTION_OPTIMIZER_FILE ) . 'js/vendor/datatables.min.js',
 			[], // Dependencies.
 			'2.3.2',
@@ -93,7 +93,7 @@ class Admin_Page {
 		);
 
 		\wp_enqueue_style(
-			'datatables',
+			'aaaoo-datatables',
 			\plugin_dir_url( AAA_OPTION_OPTIMIZER_FILE ) . 'js/vendor/datatables.min.css',
 			[],
 			'2.3.2'
@@ -102,7 +102,7 @@ class Admin_Page {
 		\wp_enqueue_script(
 			'aaa-option-optimizer-admin-js',
 			\plugin_dir_url( AAA_OPTION_OPTIMIZER_FILE ) . 'js/admin-script.js',
-			[ 'jquery', 'datatables' ], // Dependencies.
+			[ 'jquery', 'aaaoo-datatables' ], // Dependencies.
 			\filemtime( \plugin_dir_path( AAA_OPTION_OPTIMIZER_FILE ) . 'js/admin-script.js' ), // Version.
 			true // In footer.
 		);
