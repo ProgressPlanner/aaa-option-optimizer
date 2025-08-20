@@ -111,6 +111,10 @@
         "name": "Loginizer",
         "option_prefixes": ["loginizer_"]
     },
+    "mainwp": {
+        "name": "MainWP (Child or Dashboard)",
+        "option_prefixes": ["mainwp_"]
+    },
     "multibanco-ifthen-software-gateway-for-woocommerce": {
         "name": "Multibanco, MB WAY, Credit card, Apple Pay, Google Pay, Payshop, Cofidis Pay, and PIX (ifthenpay) for WooCommerce",
         "option_prefixes": ["cofidispay_ifthen_", "creditcard_ifthen_", "gateway_ifthen_", "mbway_ifthen_", "multibanco_ifthen_", "payshop_"]
@@ -171,6 +175,10 @@
         "name": "Simple WooCommerce Order Approval",
         "option_prefixes": ["swoa_"]
     },
+    "slicewp_": {
+        "name": "SliceWP Affiliates",
+        "option_prefixes": ["slicewp_"]
+    },
     "updraft": {
         "name": "Updraft Plus",
         "option_prefixes": ["updraft_", "updraftplus_"]
@@ -193,7 +201,7 @@
     },
     "woocommerce": {
         "name": "WooCommerce",
-        "option_prefixes": ["wc_", "_transient__woocommerce_", "woocommerce_"]
+        "option_prefixes": ["wc_", "_transient__woocommerce_", "woocommerce_", "wccom-"]
     },
     "woocommerce-max-quantity": {
         "name": "Maximum Quantity for WooCommerce Shops",

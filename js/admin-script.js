@@ -70,17 +70,13 @@ jQuery( document ).ready( function () {
 			};
 			options.serverSide = true;
 			options.processing = true;
-			( options.language = {
+			options.language = {
 				sZeroRecords: aaaOptionOptimizer.i18n.noAutoloadedButNotUsed,
-			} ),
-				( options.initComplete = function () {
-					getBulkActionsForm( selector, [ 'autoload-off' ] ).call(
-						this
-					);
-					this.api()
-						.columns( 'source:name' )
-						.every( setupColumnFilters );
-				} );
+			};
+			options.initComplete = function () {
+				getBulkActionsForm( selector, [ 'autoload-off' ] ).call( this );
+				this.api().columns( 'source:name' ).every( setupColumnFilters );
+			};
 			options.order = [ [ 1, 'asc' ] ]; // Order by 2nd column, first column is checkbox.
 		}
 
@@ -107,9 +103,7 @@ jQuery( document ).ready( function () {
 
 		if ( selector === '#requested_do_not_exist_table' ) {
 			options.ajax = {
-				url:
-					aaaOptionOptimizer.root +
-					'aaa-option-optimizer/v1/options-that-do-not-exist',
+				url: `${ aaaOptionOptimizer.root }aaa-option-optimizer/v1/options-that-do-not-exist`,
 				headers: { 'X-WP-Nonce': aaaOptionOptimizer.nonce },
 				type: 'GET',
 				dataSrc: 'data',
@@ -120,9 +114,7 @@ jQuery( document ).ready( function () {
 
 		if ( selector === '#all_options_table' ) {
 			options.ajax = {
-				url:
-					aaaOptionOptimizer.root +
-					'aaa-option-optimizer/v1/all-options',
+				url: `${ aaaOptionOptimizer.root }aaa-option-optimizer/v1/all-options`,
 				headers: { 'X-WP-Nonce': aaaOptionOptimizer.nonce },
 				type: 'GET',
 				dataSrc: 'data',
@@ -237,7 +229,7 @@ jQuery( document ).ready( function () {
 					name: 'size',
 					data: 'size',
 					searchable: false,
-					render: ( data ) => '<span class="num">' + data + '</span>',
+					render: ( data ) => `<span class="num">${ data }</span>`,
 				},
 				{
 					name: 'autoload',
@@ -291,44 +283,31 @@ jQuery( document ).ready( function () {
 	 * @return {string} - The HTML for the value column.
 	 */
 	function renderValueColumn( row ) {
-		const popoverContent =
-			'<div id="popover_' +
-			row.name +
-			'" popover class="aaa-option-optimizer-popover">' +
-			'<button class="aaa-option-optimizer-popover__close" popovertarget="popover_' +
-			row.name +
-			'" popovertargetaction="hide">X</button>' +
-			'<p><strong>Value of <code>' +
-			row.name +
-			'</code></strong></p>' +
-			'<pre>' +
-			row.value +
-			'</pre>' +
-			'</div>';
+		const popoverContent = `<div id="popover_${ row.name }" popover class="aaa-option-optimizer-popover">
+			<button class="aaa-option-optimizer-popover__close" popovertarget="popover_${ row.name }" popovertargetaction="hide">X</button>
+			<p><strong>Value of <code>${ row.name }</code></strong></p>
+			<pre>${ row.value }</pre>
+		</div>`;
 
 		const actions = [
-			'<button class="button dashicon" popovertarget="popover_' +
-				row.name +
-				'"><span class="dashicons dashicons-search"></span>' +
-				aaaOptionOptimizer.i18n.showValue +
-				'</button>',
+			`<button class="button dashicon" popovertarget="popover_${ row.name }">
+				<span class="dashicons dashicons-search"></span>
+				${ aaaOptionOptimizer.i18n.showValue }
+			</button>`,
 			popoverContent,
 			row.autoload === 'no'
-				? '<button class="button dashicon add-autoload" data-option="' +
-				  row.name +
-				  '"><span class="dashicons dashicons-plus"></span>' +
-				  aaaOptionOptimizer.i18n.addAutoload +
-				  '</button>'
-				: '<button class="button dashicon remove-autoload" data-option="' +
-				  row.name +
-				  '"><span class="dashicons dashicons-minus"></span>' +
-				  aaaOptionOptimizer.i18n.removeAutoload +
-				  '</button>',
-			'<button class="button button-delete delete-option" data-option="' +
-				row.name +
-				'"><span class="dashicons dashicons-trash"></span>' +
-				aaaOptionOptimizer.i18n.deleteOption +
-				'</button >',
+				? `<button class="button dashicon add-autoload" data-option="${ row.name }">
+					<span class="dashicons dashicons-plus"></span>
+					${ aaaOptionOptimizer.i18n.addAutoload }
+				</button>`
+				: `<button class="button dashicon remove-autoload" data-option="${ row.name }">
+					<span class="dashicons dashicons-minus"></span>
+					${ aaaOptionOptimizer.i18n.removeAutoload }
+				</button>`,
+			`<button class="button button-delete delete-option" data-option="${ row.name }">
+				<span class="dashicons dashicons-trash"></span>
+				${ aaaOptionOptimizer.i18n.deleteOption }
+			</button>`,
 		];
 
 		return actions.join( '' );
@@ -342,13 +321,9 @@ jQuery( document ).ready( function () {
 	 * @return {string} - The HTML for the value column.
 	 */
 	function renderNonExistingOptionsColumn( row ) {
-		return (
-			'<button class="button button-primary create-option-false" data-option="' +
-			row.name +
-			'">' +
-			aaaOptionOptimizer.i18n.createOptionFalse +
-			'</button>'
-		);
+		return `<button class="button button-primary create-option-false" data-option="${ row.name }">
+				${ aaaOptionOptimizer.i18n.createOptionFalse }
+			</button>`;
 	}
 
 	/**
@@ -359,31 +334,22 @@ jQuery( document ).ready( function () {
 	 * @return {string} - The HTML for the value column.
 	 */
 	function renderCheckboxColumn( row ) {
-		return (
-			'<label for="select-option-' +
-			row.name +
-			'">' +
-			'<input type="checkbox" id="select-option-' +
-			row.name +
-			'" class="select-option" data-option="' +
-			row.name +
-			'">' +
-			'</label>'
-		);
+		return `<label for="select-option-${ row.name }">
+				<input type="checkbox" id="select-option-${ row.name }" class="select-option" data-option="${ row.name }">
+			</label>`;
 	}
 
 	jQuery( '#aaa-option-reset-data' ).on( 'click', function ( e ) {
 		e.preventDefault();
 		jQuery.ajax( {
-			url: aaaOptionOptimizer.root + 'aaa-option-optimizer/v1/reset',
+			url: `${ aaaOptionOptimizer.root }aaa-option-optimizer/v1/reset`,
 			method: 'POST',
 			beforeSend: ( xhr ) =>
 				xhr.setRequestHeader( 'X-WP-Nonce', aaaOptionOptimizer.nonce ),
 			success: (
 				response // eslint-disable-line no-unused-vars
 			) =>
-				( window.location =
-					window.location.href + '&tracking_reset=true' ),
+				( window.location = `${ window.location.href }&tracking_reset=true` ),
 			error: ( response ) =>
 				console.error( 'Failed to reset tracking.', response ), // eslint-disable-line no-console
 		} );
@@ -417,7 +383,7 @@ jQuery( document ).ready( function () {
 		}
 
 		jQuery.ajax( {
-			url: aaaOptionOptimizer.root + 'aaa-option-optimizer/v1/' + route,
+			url: `${ aaaOptionOptimizer.root }aaa-option-optimizer/v1/${ route }`,
 			method: 'POST',
 			beforeSend: ( xhr ) =>
 				xhr.setRequestHeader( 'X-WP-Nonce', aaaOptionOptimizer.nonce ),
@@ -427,7 +393,7 @@ jQuery( document ).ready( function () {
 			error: ( response ) =>
 				// eslint-disable-next-line no-console
 				console.error(
-					'Failed to ' + action + ' for ' + optionName + '.',
+					`Failed to ${ action } for ${ optionName }.`,
 					response
 				),
 		} );
@@ -456,25 +422,22 @@ jQuery( document ).ready( function () {
 			const autoloadStatus = action === 'add-autoload' ? 'yes' : 'no';
 			const buttonHTML =
 				action === 'add-autoload'
-					? '<button class="button dashicon remove-autoload" data-option="' +
-					  optionName +
-					  '"><span class="dashicons dashicons-minus"></span>' +
-					  aaaOptionOptimizer.i18n.removeAutoload +
-					  '</button>'
-					: '<button class="button dashicon add-autoload" data-option="' +
-					  optionName +
-					  '"><span class="dashicons dashicons-plus"></span>' +
-					  aaaOptionOptimizer.i18n.addAutoload +
-					  '</button>';
+					? `<button class="button dashicon remove-autoload" data-option="${ optionName }">
+						<span class="dashicons dashicons-minus"></span>
+						${ aaaOptionOptimizer.i18n.removeAutoload }
+					</button>`
+					: `<button class="button dashicon add-autoload" data-option="${ optionName }">
+						<span class="dashicons dashicons-plus"></span>
+						${ aaaOptionOptimizer.i18n.addAutoload }
+					</button>`;
 
-			jQuery( 'tr#' + rowId )
+			jQuery( `tr#${ rowId }` )
 				.find( 'td.autoload' )
 				.text( autoloadStatus );
-			const oldButton =
-				'button.' +
-				( action === 'add-autoload' ? 'add' : 'remove' ) +
-				'-autoload';
-			jQuery( 'tr#' + rowId + ' ' + oldButton ).replaceWith( buttonHTML );
+			const oldButton = `button.${
+				action === 'add-autoload' ? 'add' : 'remove'
+			}-autoload`;
+			jQuery( `tr#${ rowId } ${ oldButton }` ).replaceWith( buttonHTML );
 		}
 	}
 
@@ -505,40 +468,31 @@ jQuery( document ).ready( function () {
 			let selectOptions = '';
 
 			if ( options.includes( 'autoload-on' ) ) {
-				selectOptions =
-					'<option value="autoload-on">' +
-					aaaOptionOptimizer.i18n.addAutoload +
-					'</option>';
+				selectOptions = `<option value="autoload-on">${ aaaOptionOptimizer.i18n.addAutoload }</option>`;
 			}
 
 			if ( options.includes( 'autoload-off' ) ) {
-				selectOptions +=
-					'<option value="autoload-off">' +
-					aaaOptionOptimizer.i18n.removeAutoload +
-					'</option>';
+				selectOptions += `<option value="autoload-off">${ aaaOptionOptimizer.i18n.removeAutoload }</option>`;
 			}
 
 			const select = jQuery(
-				'<select class="aaaoo-bulk-select"><option value="">' +
-					aaaOptionOptimizer.i18n.bulkActions +
-					selectOptions +
-					'</option><option value="delete">' +
-					aaaOptionOptimizer.i18n.delete +
-					'</option></select>'
+				`<select class="aaaoo-bulk-select">
+					<option value="">${ aaaOptionOptimizer.i18n.bulkActions }</option>
+					${ selectOptions }
+					<option value="delete">${ aaaOptionOptimizer.i18n.delete }</option>
+				</select>`
 			);
 
 			const button = jQuery(
-				'<button type="submit" class="button aaaoo-apply-bulk-action" data-table="' +
-					selector +
-					'">' +
-					aaaOptionOptimizer.i18n.apply +
-					'</button>'
+				`<button type="submit" class="button aaaoo-apply-bulk-action" data-table="${ selector }">
+					${ aaaOptionOptimizer.i18n.apply }
+				</button>`
 			);
 
 			form.append( select, button );
 
 			// Add the form to the .dt-start cell
-			container.find( '.dt-layout-cell.dt-start ' ).prepend( form );
+			container.find( '.dt-layout-cell.dt-layout-start' ).prepend( form );
 
 			// Move .dt-length to .dt-layout-cell.dt-end
 			// const lengthSelector = container.find(".dt-length"); // same as div.dt-length
@@ -558,14 +512,14 @@ jQuery( document ).ready( function () {
 			const button = jQuery( this );
 			const select = jQuery( button ).siblings( '.aaaoo-bulk-select' );
 			const bulkAction = select.val();
-			const table = jQuery( button.data( 'table' ) );
-			const selectedOptions = table.find( 'input.select-option:checked' );
 
 			if ( ! bulkAction ) {
 				alert( aaaOptionOptimizer.i18n.noBulkActionSelected ); // eslint-disable-line no-alert
 				return;
 			}
 
+			const table = jQuery( button.data( 'table' ) );
+			const selectedOptions = table.find( 'input.select-option:checked' );
 			if ( selectedOptions.length === 0 ) {
 				alert( aaaOptionOptimizer.i18n.noOptionsSelected ); // eslint-disable-line no-alert
 				return;
@@ -579,10 +533,12 @@ jQuery( document ).ready( function () {
 				),
 			};
 
-			if ( bulkAction === 'delete' ) {
-				endpoint = 'delete-options';
-			} else {
-				endpoint = 'set-autoload-options';
+			const endpoint =
+				'delete' === bulkAction
+					? 'delete-options'
+					: 'set-autoload-options';
+
+			if ( bulkAction !== 'delete' ) {
 				requestData.autoload =
 					bulkAction === 'autoload-on' ? 'yes' : 'no';
 			}
