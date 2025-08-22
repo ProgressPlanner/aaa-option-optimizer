@@ -454,6 +454,10 @@ jQuery( document ).ready( function () {
 		const selectValue = jQuery( this ).prop( 'checked' );
 		const selectedOptions = table.find( 'input.select-option' );
 		selectedOptions.prop( 'checked', selectValue );
+
+		// Match the checked value in the other select-all checkbox (not this one).
+		const otherSelectAll = table.find( '.select-all-checkbox' ).not( this );
+		otherSelectAll.prop( 'checked', selectValue );
 	} );
 
 	// Generates bulk actions form for DataTable.
