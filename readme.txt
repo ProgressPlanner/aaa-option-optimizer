@@ -54,6 +54,10 @@ Please do a pull request via GitHub on [this file](https://github.com/Emilia-Cap
 
 == Changelog ==
 
+= 1.5.1 =
+
+* Add "select all" checkbox.
+
 = 1.5.0 =
 
 * Prefix the Datatables script slug to avoid conflict with other plugins.
