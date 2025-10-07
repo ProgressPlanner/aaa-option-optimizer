@@ -230,7 +230,7 @@ class Admin_Page {
 					<table style="width:100%" id="unused_options_table" class="aaa_option_table">
 						<thead>
 							<tr>
-								<th class="select-all"></th>
+								<th class="select-all"><input type="checkbox" class="select-all-checkbox" /></th>
 								<th><?php \esc_html_e( 'Option', 'aaa-option-optimizer' ); ?></th>
 								<th><?php \esc_html_e( 'Source', 'aaa-option-optimizer' ); ?></th>
 								<th><?php \esc_html_e( 'Size (KB)', 'aaa-option-optimizer' ); ?></th>
@@ -250,7 +250,7 @@ class Admin_Page {
 						</tbody>
 						<tfoot>
 							<tr>
-								<th class="select-all"></th>
+								<th class="select-all"><input type="checkbox" class="select-all-checkbox" /></th>
 								<th><?php \esc_html_e( 'Option', 'aaa-option-optimizer' ); ?></th>
 								<th><?php \esc_html_e( 'Source', 'aaa-option-optimizer' ); ?></th>
 								<th><?php \esc_html_e( 'Size (KB)', 'aaa-option-optimizer' ); ?></th>
@@ -270,7 +270,7 @@ class Admin_Page {
 					<table style="width:100%;" id="used_not_autoloaded_table" class="aaa_option_table">
 						<thead>
 							<tr>
-								<th class="select-all"></th>
+								<th class="select-all"><input type="checkbox" class="select-all-checkbox" /></th>
 								<th><?php \esc_html_e( 'Option', 'aaa-option-optimizer' ); ?></th>
 								<th><?php \esc_html_e( 'Source', 'aaa-option-optimizer' ); ?></th>
 								<th><?php \esc_html_e( 'Size (KB)', 'aaa-option-optimizer' ); ?></th>
@@ -292,7 +292,7 @@ class Admin_Page {
 						</tbody>
 						<tfoot>
 							<tr>
-								<th class="select-all"></th>
+								<th class="select-all"><input type="checkbox" class="select-all-checkbox" /></th>
 								<th><?php \esc_html_e( 'Option', 'aaa-option-optimizer' ); ?></th>
 								<th><?php \esc_html_e( 'Source', 'aaa-option-optimizer' ); ?></th>
 								<th><?php \esc_html_e( 'Size (KB)', 'aaa-option-optimizer' ); ?></th>
@@ -345,7 +345,7 @@ class Admin_Page {
 					<table class="aaa_option_table" id="all_options_table" style="display:none;">
 						<thead>
 							<tr>
-								<th class="select-all"></th>
+								<th class="select-all"><input type="checkbox" class="select-all-checkbox" /></th>
 								<th><?php \esc_html_e( 'Option', 'aaa-option-optimizer' ); ?></th>
 								<th><?php \esc_html_e( 'Source', 'aaa-option-optimizer' ); ?></th>
 								<th><?php \esc_html_e( 'Size (KB)', 'aaa-option-optimizer' ); ?></th>
@@ -365,7 +365,7 @@ class Admin_Page {
 						</tbody>
 						<tfoot>
 							<tr>
-								<th class="select-all"></th>
+								<th class="select-all"><input type="checkbox" class="select-all-checkbox" /></th>
 								<th><?php \esc_html_e( 'Option', 'aaa-option-optimizer' ); ?></th>
 								<th><?php \esc_html_e( 'Source', 'aaa-option-optimizer' ); ?></th>
 								<th><?php \esc_html_e( 'Size (KB)', 'aaa-option-optimizer' ); ?></th>

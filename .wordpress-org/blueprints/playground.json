@@ -1,0 +1,13 @@
+{
+	"landingPage": "\/wp-admin\/tools.php?page=aaa-option-optimizer",
+    "plugins": [
+        "aaa-option-optimizer"
+    ],
+	"steps": [
+		{
+			"step": "login",
+			"username": "admin",
+			"password": "password"
+		}
+	]
+}
