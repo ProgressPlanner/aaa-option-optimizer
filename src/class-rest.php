@@ -254,7 +254,14 @@ class REST {
 		// Find unused autoloaded option names.
 		$autoload_option_keys = array_fill_keys( $autoloaded_option_names, true );
 		$unused_keys          = array_diff_key( $autoload_option_keys, $used_options );
-		$total_unused         = count( $unused_keys );
+
+		// Apply source filter to unused keys if specified.
+		$filter_by_source = isset( $_GET['columns'][2]['search']['value'] ) ? trim( \sanitize_text_field( \wp_unslash( $_GET['columns'][2]['search']['value'] ) ) ) : '';
+		if ( '' !== $filter_by_source ) {
+			$unused_keys = $this->filter_by_source( $unused_keys, $filter_by_source );
+		}
+
+		$total_unused = count( $unused_keys );
 
 		// Sort order.
 		[ $order_column, $order_dir ] = $this->get_sort_params();
@@ -358,6 +365,12 @@ class REST {
 
 		// Find used options that are not autoloaded.
 		$non_autoloaded_used_keys = array_diff_key( $used_options, $autoload_option_keys );
+
+		// Filter by source (plugin).
+		$filter_by_source = isset( $_GET['columns'][2]['search']['value'] ) ? trim( \sanitize_text_field( \wp_unslash( $_GET['columns'][2]['search']['value'] ) ) ) : '';
+		if ( '' !== $filter_by_source ) {
+			$non_autoloaded_used_keys = $this->filter_by_source( $non_autoloaded_used_keys, $filter_by_source );
+		}
 
 		// Search.
 		$search = isset( $_GET['search']['value'] ) ? trim( \sanitize_text_field( \wp_unslash( $_GET['search']['value'] ) ) ) : '';
@@ -476,6 +489,12 @@ class REST {
 
 		// Get used options that are not autoloaded.
 		$non_autoloaded_keys = array_diff_key( $used_options, $autoload_option_keys );
+
+		// Filter by source (plugin).
+		$filter_by_source = isset( $_GET['columns'][1]['search']['value'] ) ? trim( \sanitize_text_field( \wp_unslash( $_GET['columns'][1]['search']['value'] ) ) ) : '';
+		if ( '' !== $filter_by_source ) {
+			$non_autoloaded_keys = $this->filter_by_source( $non_autoloaded_keys, $filter_by_source );
+		}
 
 		// Search.
 		$search = isset( $_GET['search']['value'] ) ? trim( \sanitize_text_field( \wp_unslash( $_GET['search']['value'] ) ) ) : '';
@@ -790,5 +809,29 @@ class REST {
 	 */
 	private function get_plugin_name( $option ) {
 		return $this->map_plugin_to_options->get_plugin_name( $option );
+	}
+
+	/**
+	 * Filter options array by source (plugin) name.
+	 *
+	 * @param array<string, mixed> $options_array The options array to filter.
+	 * @param string               $filter_term   The filter term to match against plugin names.
+	 *
+	 * @return array<string, mixed> The filtered options array.
+	 */
+	private function filter_by_source( array $options_array, string $filter_term ): array {
+
+		if ( ! $filter_term ) {
+			return $options_array;
+		}
+
+		return array_filter(
+			$options_array,
+			function ( $option_name ) use ( $filter_term ) {
+				$plugin_name = $this->get_plugin_name( $option_name );
+				return false !== stripos( $plugin_name, $filter_term );
+			},
+			ARRAY_FILTER_USE_KEY
+		);
 	}
 }
