@@ -57,6 +57,7 @@ Please do a pull request via GitHub on [this file](https://github.com/Emilia-Cap
 = 1.5.1 =
 
 * Add "select all" checkbox.
+* Fix table filtering by Source column.
 
 = 1.5.0 =
 
