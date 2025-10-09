@@ -22,6 +22,10 @@
 .aaa_option_table select {
 	max-width: 20% !important;
 }
+/* Overrider for the Source <select> in the tfoot. */
+.aaa_option_table tfoot select {
+	max-width: 200px !important;
+}
 .aaa_option_table .actions .button-delete, .aaa-option-optimizer-reset .button-delete {
 	margin-right: 0;
 	color: #a00;
