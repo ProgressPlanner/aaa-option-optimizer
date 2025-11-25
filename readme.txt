@@ -54,6 +54,10 @@ Please do a pull request via GitHub on [this file](https://github.com/Emilia-Cap
 
 == Changelog ==
 
+= 1.5.2 =
+
+* Replace using 'all' filter for monitoring option usage with 'pre_option' filter for better performance.
+
 = 1.5.1 =
 
 * Add "select all" checkbox.
