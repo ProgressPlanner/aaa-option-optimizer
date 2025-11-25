@@ -100,7 +100,7 @@ class Plugin {
 	public function add_option_usage( $pre, $option_name ) {
 
 		// If the $pre is false the get_option() will not be short-circuited.
-		if ( false === $pre ) {
+		if ( ! defined( 'WP_SETUP_CONFIG' ) && false === $pre ) {
 			// Check if this option hasn't been tracked yet and add it to the array.
 			if ( ! array_key_exists( $option_name, $this->accessed_options ) ) {
 				$this->accessed_options[ $option_name ] = 0;
