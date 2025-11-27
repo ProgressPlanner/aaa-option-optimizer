@@ -62,7 +62,13 @@ class Plugin {
 	public function register_hooks() {
 		$this->accessed_options = \get_option( 'option_optimizer', [ 'used_options' => [] ] )['used_options'];
 
-		\add_filter( 'pre_option', [ $this, 'add_option_usage' ], PHP_INT_MAX, 2 );
+		if ( Settings_Page::get_option_tracking() === 'pre_option' ) {
+			\add_filter( 'pre_option', [ $this, 'monitor_option_accesses_pre_option' ], PHP_INT_MAX, 2 );
+		} else {
+			// Hook into all actions and filters to monitor option accesses.
+			// @phpstan-ignore-next-line -- The 'all' hook does not need a return.
+			\add_filter( 'all', [ $this, 'monitor_option_accesses_legacy' ] );
+		}
 
 		// Use the shutdown action to update the option with tracked data.
 		\add_action( 'shutdown', [ $this, 'update_tracked_options' ] );
@@ -75,6 +81,9 @@ class Plugin {
 			// Register the admin page.
 			$admin_page = new Admin_Page();
 			$admin_page->register_hooks();
+
+			// Register the settings page.
+			Settings_Page::register_hooks();
 		}
 	}
 
@@ -90,6 +99,21 @@ class Plugin {
 	}
 
 	/**
+	 * Monitor all actions and filters for option accesses.
+	 *
+	 * @param string $tag The current action or filter tag being executed.
+	 *
+	 * @return void
+	 */
+	public function monitor_option_accesses_legacy( $tag ) {
+		// Check if the tag is related to an option access.
+		if ( str_starts_with( $tag, 'option_' ) || str_starts_with( $tag, 'default_option_' ) ) {
+			$option_name = preg_replace( '#^(default_)?option_#', '', $tag );
+			$this->add_option_usage( $option_name );
+		}
+	}
+
+	/**
 	 * Add an option to the list of used options if it's not already there.
 	 *
 	 * @param mixed  $pre The value to return instead of the option value.
@@ -97,19 +121,29 @@ class Plugin {
 	 *
 	 * @return mixed
 	 */
-	public function add_option_usage( $pre, $option_name ) {
+	public function monitor_option_accesses_pre_option( $pre, $option_name ) {
 
 		// If the $pre is false the get_option() will not be short-circuited.
 		if ( ! defined( 'WP_SETUP_CONFIG' ) && false === $pre ) {
-			// Check if this option hasn't been tracked yet and add it to the array.
-			if ( ! array_key_exists( $option_name, $this->accessed_options ) ) {
-				$this->accessed_options[ $option_name ] = 0;
-			}
-
-			++$this->accessed_options[ $option_name ];
+			$this->add_option_usage( $option_name );
 		}
 
 		return $pre;
+	}
+
+	/**
+	 * Add an option to the list of used options if it's not already there.
+	 *
+	 * @param string $option_name Name of the option being accessed.
+	 *
+	 * @return void
+	 */
+	protected function add_option_usage( $option_name ) {
+		if ( ! array_key_exists( $option_name, $this->accessed_options ) ) {
+			$this->accessed_options[ $option_name ] = 0;
+		}
+
+		++$this->accessed_options[ $option_name ];
 	}
 
 	/**

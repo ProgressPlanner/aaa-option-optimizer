@@ -73,7 +73,7 @@ class Admin_Page {
 	 * @return void
 	 */
 	public function enqueue_scripts( $hook ) {
-		if ( $hook !== 'tools_page_aaa-option-optimizer' ) {
+		if ( $hook !== 'tools_page_aaa-option-optimizer' && $hook !== 'tools_page_aaa-option-optimizer-settings' ) {
 			return;
 		}
 
