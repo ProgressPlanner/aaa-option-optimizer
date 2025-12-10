@@ -186,38 +186,6 @@ class Admin_Page {
 		<div class="wrap">
 			<h1><?php \esc_html_e( 'AAA Option Optimizer', 'aaa-option-optimizer' ); ?></h1>
 
-			<h2><?php \esc_html_e( 'Stats', 'aaa-option-optimizer' ); ?></h2>
-			<p>
-				<?php
-				printf(
-					// translators: %1$s is the date, %2$s is the number of options at stat, %3$s is the size at start in KB, %4$s is the number of options now, %5$s is the size in KB now.
-					\esc_html__( 'When you started on %1$s you had %2$s autoloaded options, for %3$sKB of memory. Now you have %4$s options, for %5$sKB of memory.', 'aaa-option-optimizer' ),
-					\esc_html( \gmdate( 'Y-m-d', \strtotime( $option_optimizer['starting_point_date'] ) ) ),
-					isset( $option_optimizer['starting_point_num'] ) ? \esc_html( $option_optimizer['starting_point_num'] ) : '-',
-					\number_format( ( $option_optimizer['starting_point_kb'] ), 1 ),
-					\esc_html( $result->count ),
-					\number_format( ( $result->autoload_size / 1024 ), 1 )
-				);
-				?>
-			</p>
-
-			<h2><?php \esc_html_e( 'Optimize', 'aaa-option-optimizer' ); ?></h2>
-			<?php
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce is used for REST API.
-			if ( isset( $_GET['tracking_reset'] ) && $_GET['tracking_reset'] === 'true' ) :
-				?>
-				<div class="notice notice-success is-dismissible">
-					<p><?php \esc_html_e( 'Tracking data has been reset.', 'aaa-option-optimizer' ); ?></p>
-				</div>
-				<?php // Take the parameter out of the URL without reloading the page. ?>
-				<script>window.history.pushState({}, document.title, window.location.href.replace( '&tracking_reset=true', '' ) );</script>
-			<?php endif; ?>
-
-			<div class="aaa-option-optimizer-reset">
-				<button id="aaa-option-reset-data" class="button button-delete reset-data">
-					<?php \esc_html_e( 'Reset data', 'aaa-option-optimizer' ); ?>
-				</button>
-			</div>
 			<p><?php \esc_html_e( 'We\'ve found the following things you can maybe optimize:', 'aaa-option-optimizer' ); ?></p>
 
 			<div class="aaa-option-optimizer-tabs">
