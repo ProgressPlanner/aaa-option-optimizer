@@ -24,6 +24,8 @@ class Settings_Page {
 
 	/**
 	 * Initialize the settings
+	 *
+	 * @return void
 	 */
 	public static function register_hooks() {
 		add_action( 'admin_menu', [ __CLASS__, 'add_settings_page' ] );
@@ -32,6 +34,8 @@ class Settings_Page {
 
 	/**
 	 * Add settings page to Tools menu
+	 *
+	 * @return void
 	 */
 	public static function add_settings_page(): void {
 		add_submenu_page(
@@ -46,6 +50,8 @@ class Settings_Page {
 
 	/**
 	 * Register settings
+	 *
+	 * @return void
 	 */
 	public static function register_settings(): void {
 		register_setting(
@@ -73,6 +79,8 @@ class Settings_Page {
 
 	/**
 	 * Render settings page
+	 *
+	 * @return void
 	 */
 	public static function render_settings_page(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -106,6 +114,8 @@ class Settings_Page {
 
 	/**
 	 * Render tracking section
+	 *
+	 * @return void
 	 */
 	public static function render_tracking_section(): void {
 		$settings = self::get_settings();
@@ -129,6 +139,8 @@ class Settings_Page {
 
 	/**
 	 * Render stats section description
+	 *
+	 * @return void
 	 */
 	public static function render_stats_section(): void {
 		$option_optimizer = \get_option( 'option_optimizer', [ 'used_options' => [] ] );
