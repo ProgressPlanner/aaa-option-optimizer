@@ -63,16 +63,16 @@ class Settings_Page {
 		);
 
 		add_settings_section(
-			'aaa_option_optimizer_tracking_section',
-			__( 'Option tracking', 'aaa-option-optimizer' ),
-			[ __CLASS__, 'render_tracking_section' ],
+			'aaa_option_optimizer_stats_section',
+			__( 'Stats', 'aaa-option-optimizer' ),
+			[ __CLASS__, 'render_stats_section' ],
 			'aaa-option-optimizer-settings'
 		);
 
 		add_settings_section(
-			'aaa_option_optimizer_stats_section',
-			__( 'Stats', 'aaa-option-optimizer' ),
-			[ __CLASS__, 'render_stats_section' ],
+			'aaa_option_optimizer_tracking_section',
+			__( 'Option tracking', 'aaa-option-optimizer' ),
+			[ __CLASS__, 'render_tracking_section' ],
 			'aaa-option-optimizer-settings'
 		);
 	}
@@ -121,18 +121,17 @@ class Settings_Page {
 		$settings = self::get_settings();
 		?>
 		<p><?php \esc_html_e( 'Configure how options are tracked on your site.', 'aaa-option-optimizer' ); ?></p>
-		<fieldset>
-		<label for="aaa_option_optimizer_tracking_pre_option">
-			<input type="radio" name="<?php echo esc_attr( self::OPTION_NAME ); ?>[settings][option_tracking]" value="pre_option" id="aaa_option_optimizer_tracking_pre_option" <?php checked( $settings['option_tracking'], 'pre_option' ); ?>>
-				<?php \esc_html_e( 'Pre option', 'aaa-option-optimizer' ); ?>
-			</input>
-		</label>
-		<br>
-		<label for="aaa_option_optimizer_tracking_legacy">
-			<input type="radio" name="<?php echo esc_attr( self::OPTION_NAME ); ?>[settings][option_tracking]" value="legacy" id="aaa_option_optimizer_tracking_legacy" <?php checked( $settings['option_tracking'], 'legacy' ); ?>>
-				<?php \esc_html_e( 'Legacy', 'aaa-option-optimizer' ); ?>
-			</input>
-		</label>
+		<fieldset class="aaa-option-optimizer-tracking-fieldset">
+			<label for="aaa_option_optimizer_tracking_pre_option">
+				<input type="radio" name="<?php echo esc_attr( self::OPTION_NAME ); ?>[settings][option_tracking]" value="pre_option" id="aaa_option_optimizer_tracking_pre_option" <?php checked( $settings['option_tracking'], 'pre_option' ); ?>>
+					<?php \esc_html_e( 'Pre option', 'aaa-option-optimizer' ); ?>
+				</input>
+			</label>
+			<label for="aaa_option_optimizer_tracking_legacy">
+				<input type="radio" name="<?php echo esc_attr( self::OPTION_NAME ); ?>[settings][option_tracking]" value="legacy" id="aaa_option_optimizer_tracking_legacy" <?php checked( $settings['option_tracking'], 'legacy' ); ?>>
+					<?php \esc_html_e( 'Legacy', 'aaa-option-optimizer' ); ?>
+				</input>
+			</label>
 		</fieldset>
 		<?php
 	}

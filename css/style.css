@@ -150,3 +150,10 @@ div.dt-container .dt-input {
 .aaa_option_table .source {
 	width: 20%;
 }
+
+/* Settings page */
+.aaa-option-optimizer-tracking-fieldset {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
