@@ -60,8 +60,6 @@ class Plugin {
 	 * @return void
 	 */
 	public function register_hooks() {
-		$this->accessed_options = [];
-
 		// Hook into all actions and filters to monitor option accesses.
 		// @phpstan-ignore-next-line -- The 'all' hook does not need a return.
 		\add_filter( 'all', [ $this, 'monitor_option_accesses' ] );
