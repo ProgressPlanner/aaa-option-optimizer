@@ -60,7 +60,7 @@ class Plugin {
 	 * @return void
 	 */
 	public function register_hooks() {
-		$this->accessed_options = \get_option( 'option_optimizer', [ 'used_options' => [] ] )['used_options'];
+		$this->accessed_options = [];
 
 		// Hook into all actions and filters to monitor option accesses.
 		// @phpstan-ignore-next-line -- The 'all' hook does not need a return.
@@ -135,9 +135,15 @@ class Plugin {
 		// Retrieve the existing option_optimizer data.
 		$option_optimizer = get_option( 'option_optimizer', [ 'used_options' => [] ] );
 
-		$option_optimizer['used_options'] = $this->accessed_options;
+		if ( ! $this->should_reset ) {
+			foreach ( $this->accessed_options as $option_name => $count ) {
+				if ( ! isset( $option_optimizer['used_options'][ $option_name ] ) ) {
+					$option_optimizer['used_options'][ $option_name ] = 0;
+				}
 
-		if ( $this->should_reset ) {
+				$option_optimizer['used_options'][ $option_name ] += $count;
+			}
+		} else {
 			$option_optimizer['used_options'] = [];
 		}
 
