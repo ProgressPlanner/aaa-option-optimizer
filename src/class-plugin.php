@@ -123,6 +123,9 @@ class Plugin {
 	/**
 	 * Update the 'option_optimizer' option with the list of used options at the end of the page load.
 	 *
+	 * Uses transient batching to reduce database writes - only flushes to the main option
+	 * every 5 minutes instead of on every request.
+	 *
 	 * @return void
 	 */
 	public function update_tracked_options() {
@@ -130,22 +133,95 @@ class Plugin {
 		if ( isset( $_GET['page'] ) && $_GET['page'] === 'aaa-option-optimizer' ) {
 			return;
 		}
-		// Retrieve the existing option_optimizer data.
-		$option_optimizer = get_option( 'option_optimizer', [ 'used_options' => [] ] );
 
-		if ( ! $this->should_reset ) {
-			foreach ( $this->accessed_options as $option_name => $count ) {
-				if ( ! isset( $option_optimizer['used_options'][ $option_name ] ) ) {
-					$option_optimizer['used_options'][ $option_name ] = 0;
-				}
+		// Handle reset: clear batch and main option.
+		if ( $this->should_reset ) {
+			\delete_transient( 'option_optimizer_batch' );
 
-				$option_optimizer['used_options'][ $option_name ] += $count;
-			}
-		} else {
+			$option_optimizer                 = \get_option( 'option_optimizer', [ 'used_options' => [] ] );
 			$option_optimizer['used_options'] = [];
+			\update_option( 'option_optimizer', $option_optimizer, false );
+			return;
 		}
 
-		// Update the 'option_optimizer' option with the new list.
-		update_option( 'option_optimizer', $option_optimizer, false );
+		// Get the batch data.
+		$batch_data = $this->get_batch_data();
+
+		// Add current request's options to the batch.
+		foreach ( $this->accessed_options as $option_name => $count ) {
+			if ( ! isset( $batch_data['options'][ $option_name ] ) ) {
+				$batch_data['options'][ $option_name ] = 0;
+			}
+			$batch_data['options'][ $option_name ] += $count;
+		}
+
+		// Check if it's time to flush the batch.
+		$should_flush = ( \time() - $batch_data['last_flush'] ) >= $this->get_flush_interval();
+
+		// Flush batch to main option every 5 minutes.
+		if ( ! empty( $batch_data['options'] ) && $should_flush ) {
+			$this->flush_batch_to_option( $batch_data['options'] );
+
+			// Reset the batch data.
+			$batch_data = [
+				'options'    => [],
+				'last_flush' => \time(),
+			];
+		}
+
+		// No expiry - batch is explicitly deleted on flush, expiry would only cause data loss.
+		\set_transient( 'option_optimizer_batch', $batch_data, 0 );
+	}
+
+	/**
+	 * Get the batch data.
+	 *
+	 * @return array<string, int>
+	 */
+	protected function get_batch_data() {
+		// Get existing batch (stores both data and flush timestamp in one transient).
+		$batch_data = \get_transient( 'option_optimizer_batch' );
+		if ( ! \is_array( $batch_data ) || ! isset( $batch_data['options'], $batch_data['last_flush'] ) ) {
+			$batch_data = [
+				'options'    => [],
+				'last_flush' => \time(),
+			];
+		}
+
+		return $batch_data;
+	}
+
+	/**
+	 * Get the flush interval.
+	 *
+	 * @return int
+	 */
+	protected function get_flush_interval() {
+		return (int) \apply_filters( 'aaa_option_optimizer_flush_interval', 5 * MINUTE_IN_SECONDS );
+	}
+
+	/**
+	 * Flush the batched data to the main option_optimizer option.
+	 *
+	 * @param array<string, int> $batch The batched option usage data.
+	 *
+	 * @return void
+	 */
+	protected function flush_batch_to_option( $batch ) {
+
+		if ( empty( $batch ) ) {
+			return;
+		}
+
+		$option_optimizer = \get_option( 'option_optimizer', [ 'used_options' => [] ] );
+
+		foreach ( $batch as $option_name => $count ) {
+			if ( ! isset( $option_optimizer['used_options'][ $option_name ] ) ) {
+				$option_optimizer['used_options'][ $option_name ] = 0;
+			}
+			$option_optimizer['used_options'][ $option_name ] += $count;
+		}
+
+		\update_option( 'option_optimizer', $option_optimizer, false );
 	}
 }
