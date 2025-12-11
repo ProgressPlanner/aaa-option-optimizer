@@ -13,6 +13,11 @@ namespace Emilia\OptionOptimizer;
 class Admin_Page {
 
 	/**
+	 * Option name for settings.
+	 */
+	const OPTION_NAME = 'option_optimizer';
+
+	/**
 	 * Register hooks.
 	 *
 	 * @return void
@@ -23,6 +28,79 @@ class Admin_Page {
 
 		\add_action( 'admin_menu', [ $this, 'add_admin_page' ] );
 		\add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_scripts' ] );
+		\add_action( 'admin_init', [ $this, 'register_settings' ] );
+	}
+
+	/**
+	 * Register settings.
+	 *
+	 * @return void
+	 */
+	public function register_settings(): void {
+		\register_setting(
+			'aaa_option_optimizer_settings_group',
+			self::OPTION_NAME,
+			[
+				'sanitize_callback' => [ $this, 'sanitize_settings' ],
+			]
+		);
+	}
+
+	/**
+	 * Sanitize settings.
+	 *
+	 * This merges the settings into the existing option_optimizer option structure.
+	 *
+	 * @param array<string, mixed> $input Settings input.
+	 * @return array<string, mixed> Sanitized settings merged with existing option data.
+	 */
+	public function sanitize_settings( $input ): array {
+		// Get the existing option_optimizer data to preserve other keys.
+		$existing = \get_option( self::OPTION_NAME, [] );
+
+		// Initialize settings array if it doesn't exist.
+		if ( ! isset( $existing['settings'] ) ) {
+			$existing['settings'] = [];
+		}
+
+		// Sanitize the option_tracking setting.
+		$option_tracking = 'legacy';
+		if ( isset( $input['settings']['option_tracking'] ) ) {
+			$input_option_tracking = \sanitize_text_field( $input['settings']['option_tracking'] );
+			if ( \in_array( $input_option_tracking, [ 'pre_option', 'legacy' ], true ) ) {
+				$option_tracking = $input_option_tracking;
+			}
+		}
+		$existing['settings']['option_tracking'] = $option_tracking;
+
+		// Return the full option structure with merged settings.
+		return $existing;
+	}
+
+	/**
+	 * Get settings.
+	 *
+	 * @return array<string, mixed> Settings from the settings subarray.
+	 */
+	public static function get_settings(): array {
+		$defaults = [
+			'option_tracking' => 'legacy',
+		];
+
+		$option_optimizer = \get_option( self::OPTION_NAME, [] );
+		$settings         = isset( $option_optimizer['settings'] ) ? $option_optimizer['settings'] : [];
+
+		return \wp_parse_args( $settings, $defaults );
+	}
+
+	/**
+	 * Get option tracking.
+	 *
+	 * @return string Option tracking.
+	 */
+	public static function get_option_tracking(): string {
+		$settings = self::get_settings();
+		return $settings['option_tracking'] ?? 'legacy';
 	}
 
 	/**
@@ -73,7 +151,7 @@ class Admin_Page {
 	 * @return void
 	 */
 	public function enqueue_scripts( $hook ) {
-		if ( $hook !== 'tools_page_aaa-option-optimizer' && $hook !== 'tools_page_aaa-option-optimizer-settings' ) {
+		if ( $hook !== 'tools_page_aaa-option-optimizer' ) {
 			return;
 		}
 
@@ -343,8 +421,85 @@ class Admin_Page {
 						</tfoot>
 					</table>
 				</div>
+
+				<input class="input" name="tabs" type="radio" id="tab-5"/>
+				<label class="label" for="tab-5"><?php \esc_html_e( 'Settings', 'aaa-option-optimizer' ); ?></label>
+				<div class="panel">
+					<?php $this->render_settings_tab( $option_optimizer, $result ); ?>
+				</div>
 			</div>
 		</div>
+		<?php
+	}
+
+	/**
+	 * Renders the settings tab content.
+	 *
+	 * @param array<string, mixed> $option_optimizer The option optimizer data.
+	 * @param object               $result           The database query result with current stats.
+	 *
+	 * @return void
+	 */
+	private function render_settings_tab( $option_optimizer, $result ): void {
+		$settings = self::get_settings();
+
+		// Check if settings were saved.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce check not needed here.
+		if ( isset( $_GET['settings-updated'] ) ) {
+			?>
+			<div class="notice notice-success is-dismissible">
+				<p><?php \esc_html_e( 'Settings saved.', 'aaa-option-optimizer' ); ?></p>
+			</div>
+			<?php
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce is used for REST API.
+		if ( isset( $_GET['tracking_reset'] ) && $_GET['tracking_reset'] === 'true' ) :
+			?>
+			<div class="notice notice-success is-dismissible">
+				<p><?php \esc_html_e( 'Tracking data has been reset.', 'aaa-option-optimizer' ); ?></p>
+			</div>
+			<?php // Take the parameter out of the URL without reloading the page. ?>
+			<script>window.history.pushState({}, document.title, window.location.href.replace( '&tracking_reset=true', '' ) );</script>
+		<?php endif; ?>
+
+		<h2><?php \esc_html_e( 'Stats', 'aaa-option-optimizer' ); ?></h2>
+		<p>
+			<?php
+			printf(
+				// translators: %1$s is the date, %2$s is the number of options at stat, %3$s is the size at start in KB, %4$s is the number of options now, %5$s is the size in KB now.
+				\esc_html__( 'When you started on %1$s you had %2$s autoloaded options, for %3$sKB of memory. Now you have %4$s options, for %5$sKB of memory.', 'aaa-option-optimizer' ),
+				\esc_html( \gmdate( 'Y-m-d', \strtotime( $option_optimizer['starting_point_date'] ) ) ),
+				isset( $option_optimizer['starting_point_num'] ) ? \esc_html( $option_optimizer['starting_point_num'] ) : '-',
+				\number_format( ( $option_optimizer['starting_point_kb'] ), 1 ),
+				\esc_html( $result->count ),
+				\number_format( ( $result->autoload_size / 1024 ), 1 )
+			);
+			?>
+		</p>
+
+		<div class="aaa-option-optimizer-reset" style="margin-bottom: 30px;">
+			<button id="aaa-option-reset-data" class="button button-delete reset-data" type="button">
+				<?php \esc_html_e( 'Reset data', 'aaa-option-optimizer' ); ?>
+			</button>
+		</div>
+
+		<h2><?php \esc_html_e( 'Option Tracking', 'aaa-option-optimizer' ); ?></h2>
+		<form action="options.php" method="post">
+			<?php \settings_fields( 'aaa_option_optimizer_settings_group' ); ?>
+			<p><?php \esc_html_e( 'Configure how options are tracked on your site.', 'aaa-option-optimizer' ); ?></p>
+			<fieldset class="aaa-option-optimizer-tracking-fieldset">
+				<label for="aaa_option_optimizer_tracking_pre_option">
+					<input type="radio" name="<?php echo \esc_attr( self::OPTION_NAME ); ?>[settings][option_tracking]" value="pre_option" id="aaa_option_optimizer_tracking_pre_option" <?php \checked( $settings['option_tracking'], 'pre_option' ); ?>>
+					<?php \esc_html_e( 'Pre option', 'aaa-option-optimizer' ); ?>
+				</label>
+				<label for="aaa_option_optimizer_tracking_legacy">
+					<input type="radio" name="<?php echo \esc_attr( self::OPTION_NAME ); ?>[settings][option_tracking]" value="legacy" id="aaa_option_optimizer_tracking_legacy" <?php \checked( $settings['option_tracking'], 'legacy' ); ?>>
+					<?php \esc_html_e( 'Legacy', 'aaa-option-optimizer' ); ?>
+				</label>
+			</fieldset>
+			<?php \submit_button( \__( 'Save Settings', 'aaa-option-optimizer' ) ); ?>
+		</form>
 		<?php
 	}
 }

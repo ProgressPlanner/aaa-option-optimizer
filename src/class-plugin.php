@@ -62,7 +62,7 @@ class Plugin {
 	public function register_hooks() {
 		$this->accessed_options = \get_option( 'option_optimizer', [ 'used_options' => [] ] )['used_options'];
 
-		if ( Settings_Page::get_option_tracking() === 'pre_option' ) {
+		if ( Admin_Page::get_option_tracking() === 'pre_option' ) {
 			\add_filter( 'pre_option', [ $this, 'monitor_option_accesses_pre_option' ], PHP_INT_MAX, 2 );
 		} else {
 			// Hook into all actions and filters to monitor option accesses.
@@ -81,9 +81,6 @@ class Plugin {
 			// Register the admin page.
 			$admin_page = new Admin_Page();
 			$admin_page->register_hooks();
-
-			// Register the settings page.
-			Settings_Page::register_hooks();
 		}
 	}
 
