@@ -121,9 +121,9 @@ class Plugin {
 	}
 
 	/**
-	 * Update the 'option_optimizer' option with the list of used options at the end of the page load.
+	 * Update the tracked options at the end of the page load.
 	 *
-	 * Uses transient batching to reduce database writes - only flushes to the main option
+	 * Uses transient batching to reduce database writes - only flushes to the custom table
 	 * every 5 minutes instead of on every request.
 	 *
 	 * @return void
@@ -134,13 +134,10 @@ class Plugin {
 			return;
 		}
 
-		// Handle reset: clear batch and main option.
+		// Handle reset: clear batch and custom table.
 		if ( $this->should_reset ) {
 			\delete_transient( 'option_optimizer_batch' );
-
-			$option_optimizer                 = \get_option( 'option_optimizer', [ 'used_options' => [] ] );
-			$option_optimizer['used_options'] = [];
-			\update_option( 'option_optimizer', $option_optimizer, false );
+			Database::clear_tracked_options();
 			return;
 		}
 
@@ -158,9 +155,9 @@ class Plugin {
 		// Check if it's time to flush the batch.
 		$should_flush = ( \time() - $batch_data['last_flush'] ) >= $this->get_flush_interval();
 
-		// Flush batch to main option every 5 minutes.
+		// Flush batch to custom table every 5 minutes.
 		if ( ! empty( $batch_data['options'] ) && $should_flush ) {
-			$this->flush_batch_to_option( $batch_data['options'] );
+			Database::batch_insert( $batch_data['options'] );
 
 			// Reset the batch data.
 			$batch_data = [
@@ -198,30 +195,5 @@ class Plugin {
 	 */
 	protected function get_flush_interval() {
 		return (int) \apply_filters( 'aaa_option_optimizer_flush_interval', 5 * MINUTE_IN_SECONDS );
-	}
-
-	/**
-	 * Flush the batched data to the main option_optimizer option.
-	 *
-	 * @param array<string, int> $batch The batched option usage data.
-	 *
-	 * @return void
-	 */
-	protected function flush_batch_to_option( $batch ) {
-
-		if ( empty( $batch ) ) {
-			return;
-		}
-
-		$option_optimizer = \get_option( 'option_optimizer', [ 'used_options' => [] ] );
-
-		foreach ( $batch as $option_name => $count ) {
-			if ( ! isset( $option_optimizer['used_options'][ $option_name ] ) ) {
-				$option_optimizer['used_options'][ $option_name ] = 0;
-			}
-			$option_optimizer['used_options'][ $option_name ] += $count;
-		}
-
-		\update_option( 'option_optimizer', $option_optimizer, false );
 	}
 }

@@ -27,12 +27,19 @@ register_activation_hook( __FILE__, 'aaa_option_optimizer_activation' );
 register_deactivation_hook( __FILE__, 'aaa_option_optimizer_deactivation' );
 
 /**
- * Activation hooked function to store start stats.
+ * Activation hooked function to store start stats and create table.
  *
  * @return void
  */
 function aaa_option_optimizer_activation() {
 	global $wpdb;
+
+	// Create the custom table.
+	Emilia\OptionOptimizer\Database::create_table();
+
+	// Migrate existing data if present.
+	Emilia\OptionOptimizer\Database::maybe_migrate();
+
 	$autoload_values = \wp_autoload_values_to_autoload();
 	$placeholders    = implode( ',', array_fill( 0, count( $autoload_values ), '%s' ) );
 
@@ -42,16 +49,19 @@ function aaa_option_optimizer_activation() {
 	);
 	// phpcs:enable WordPress.DB
 
-	update_option(
-		'option_optimizer',
-		[
-			'starting_point_kb'   => ( $result->autoload_size / 1024 ),
-			'starting_point_num'  => $result->count,
-			'starting_point_date' => current_time( 'mysql' ),
-			'used_options'        => [],
-		],
-		false
-	);
+	// Only set starting point if not already set (preserve existing data).
+	$existing = get_option( 'option_optimizer' );
+	if ( empty( $existing['starting_point_date'] ) ) {
+		update_option(
+			'option_optimizer',
+			[
+				'starting_point_kb'   => ( $result->autoload_size / 1024 ),
+				'starting_point_num'  => $result->count,
+				'starting_point_date' => current_time( 'mysql' ),
+			],
+			false
+		);
+	}
 }
 
 /**
@@ -63,6 +73,23 @@ function aaa_option_optimizer_deactivation() {
 	$aaa_option_value = get_option( 'option_optimizer' );
 	update_option( 'option_optimizer', $aaa_option_value, false );
 }
+
+/**
+ * Ensure database table exists and migrate data if needed.
+ * Runs on plugins_loaded to handle existing installs that don't trigger activation.
+ *
+ * @return void
+ */
+function aaa_option_optimizer_maybe_upgrade() {
+	// Check if table exists, create if not.
+	if ( ! Emilia\OptionOptimizer\Database::table_exists() ) {
+		Emilia\OptionOptimizer\Database::create_table();
+	}
+
+	// Migrate existing data if present.
+	Emilia\OptionOptimizer\Database::maybe_migrate();
+}
+add_action( 'plugins_loaded', 'aaa_option_optimizer_maybe_upgrade' );
 
 /**
  * Initializes the plugin.

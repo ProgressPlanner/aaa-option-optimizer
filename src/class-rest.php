@@ -229,9 +229,8 @@ class REST {
 
 		global $wpdb;
 
-		// Load used options from option_optimizer.
-		$option_optimizer = get_option( 'option_optimizer', [ 'used_options' => [] ] );
-		$used_options     = $option_optimizer['used_options'];
+		// Load used options from custom table.
+		$used_options = Database::get_tracked_option_keys();
 
 		$query = "
 			SELECT option_name
@@ -335,9 +334,8 @@ class REST {
 
 		global $wpdb;
 
-		// Load used options from option_optimizer.
-		$option_optimizer = get_option( 'option_optimizer', [ 'used_options' => [] ] );
-		$used_options     = $option_optimizer['used_options'];
+		// Load used options from custom table (with counts).
+		$used_options = Database::get_tracked_options();
 
 		if ( empty( $used_options ) ) {
 			return new \WP_REST_Response(
@@ -460,9 +458,8 @@ class REST {
 
 		global $wpdb;
 
-		// Load used options.
-		$option_optimizer = get_option( 'option_optimizer', [ 'used_options' => [] ] );
-		$used_options     = $option_optimizer['used_options'];
+		// Load used options from custom table (with counts).
+		$used_options = Database::get_tracked_options();
 
 		if ( empty( $used_options ) ) {
 			return new \WP_REST_Response(
