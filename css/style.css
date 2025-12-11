@@ -92,9 +92,6 @@ div.dt-container .dt-input {
 .aaa-option-optimizer-popover__close:hover {
 	cursor: pointer;
 }
-.aaa-option-optimizer-reset {
-	float: right;
-}
 .aaa-option-optimizer-tabs {
 	clear: both;
 	display: flex;
