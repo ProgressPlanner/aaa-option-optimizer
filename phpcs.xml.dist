@@ -108,7 +108,7 @@
 	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
 		<properties>
 			<property name="prefixes" type="array">
-				<element value="Emilia"/>
+				<element value="Progress_Planner"/>
 				<element value="AAA"/>
 			</property>
 		</properties>
