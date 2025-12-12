@@ -7,6 +7,10 @@
         "name": "Equalize Digital Accessibility Checker",
         "option_prefixes": ["edac_"]
     },
+    "admin-columns": {
+        "name": "Admin Columns (Pro)",
+        "option_prefixes": ["ac_columns_","acp_","ac-","ac_"]
+    },
     "advanced-custom-fields": {
         "name": "Advanced Custom Fields",
         "option_prefixes": ["acf_"]
@@ -14,6 +18,10 @@
     "affiliate-wp": {
         "name": "Affiliate WP",
         "option_prefixes": ["affwp_"]
+    },
+    "akismet": {
+        "name": "Akismet",
+        "option_prefixes": ["akismet_"]
     },
     "all-in-one-seo-pack": {
         "name": "AIOSEO - The Best WordPress SEO Plugin & Toolkit",
@@ -47,6 +55,10 @@
         "name": "Cookie banner plugin for WordPress – Cookiebot CMP by Usercentrics",
         "option_prefixes": ["cookiebot_", "cookiebot-"]
     },
+    "disable-comments": {
+        "name": "Disable Comments",
+        "option_prefixes": ["disable_comment_","disable_comments_"]
+    },
     "duplicate-post": {
         "name": "Yoast Duplicate Post",
         "option_prefixes": ["duplicate_post_"]
@@ -63,6 +75,10 @@
         "name": "Conversios: Google Analytics 4 (GA4), Google Ads, Microsoft Ads, and Multi-Channel Conversion Tracking",
         "option_prefixes": ["ee_"]
     },
+    "fair": {
+        "name": "FAIR Connect",
+        "option_prefixes": ["fair_","_transient_timeout_fair"]
+    }
     "fewer-tags": {
         "name": "Fewer Tags",
         "option_prefixes": ["fewer_tags"]
@@ -73,7 +89,11 @@
     },
     "generateblocks": {
         "name": "GenerateBlocks",
-        "option_prefixes": ["generateblocks_"]
+        "option_prefixes": ["generateblocks", "generateblocks_", "gb_"]
+    },
+    "generatepress": {
+        "name": "GeneratePress",
+        "option_prefixes": ["_generatepress_","generate_"]
     },
     "google-analytics-for-wordpress": {
         "name": "Google Analytics for WordPress by MonsterInsights",
@@ -85,8 +105,16 @@
     },
     "gravity-forms": {
         "name": "Gravity Forms",
-        "option_prefixes": ["gf_","gforms_"]
+        "option_prefixes": ["gf_","gform_","gforms_","rg_form_","rg_gforms","_transient_timeout_GFCache_","_transient_rg_gforms_"]
     },
+    "gravity-forms-addon": {
+        "name": "Gravity Forms Addons",
+        "option_prefixes": ["gravityformsaddon_"]
+    },
+    "gravity-perks": {
+        "name": "Gravity :Perks",
+        "option_prefixes": ["gperks_","gwp_"]
+    },    
     "woo-billing-with-invoicexpress": {
         "name": "Invoicing with InvoiceXpress for WooCommerce",
         "option_prefixes": ["hd_wc_ie_"]
@@ -107,6 +135,10 @@
         "name": "LiteSpeed Cache",
         "option_prefixes": ["litespeed-", "_litespeed_", "litespeed."]
     },
+    "log-http-requests": {
+        "name": "Log HTTP Requests",
+        "option_prefixes": ["lhr_"]
+    },
     "loginizer": {
         "name": "Loginizer",
         "option_prefixes": ["loginizer_"]
@@ -119,6 +151,14 @@
         "name": "Multibanco, MB WAY, Credit card, Apple Pay, Google Pay, Payshop, Cofidis Pay, and PIX (ifthenpay) for WooCommerce",
         "option_prefixes": ["cofidispay_ifthen_", "creditcard_ifthen_", "gateway_ifthen_", "mbway_ifthen_", "multibanco_ifthen_", "payshop_"]
     },
+    "next-gen-gallery": {
+        "name": "Next Gen Gallery",
+        "option_prefixes": ["ngg_"]
+    },
+    "patchstack": {
+        "name": "Patchstack Security",
+        "option_prefixes": ["patchstack_"]
+    },
     "perfmatters": {
         "name": "Perfmatters",
         "option_prefixes": ["perfmatters_"]
@@ -126,6 +166,10 @@
     "pixel-caffeine": {
         "name": "Pixel Caffeine",
         "option_prefixes": ["aepc_"]
+    },
+    "plausible": {
+        "name": "Plausible Analytics",
+        "option_prefixes": ["plausible_","_transient_timeout_plausible_"]
     },
     "pojo-accessibility": {
         "name": "One Click Accessibility",
@@ -141,7 +185,7 @@
     },
     "progress-planner": {
         "name": "Progress Planner",
-        "option_prefixes": ["progress_planner_"]
+        "option_prefixes": ["progress_planner_", "_transient_timeout_progress_planner_", "_transient_timeout_prpl_","_transient_prpl"]
     },
     "really-simple-ssl": {
         "name": "Really Simple SSL",
@@ -179,17 +223,29 @@
         "name": "SliceWP Affiliates",
         "option_prefixes": ["slicewp_"]
     },
+    "smtp-mailer": {
+        "name": "SMTP Mailer",
+        "option_prefixes": ["smtp_mailer_"]
+    },
     "updraft": {
         "name": "Updraft Plus",
         "option_prefixes": ["updraft_", "updraftplus_"]
     },
     "yoast": {
         "name": "Yoast SEO",
-        "option_prefixes": ["wpseo", "yoast_"]
+        "option_prefixes": ["wpseo", "yoast_","_transient_timeout_wpseo_","_transient_wpseo_"]
     },
     "feed-kuantokusta-for-woocommerce": {
         "name": "Feed KuantoKusta for WooCommerce",
         "option_prefixes": ["wc_feed_kuantokusta_"]
+    },
+    "sg-optimizer": {
+        "name": "Speed Optimizer by Siteground",
+        "option_prefixes": ["siteground_optimizer_","siteground_data_","sgo_"]
+    },
+    "sg-security": {
+        "name": "Security Optimizer by Siteground",
+        "option_prefixes": ["sg_security_", "siteground_security_","siteground_data_","siteground_settings_security","sgs_"]
     },
     "woo-dpd-pickup": {
         "name": "DPD / Geopost Pickup and Lockers network for WooCommerce",
@@ -214,6 +270,7 @@
     "wordpress": {
         "name": "WordPress",
         "option_prefixes": [
+            "_transient_wp_",
             "_site_transient_timeout_available_translations",
             "_site_transient_timeout_theme_roots",
             "_site_transient_update_core",
@@ -295,6 +352,7 @@
             "medium_size_w",
             "moderation_keys",
             "moderation_notify",
+            "nav_menu_options",
             "new_admin_email",
             "nonce_key",
             "nonce_salt",
@@ -306,7 +364,9 @@
             "posts_per_page",
             "posts_per_rss",
             "recently_activated",
+            "recently_edited",
             "recovery_keys",
+            "recovery_mode_email_last_sent",
             "require_name_email",
             "rewrite_rules",
             "rss_use_excerpt",
@@ -344,9 +404,11 @@
             "users_can_register",
             "widget_",
             "wp_attachment_pages_enabled",
+            "wp_notes_notify",
             "wp_force_deactivated_plugins",
             "wp_page_for_privacy_policy",
             "wp_user_roles",
+            "wpins_block_notice",
             "WPLANG"
         ]
     },
@@ -365,6 +427,10 @@
     "wpml": {
         "name": "WPML",
         "option_prefixes": ["_wpml_", "wpml_", "otgs-", "otgs_", "_icl_"]
+    },
+    "wp-mail-smtp": {
+        "name": "WP Mail SMTP",
+        "option_prefixes": ["wp_mail_smtp_"]
     },
     "wp-optimize": {
         "name": "WP Optimize",
