@@ -9,7 +9,7 @@
     },
     "admin-columns": {
         "name": "Admin Columns (Pro)",
-        "option_prefixes": ["ac_columns_","acp_","ac-","ac_"]
+        "option_prefixes": ["ac_columns_","acp_","ac-","ac_","_ac_","_acp_"]
     },
     "advanced-custom-fields": {
         "name": "Advanced Custom Fields",
@@ -21,7 +21,7 @@
     },
     "akismet": {
         "name": "Akismet",
-        "option_prefixes": ["akismet_"]
+        "option_prefixes": ["akismet_","wordpress_api_key"]
     },
     "all-in-one-seo-pack": {
         "name": "AIOSEO - The Best WordPress SEO Plugin & Toolkit",
@@ -89,11 +89,11 @@
     },
     "generateblocks": {
         "name": "GenerateBlocks",
-        "option_prefixes": ["generateblocks", "generateblocks_", "gb_"]
+        "option_prefixes": ["generateblocks", "generateblocks_", "gb_","default_term_gblocks_"]
     },
     "generatepress": {
         "name": "GeneratePress",
-        "option_prefixes": ["_generatepress_","generate_"]
+        "option_prefixes": ["_generatepress_","generate_","generatepress_","gen_premium_"]
     },
     "google-analytics-for-wordpress": {
         "name": "Google Analytics for WordPress by MonsterInsights",
@@ -105,7 +105,7 @@
     },
     "gravity-forms": {
         "name": "Gravity Forms",
-        "option_prefixes": ["gf_","gform_","gforms_","rg_form_","rg_gforms","_transient_timeout_GFCache_","_transient_rg_gforms_"]
+        "option_prefixes": ["gf_","gform_","gforms_","rg_form_","rg_gforms","_transient_timeout_GFCache_","_transient_timeout_rg_gforms_","_transient_rg_gforms_","_site_transient_t15s-registry-gforms"]
     },
     "gravity-forms-addon": {
         "name": "Gravity Forms Addons",
@@ -185,7 +185,7 @@
     },
     "progress-planner": {
         "name": "Progress Planner",
-        "option_prefixes": ["progress_planner_", "_transient_timeout_progress_planner_", "_transient_timeout_prpl_","_transient_prpl"]
+        "option_prefixes": ["progress_planner_", "_transient_timeout_progress_planner_", "_transient_timeout_prpl_","_transient_progress_planner","_transient_prpl"]
     },
     "really-simple-ssl": {
         "name": "Really Simple SSL",
@@ -233,7 +233,7 @@
     },
     "yoast": {
         "name": "Yoast SEO",
-        "option_prefixes": ["wpseo", "yoast_","_transient_timeout_wpseo_","_transient_wpseo_"]
+        "option_prefixes": ["wpseo", "yoast_","_transient_timeout_wpseo_","_transient_wpseo_","_site_transient_yoast_","_transient_total_unindexed_prominent_words"]
     },
     "feed-kuantokusta-for-woocommerce": {
         "name": "Feed KuantoKusta for WooCommerce",
@@ -241,11 +241,15 @@
     },
     "sg-optimizer": {
         "name": "Speed Optimizer by Siteground",
-        "option_prefixes": ["siteground_optimizer_","siteground_data_","sgo_"]
+        "option_prefixes": ["siteground_optimizer_","siteground_data_","sgo_","sg_cachepress"]
     },
     "sg-security": {
         "name": "Security Optimizer by Siteground",
         "option_prefixes": ["sg_security_", "siteground_security_","siteground_data_","siteground_settings_security","sgs_"]
+    },
+    "svg-support": {
+        "name": "SVG Support",
+        "option_prefixes": ["bodhi_svgs_"]
     },
     "woo-dpd-pickup": {
         "name": "DPD / Geopost Pickup and Lockers network for WooCommerce",
@@ -284,6 +288,7 @@
             "auto_update_core_dev",
             "auto_update_core_major",
             "auto_update_core_minor",
+            "auto_update_plugins",
             "auto_updater.lock",
             "avatar_default",
             "avatar_rating",
