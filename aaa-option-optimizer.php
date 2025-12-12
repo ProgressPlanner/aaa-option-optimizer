@@ -49,6 +49,9 @@ function aaa_option_optimizer_activation() {
 			'starting_point_num'  => $result->count,
 			'starting_point_date' => current_time( 'mysql' ),
 			'used_options'        => [],
+			'settings'            => [
+				'option_tracking' => 'pre_option',
+			],
 		],
 		false
 	);
