@@ -64,7 +64,7 @@ class Admin_Page {
 		}
 
 		// Sanitize the option_tracking setting.
-		$option_tracking = 'legacy';
+		$option_tracking = 'pre_option';
 		if ( isset( $input['settings']['option_tracking'] ) ) {
 			$input_option_tracking = \sanitize_text_field( $input['settings']['option_tracking'] );
 			if ( \in_array( $input_option_tracking, [ 'pre_option', 'legacy' ], true ) ) {
@@ -84,7 +84,7 @@ class Admin_Page {
 	 */
 	public static function get_settings(): array {
 		$defaults = [
-			'option_tracking' => 'legacy',
+			'option_tracking' => 'pre_option',
 		];
 
 		$option_optimizer = \get_option( self::OPTION_NAME, [] );
@@ -100,7 +100,7 @@ class Admin_Page {
 	 */
 	public static function get_option_tracking(): string {
 		$settings = self::get_settings();
-		return $settings['option_tracking'] ?? 'legacy';
+		return $settings['option_tracking'] ?? 'pre_option';
 	}
 
 	/**
