@@ -2,15 +2,15 @@
 /**
  * Functionality to map options to plugins.
  *
- * @package Emilia\OptionOptimizer
+ * @package Progress_Planner\OptionOptimizer
  */
 
-namespace Emilia\OptionOptimizer;
+namespace Progress_Planner\OptionOptimizer;
 
 /**
  * Class Map_Plugin_To_Options
  *
- * @package Emilia\OptionOptimizer
+ * @package Progress_Planner\OptionOptimizer
  */
 class Map_Plugin_To_Options {
 	/**

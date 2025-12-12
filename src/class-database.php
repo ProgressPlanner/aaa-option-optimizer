@@ -2,10 +2,10 @@
 /**
  * Database functionality for AAA Option Optimizer.
  *
- * @package Emilia\OptionOptimizer
+ * @package Progress_Planner\OptionOptimizer
  */
 
-namespace Emilia\OptionOptimizer;
+namespace Progress_Planner\OptionOptimizer;
 
 /**
  * Handles custom database table for tracking options.

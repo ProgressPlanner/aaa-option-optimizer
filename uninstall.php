@@ -4,7 +4,7 @@
  *
  * Delete the plugin option and custom table.
  *
- * @package Emilia\OptionOptimizer
+ * @package Progress_Planner\OptionOptimizer
  */
 
 // If uninstall not called from WordPress, then exit.

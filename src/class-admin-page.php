@@ -2,10 +2,10 @@
 /**
  * Admin page functionality for AAA Option Optimizer.
  *
- * @package Emilia\OptionOptimizer
+ * @package Progress_Planner\OptionOptimizer
  */
 
-namespace Emilia\OptionOptimizer;
+namespace Progress_Planner\OptionOptimizer;
 
 /**
  * Admin page functionality for AAA Option Optimizer.

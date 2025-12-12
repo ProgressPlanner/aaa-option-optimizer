@@ -2,7 +2,7 @@
 /**
  * Plugin that tracks autoloaded options usage and allows the user to optimize them.
  *
- * @package Emilia\OptionOptimizer
+ * @package Progress_Planner\OptionOptimizer
  *
  * Plugin Name: AAA Option Optimizer
  * Plugin URI: https://joost.blog/plugins/aaa-option-optimizer/
@@ -35,10 +35,10 @@ function aaa_option_optimizer_activation() {
 	global $wpdb;
 
 	// Create the custom table.
-	Emilia\OptionOptimizer\Database::create_table();
+	Progress_Planner\OptionOptimizer\Database::create_table();
 
 	// Migrate existing data if present.
-	Emilia\OptionOptimizer\Database::maybe_migrate();
+	Progress_Planner\OptionOptimizer\Database::maybe_migrate();
 
 	$autoload_values = \wp_autoload_values_to_autoload();
 	$placeholders    = implode( ',', array_fill( 0, count( $autoload_values ), '%s' ) );
@@ -82,12 +82,12 @@ function aaa_option_optimizer_deactivation() {
  */
 function aaa_option_optimizer_maybe_upgrade() {
 	// Check if table exists, create if not.
-	if ( ! Emilia\OptionOptimizer\Database::table_exists() ) {
-		Emilia\OptionOptimizer\Database::create_table();
+	if ( ! Progress_Planner\OptionOptimizer\Database::table_exists() ) {
+		Progress_Planner\OptionOptimizer\Database::create_table();
 	}
 
 	// Migrate existing data if present.
-	Emilia\OptionOptimizer\Database::maybe_migrate();
+	Progress_Planner\OptionOptimizer\Database::maybe_migrate();
 }
 add_action( 'plugins_loaded', 'aaa_option_optimizer_maybe_upgrade' );
 
@@ -97,7 +97,7 @@ add_action( 'plugins_loaded', 'aaa_option_optimizer_maybe_upgrade' );
  * @return void
  */
 function aaa_option_optimizer_init() {
-	$optimizer = new Emilia\OptionOptimizer\Plugin();
+	$optimizer = new Progress_Planner\OptionOptimizer\Plugin();
 	$optimizer->register_hooks();
 }
 

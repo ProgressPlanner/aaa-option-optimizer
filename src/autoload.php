@@ -2,12 +2,12 @@
 /**
  * Autoload PHP classes for the plugin.
  *
- * @package Emilia\OptionOptimizer
+ * @package Progress_Planner\OptionOptimizer
  */
 
 spl_autoload_register(
 	function ( $class_name ) {
-		$prefix = 'Emilia\\OptionOptimizer\\';
+		$prefix = 'Progress_Planner\\OptionOptimizer\\';
 
 		if ( 0 !== \strpos( $class_name, $prefix ) ) {
 			return;
