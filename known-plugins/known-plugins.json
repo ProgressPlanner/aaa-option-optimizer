@@ -78,7 +78,7 @@
     "fair": {
         "name": "FAIR Connect",
         "option_prefixes": ["fair_","_transient_timeout_fair"]
-    }
+    },
     "fewer-tags": {
         "name": "Fewer Tags",
         "option_prefixes": ["fewer_tags"]
