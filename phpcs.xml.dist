@@ -109,9 +109,14 @@
 		<properties>
 			<property name="prefixes" type="array">
 				<element value="Emilia"/>
-				<element value="AAA"/>
+				<element value="aaa_option_optimizer"/>
 			</property>
 		</properties>
+	</rule>
+
+	<!-- Allow the short 'aaa' prefix since plugin is already published with this naming. -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals.ShortPrefixPassed">
+		<severity>0</severity>
 	</rule>
 
 	<rule ref="WordPress">
