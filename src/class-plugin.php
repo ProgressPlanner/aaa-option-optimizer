@@ -156,7 +156,10 @@ class Plugin {
 		// Retrieve the existing option_optimizer data.
 		$option_optimizer = get_option( 'option_optimizer', [ 'used_options' => [] ] );
 
-		$option_optimizer['used_options'] = $this->accessed_options;
+		foreach ( $this->accessed_options as $option => $count ) {
+			$option_optimizer['used_options'][ $option ] =
+				( $option_optimizer['used_options'][ $option ] ?? 0 ) + $count;
+		}
 
 		if ( $this->should_reset ) {
 			$option_optimizer['used_options'] = [];
