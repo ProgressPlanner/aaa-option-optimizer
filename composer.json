@@ -37,6 +37,9 @@
 		"lint-blueprint": [
 			"@php -r \"exit( intval( is_null( json_decode( file_get_contents( './.wordpress-org/blueprints/blueprint.json' ) ) ) ) );\""
 		],
+		"lint-known-plugins": [
+			"@php -r \"exit( intval( is_null( json_decode( file_get_contents( './known-plugins/known-plugins.json' ) ) ) ) );\""
+		],
 		"phpstan": [
 			"@php ./vendor/bin/phpstan analyse --memory-limit=2048M"
 		]

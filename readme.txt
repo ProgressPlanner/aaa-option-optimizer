@@ -1,5 +1,5 @@
 === AAA Option Optimizer ===
-Contributors: joostdevalk
+Contributors: joostdevalk, aristath, filipi
 Tags: options, database, cleanup
 Requires at least: 6.7
 Tested up to: 6.9
@@ -53,6 +53,10 @@ Please do a pull request via GitHub on [this file](https://github.com/ProgressPl
 2. Screenshot of the "All options" screen, showing you can browse all the options.
 
 == Changelog ==
+
+= 1.5.2 =
+
+* Replace using 'all' filter for monitoring option usage with 'pre_option' filter for better performance.
 
 = 1.5.1 =
 

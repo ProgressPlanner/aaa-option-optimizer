@@ -5,12 +5,12 @@
  * @package Progress_Planner\OptionOptimizer
  *
  * Plugin Name: AAA Option Optimizer
- * Plugin URI: https://joost.blog/plugins/aaa-option-optimizer/
+ * Plugin URI: https://progressplanner.com/plugins/aaa-option-optimizer/
  * Description: Tracks autoloaded options usage and allows the user to optimize them.
  * Version: 1.5.1
  * License: GPL-3.0+
- * Author: Joost de Valk
- * Author URI: https://joost.blog/
+ * Author: Team Prospress Planner
+ * Author URI: https://prospressplanner.com/
  * Text Domain: aaa-option-optimizer
  */
 
@@ -58,6 +58,9 @@ function aaa_option_optimizer_activation() {
 				'starting_point_kb'   => ( $result->autoload_size / 1024 ),
 				'starting_point_num'  => $result->count,
 				'starting_point_date' => current_time( 'mysql' ),
+				'settings'            => [
+				'option_tracking' => 'pre_option',
+			],
 			],
 			false
 		);

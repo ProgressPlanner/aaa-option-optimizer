@@ -67,3 +67,6 @@ jobs:
 
       - name: Lint blueprint file
         run: composer lint-blueprint
+
+      - name: Lint known plugins file
+        run: composer lint-known-plugins
