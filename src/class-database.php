@@ -88,7 +88,7 @@ class Database {
 		$option_data = \get_option( 'option_optimizer' );
 
 		// No data or already migrated (no used_options key).
-		if ( ! \is_array( $option_data ) || ! isset( $option_data['used_options'] ) ) {
+		if ( ! \is_array( $option_data ) || empty( $option_data['used_options'] ) ) {
 			return;
 		}
 
@@ -98,9 +98,7 @@ class Database {
 		}
 
 		// Batch insert old data to custom table.
-		if ( ! empty( $option_data['used_options'] ) ) {
-			self::batch_insert( $option_data['used_options'] );
-		}
+		self::batch_insert( $option_data['used_options'] );
 
 		// Set used_options to an empty array, so we avoid php fatal error in case user decides to downgrade the plugin.
 		$option_data['used_options'] = [];
