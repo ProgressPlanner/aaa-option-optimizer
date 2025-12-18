@@ -102,8 +102,9 @@ class Database {
 			self::batch_insert( $option_data['used_options'] );
 		}
 
-		// Remove used_options from the option, keep metadata.
-		unset( $option_data['used_options'] );
+		// Set used_options to an empty array, so we avoid php fatal error in case user decides to downgrade the plugin.
+		$option_data['used_options'] = [];
+
 		\update_option( 'option_optimizer', $option_data, false );
 	}
 
