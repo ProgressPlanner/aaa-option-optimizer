@@ -109,33 +109,46 @@ class Database {
 	/**
 	 * Batch insert or update option counts.
 	 *
-	 * @param array<string, int> $options Array of option_name => count.
+	 * Splits large datasets into chunks and wraps them in a transaction
+	 * for optimal performance on slow hosts with large datasets.
+	 *
+	 * @param array<string, int> $options    Array of option_name => count.
+	 * @param int                $chunk_size Number of options per query. Default 500.
 	 *
 	 * @return void
 	 */
-	public static function batch_insert( $options ) {
+	public static function batch_insert( $options, $chunk_size = 500 ) {
 		global $wpdb;
 
 		if ( empty( $options ) ) {
 			return;
 		}
 
-		$table_name   = self::get_table_name();
-		$values       = [];
-		$placeholders = [];
+		$table_name = self::get_table_name();
 
-		foreach ( $options as $option_name => $count ) {
-			$placeholders[] = '(%s, %d, NOW())';
-			$values[]       = $option_name;
-			$values[]       = (int) $count;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->query( 'BEGIN' );
+
+		foreach ( array_chunk( $options, $chunk_size, true ) as $chunk ) {
+			$values       = [];
+			$placeholders = [];
+
+			foreach ( $chunk as $option_name => $count ) {
+				$placeholders[] = '(%s, %d, NOW())';
+				$values[]       = $option_name;
+				$values[]       = (int) $count;
+			}
+
+			$sql = "INSERT INTO {$table_name} (option_name, access_count, created_at)
+					VALUES " . implode( ', ', $placeholders ) . '
+					ON DUPLICATE KEY UPDATE access_count = access_count + VALUES(access_count)';
+
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+			$wpdb->query( $wpdb->prepare( $sql, ...$values ) );
 		}
 
-		$sql = "INSERT INTO {$table_name} (option_name, access_count, created_at)
-				VALUES " . implode( ', ', $placeholders ) . '
-				ON DUPLICATE KEY UPDATE access_count = access_count + VALUES(access_count)';
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
-		$wpdb->query( $wpdb->prepare( $sql, ...$values ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->query( 'COMMIT' );
 	}
 
 	/**
