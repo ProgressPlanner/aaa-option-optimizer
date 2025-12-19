@@ -254,6 +254,15 @@ class REST {
 		$autoload_option_keys = array_fill_keys( $autoloaded_option_names, true );
 		$unused_keys          = array_diff_key( $autoload_option_keys, $used_options );
 
+		// Collect all unique sources (plugin names) before any filtering.
+		$all_sources = [];
+		foreach ( array_keys( $unused_keys ) as $option_name ) {
+			$plugin_name                 = $this->get_plugin_name( $option_name );
+			$all_sources[ $plugin_name ] = true;
+		}
+		$all_sources = array_keys( $all_sources );
+		sort( $all_sources );
+
 		// Apply source filter to unused keys if specified.
 		$filter_by_source = isset( $_GET['columns'][2]['search']['value'] ) ? trim( \sanitize_text_field( \wp_unslash( $_GET['columns'][2]['search']['value'] ) ) ) : '';
 		if ( '' !== $filter_by_source ) {
@@ -314,6 +323,7 @@ class REST {
 				'recordsTotal'    => $total_unused,
 				'recordsFiltered' => $total_unused,
 				'data'            => $response_data,
+				'sources'         => $all_sources,
 			],
 			200
 		);
@@ -364,6 +374,15 @@ class REST {
 		// Find used options that are not autoloaded.
 		$non_autoloaded_used_keys = array_diff_key( $used_options, $autoload_option_keys );
 
+		// Collect all unique sources (plugin names) before any filtering.
+		$all_sources = [];
+		foreach ( array_keys( $non_autoloaded_used_keys ) as $option_name ) {
+			$plugin_name                 = $this->get_plugin_name( $option_name );
+			$all_sources[ $plugin_name ] = true;
+		}
+		$all_sources = array_keys( $all_sources );
+		sort( $all_sources );
+
 		// Filter by source (plugin).
 		$filter_by_source = isset( $_GET['columns'][2]['search']['value'] ) ? trim( \sanitize_text_field( \wp_unslash( $_GET['columns'][2]['search']['value'] ) ) ) : '';
 		if ( '' !== $filter_by_source ) {
@@ -389,6 +408,7 @@ class REST {
 					'recordsTotal'    => 0,
 					'recordsFiltered' => 0,
 					'data'            => [],
+					'sources'         => $all_sources,
 				],
 				200
 			);
@@ -440,6 +460,7 @@ class REST {
 				'recordsTotal'    => $total_filtered,
 				'recordsFiltered' => $total_filtered,
 				'data'            => $response_data,
+				'sources'         => $all_sources,
 			],
 			200
 		);
@@ -487,24 +508,6 @@ class REST {
 		// Get used options that are not autoloaded.
 		$non_autoloaded_keys = array_diff_key( $used_options, $autoload_option_keys );
 
-		// Filter by source (plugin).
-		$filter_by_source = isset( $_GET['columns'][1]['search']['value'] ) ? trim( \sanitize_text_field( \wp_unslash( $_GET['columns'][1]['search']['value'] ) ) ) : '';
-		if ( '' !== $filter_by_source ) {
-			$non_autoloaded_keys = $this->filter_by_source( $non_autoloaded_keys, $filter_by_source );
-		}
-
-		// Search.
-		$search = isset( $_GET['search']['value'] ) ? trim( \sanitize_text_field( \wp_unslash( $_GET['search']['value'] ) ) ) : '';
-		if ( '' !== $search ) {
-			$non_autoloaded_keys = array_filter(
-				$non_autoloaded_keys,
-				function ( $option_name ) use ( $search ) {
-					return stripos( $option_name, $search ) !== false;
-				},
-				ARRAY_FILTER_USE_KEY
-			);
-		}
-
 		if ( empty( $non_autoloaded_keys ) ) {
 			return new \WP_REST_Response(
 				[
@@ -512,6 +515,7 @@ class REST {
 					'recordsTotal'    => 0,
 					'recordsFiltered' => 0,
 					'data'            => [],
+					'sources'         => [],
 				],
 				200
 			);
@@ -529,11 +533,11 @@ class REST {
 		);
 		$existing_keys         = array_fill_keys( $existing_option_names, true );
 
-		// Filter only those that do NOT exist.
-		$response_data = [];
+		// Build array of non-existing options (before any filtering).
+		$non_existing_options = [];
 		foreach ( $non_autoloaded_keys as $option => $count ) {
 			if ( ! isset( $existing_keys[ $option ] ) ) {
-				$response_data[] = [
+				$non_existing_options[ $option ] = [
 					'name'        => $option,
 					'plugin'      => $this->get_plugin_name( $option ),
 					'count'       => $count,
@@ -542,6 +546,37 @@ class REST {
 			}
 		}
 
+		// Collect all unique sources (plugin names) before any filtering.
+		$all_sources = [];
+		foreach ( $non_existing_options as $row ) {
+			$all_sources[ $row['plugin'] ] = true;
+		}
+		$all_sources = array_keys( $all_sources );
+		sort( $all_sources );
+
+		// Filter by source (plugin).
+		$filter_by_source = isset( $_GET['columns'][1]['search']['value'] ) ? trim( \sanitize_text_field( \wp_unslash( $_GET['columns'][1]['search']['value'] ) ) ) : '';
+		if ( '' !== $filter_by_source ) {
+			$non_existing_options = array_filter(
+				$non_existing_options,
+				function ( $row ) use ( $filter_by_source ) {
+					return false !== stripos( $row['plugin'], $filter_by_source );
+				}
+			);
+		}
+
+		// Search.
+		$search = isset( $_GET['search']['value'] ) ? trim( \sanitize_text_field( \wp_unslash( $_GET['search']['value'] ) ) ) : '';
+		if ( '' !== $search ) {
+			$non_existing_options = array_filter(
+				$non_existing_options,
+				function ( $row ) use ( $search ) {
+					return stripos( $row['name'], $search ) !== false;
+				}
+			);
+		}
+
+		$response_data  = array_values( $non_existing_options );
 		$total_filtered = count( $response_data );
 
 		// Pagination.
@@ -561,6 +596,7 @@ class REST {
 				'recordsTotal'    => $total_filtered,
 				'recordsFiltered' => $total_filtered,
 				'data'            => $response_data,
+				'sources'         => $all_sources,
 			],
 			200
 		);
