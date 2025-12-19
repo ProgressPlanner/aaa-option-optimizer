@@ -563,7 +563,7 @@ class REST {
 			$non_existing_options = array_filter(
 				$non_existing_options,
 				function ( $row ) use ( $filter_by_source ) {
-					return $row['plugin'] === $filter_by_source;
+					return false !== stripos( $row['plugin'], $filter_by_source );
 				}
 			);
 		}
