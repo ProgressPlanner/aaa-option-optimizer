@@ -109,6 +109,7 @@
 		<properties>
 			<property name="prefixes" type="array">
 				<element value="Progress_Planner"/>
+				<element value="aaa_option_optimizer"/>
 				<element value="AAA"/>
 			</property>
 		</properties>
