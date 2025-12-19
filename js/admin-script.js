@@ -40,11 +40,32 @@ jQuery( document ).ready( function () {
 	}
 
 	/**
+	 * Store sources (plugin names) for each table from AJAX responses.
+	 *
+	 * @type {Object}
+	 */
+	const tableSources = {};
+
+	/**
+	 * Creates a column filter setup function bound to a specific table selector.
+	 *
+	 * @param {string} tableSelector - The table selector.
+	 * @return {Function} The filter setup function.
+	 */
+	function createColumnFilterSetup( tableSelector ) {
+		return function () {
+			setupColumnFilters.call( this, tableSelector );
+		};
+	}
+
+	/**
 	 * Initializes the DataTable for the given selector.
 	 *
 	 * @param {string} selector - The table selector.
 	 */
 	function initializeDataTable( selector ) {
+		const filterSetup = createColumnFilterSetup( selector );
+
 		const options = {
 			pageLength: 25,
 			autoWidth: false,
@@ -54,7 +75,7 @@ jQuery( document ).ready( function () {
 				return generateRowId( data.name );
 			},
 			initComplete() {
-				this.api().columns( 'source:name' ).every( setupColumnFilters );
+				this.api().columns( 'source:name' ).every( filterSetup );
 			},
 			language: aaaOptionOptimizer.i18n,
 		};
@@ -66,7 +87,10 @@ jQuery( document ).ready( function () {
 					'aaa-option-optimizer/v1/unused-options',
 				headers: { 'X-WP-Nonce': aaaOptionOptimizer.nonce },
 				type: 'GET',
-				dataSrc: 'data',
+				dataSrc( json ) {
+					tableSources[ selector ] = json.sources || [];
+					return json.data;
+				},
 			};
 			options.serverSide = true;
 			options.processing = true;
@@ -75,7 +99,7 @@ jQuery( document ).ready( function () {
 			};
 			options.initComplete = function () {
 				getBulkActionsForm( selector, [ 'autoload-off' ] ).call( this );
-				this.api().columns( 'source:name' ).every( setupColumnFilters );
+				this.api().columns( 'source:name' ).every( filterSetup );
 			};
 			options.order = [ [ 1, 'asc' ] ]; // Order by 2nd column, first column is checkbox.
 		}
@@ -87,7 +111,10 @@ jQuery( document ).ready( function () {
 					'aaa-option-optimizer/v1/used-not-autoloaded-options',
 				headers: { 'X-WP-Nonce': aaaOptionOptimizer.nonce },
 				type: 'GET',
-				dataSrc: 'data',
+				dataSrc( json ) {
+					tableSources[ selector ] = json.sources || [];
+					return json.data;
+				},
 			};
 			options.serverSide = true;
 			options.processing = true;
@@ -96,7 +123,7 @@ jQuery( document ).ready( function () {
 			};
 			options.initComplete = function () {
 				getBulkActionsForm( selector, [ 'autoload-on' ] ).call( this );
-				this.api().columns( 'source:name' ).every( setupColumnFilters );
+				this.api().columns( 'source:name' ).every( filterSetup );
 			};
 			options.order = [ [ 1, 'asc' ] ]; // Order by 2nd column, first column is checkbox.
 		}
@@ -106,10 +133,16 @@ jQuery( document ).ready( function () {
 				url: `${ aaaOptionOptimizer.root }aaa-option-optimizer/v1/options-that-do-not-exist`,
 				headers: { 'X-WP-Nonce': aaaOptionOptimizer.nonce },
 				type: 'GET',
-				dataSrc: 'data',
+				dataSrc( json ) {
+					tableSources[ selector ] = json.sources || [];
+					return json.data;
+				},
 			};
 			options.serverSide = true;
 			options.processing = true;
+			options.initComplete = function () {
+				this.api().columns( 'source:name' ).every( filterSetup );
+			};
 		}
 
 		if ( selector === '#all_options_table' ) {
@@ -124,7 +157,7 @@ jQuery( document ).ready( function () {
 					'autoload-on',
 					'autoload-off',
 				] ).call( this );
-				this.api().columns( 'source:name' ).every( setupColumnFilters );
+				this.api().columns( 'source:name' ).every( filterSetup );
 			};
 			options.order = [ [ 1, 'asc' ] ]; // Order by 2nd column, first column is checkbox.
 		}
@@ -253,8 +286,10 @@ jQuery( document ).ready( function () {
 
 	/**
 	 * Sets up the column filters for the DataTable.
+	 *
+	 * @param {string} tableSelector - The table selector to get sources from.
 	 */
-	function setupColumnFilters() {
+	function setupColumnFilters( tableSelector ) {
 		const column = this;
 		const select = document.createElement( 'select' );
 		select.add(
@@ -266,13 +301,22 @@ jQuery( document ).ready( function () {
 			column.search( select.value, { exact: true } ).draw();
 		} );
 
-		column
-			.data()
-			.unique()
-			.sort()
-			.each( function ( d ) {
-				select.add( new Option( d ) );
+		// Use sources from AJAX response if available (for server-side processing),
+		// otherwise fall back to column data (for client-side processing).
+		const sources = tableSources[ tableSelector ];
+		if ( sources && sources.length > 0 ) {
+			sources.forEach( function ( source ) {
+				select.add( new Option( source ) );
 			} );
+		} else {
+			column
+				.data()
+				.unique()
+				.sort()
+				.each( function ( d ) {
+					select.add( new Option( d ) );
+				} );
+		}
 	}
 
 	/**
