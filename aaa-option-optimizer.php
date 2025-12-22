@@ -58,6 +58,7 @@ function aaa_option_optimizer_activation() {
 				'starting_point_kb'   => ( $result->autoload_size / 1024 ),
 				'starting_point_num'  => $result->count,
 				'starting_point_date' => current_time( 'mysql' ),
+				'used_options'        => [], // For backward compatibility.
 				'settings'            => [
 					'option_tracking' => 'pre_option',
 				],
