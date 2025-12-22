@@ -84,6 +84,11 @@ function aaa_option_optimizer_deactivation() {
  * @return void
  */
 function aaa_option_optimizer_maybe_upgrade() {
+	// Only run on admin pages, not on AJAX or REST requests to avoid race conditions.
+	if ( ! is_admin() || wp_doing_ajax() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
+		return;
+	}
+
 	// Check if table exists, create if not.
 	if ( ! Progress_Planner\OptionOptimizer\Database::table_exists() ) {
 		Progress_Planner\OptionOptimizer\Database::create_table();
