@@ -181,6 +181,18 @@ class REST {
 				},
 			]
 		);
+
+		\register_rest_route(
+			'aaa-option-optimizer/v1',
+			'/migrate',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ $this, 'migrate_chunk' ],
+				'permission_callback' => function () {
+					return current_user_can( 'manage_options' );
+				},
+			]
+		);
 	}
 
 	/**
@@ -191,6 +203,16 @@ class REST {
 	public function reset_stats() {
 		Plugin::get_instance()->reset();
 		return new \WP_REST_Response( [ 'success' => true ], 200 );
+	}
+
+	/**
+	 * Migrate a chunk of data from old format to custom table.
+	 *
+	 * @return \WP_REST_Response
+	 */
+	public function migrate_chunk() {
+		$result = Database::migrate_chunk();
+		return new \WP_REST_Response( $result, 200 );
 	}
 
 	/**

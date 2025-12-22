@@ -79,8 +79,9 @@ function aaa_option_optimizer_deactivation() {
 }
 
 /**
- * Ensure database table exists and migrate data if needed.
+ * Ensure database table exists.
  * Runs on plugins_loaded to handle existing installs that don't trigger activation.
+ * Migration is handled via AJAX on the plugin admin page.
  *
  * @return void
  */
@@ -94,9 +95,6 @@ function aaa_option_optimizer_maybe_upgrade() {
 	if ( ! Progress_Planner\OptionOptimizer\Database::table_exists() ) {
 		Progress_Planner\OptionOptimizer\Database::create_table();
 	}
-
-	// Migrate existing data if present.
-	Progress_Planner\OptionOptimizer\Database::maybe_migrate();
 }
 add_action( 'plugins_loaded', 'aaa_option_optimizer_maybe_upgrade' );
 

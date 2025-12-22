@@ -189,9 +189,10 @@ class Admin_Page {
 			'aaa-option-optimizer-admin-js',
 			'aaaOptionOptimizer',
 			[
-				'root'  => \esc_url_raw( \rest_url() ),
-				'nonce' => \wp_create_nonce( 'wp_rest' ),
-				'i18n'  => [
+				'root'      => \esc_url_raw( \rest_url() ),
+				'nonce'     => \wp_create_nonce( 'wp_rest' ),
+				'migration' => Database::get_migration_status(),
+				'i18n'      => [
 					'filterBySource'         => \esc_html__( 'Filter by source', 'aaa-option-optimizer' ),
 					'showValue'              => \esc_html__( 'Show', 'aaa-option-optimizer' ),
 					'addAutoload'            => \esc_html__( 'Add autoload', 'aaa-option-optimizer' ),
@@ -207,6 +208,11 @@ class Admin_Page {
 					'apply'                  => \esc_html__( 'Apply', 'aaa-option-optimizer' ),
 
 					'search'                 => \esc_html__( 'Search:', 'aaa-option-optimizer' ),
+					'migrating'              => \esc_html__( 'Migrating...', 'aaa-option-optimizer' ),
+					'migrationComplete'      => \esc_html__( 'Migration complete! Reloading page...', 'aaa-option-optimizer' ),
+					'migrationError'         => \esc_html__( 'Migration error. Please try again.', 'aaa-option-optimizer' ),
+					/* translators: %1$d: number of migrated options, %2$d: total number of options */
+					'migratedOf'             => \esc_html__( 'Migrated %1$d of %2$d options', 'aaa-option-optimizer' ),
 					'entries'                => [
 						'_' => \esc_html__( 'entries', 'aaa-option-optimizer' ),
 						'1' => \esc_html__( 'entry', 'aaa-option-optimizer' ),
@@ -260,9 +266,38 @@ class Admin_Page {
 			$wpdb->prepare( "SELECT count(*) AS count, SUM( LENGTH( option_value ) ) as autoload_size FROM {$wpdb->options} WHERE autoload IN ( $placeholders )", $autoload_values )
 		);
 		// phpcs:enable WordPress.DB
+
+		// Check if migration is needed.
+		$migration_status = Database::get_migration_status();
 		?>
 		<div class="wrap">
 			<h1><?php \esc_html_e( 'AAA Option Optimizer', 'aaa-option-optimizer' ); ?></h1>
+
+			<?php if ( $migration_status['needs_migration'] ) : ?>
+			<div id="aaa-migration-notice" class="notice notice-warning">
+				<p>
+					<strong><?php \esc_html_e( 'Data Migration Required', 'aaa-option-optimizer' ); ?></strong><br>
+					<?php
+					printf(
+						/* translators: %d: number of options to migrate */
+						\esc_html__( 'We need to migrate %d tracked options to the new database format.', 'aaa-option-optimizer' ),
+						\esc_html( $migration_status['remaining'] )
+					);
+					?>
+				</p>
+				<div id="aaa-migration-progress" style="display: none; margin: 10px 0;">
+					<div style="background: #e0e0e0; border-radius: 4px; height: 20px; width: 100%; max-width: 400px;">
+						<div id="aaa-migration-progress-bar" style="background: #0073aa; height: 100%; border-radius: 4px; width: 0%; transition: width 0.3s;"></div>
+					</div>
+					<p id="aaa-migration-status" style="margin: 5px 0;"></p>
+				</div>
+				<p>
+					<button id="aaa-start-migration" class="button button-primary" type="button">
+						<?php \esc_html_e( 'Start Migration', 'aaa-option-optimizer' ); ?>
+					</button>
+				</p>
+			</div>
+			<?php endif; ?>
 
 			<p><?php \esc_html_e( 'We\'ve found the following things you can maybe optimize:', 'aaa-option-optimizer' ); ?></p>
 

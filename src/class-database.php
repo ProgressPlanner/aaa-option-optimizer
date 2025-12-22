@@ -80,38 +80,99 @@ class Database {
 	}
 
 	/**
-	 * Migrate data from the old option format to the custom table.
+	 * Number of options to migrate per request.
 	 *
-	 * @return void
+	 * @var int
 	 */
-	public static function maybe_migrate() {
+	const MIGRATION_CHUNK_SIZE = 1000;
+
+	/**
+	 * Get migration status.
+	 *
+	 * @return array{needs_migration: bool, total: int, remaining: int}
+	 */
+	public static function get_migration_status() {
 		$option_data = \get_option( 'option_optimizer' );
 
-		// No data or already migrated (no used_options key).
 		if ( ! \is_array( $option_data ) || empty( $option_data['used_options'] ) ) {
-			return;
+			return [
+				'needs_migration' => false,
+				'total'           => 0,
+				'remaining'       => 0,
+			];
 		}
 
-		// Prevent concurrent migrations.
-		if ( \get_transient( 'aaa_option_optimizer_migrating' ) ) {
-			return;
+		$remaining = \count( $option_data['used_options'] );
+
+		// Get total from transient or set it on first check.
+		$total = \get_transient( 'aaa_option_optimizer_migration_total' );
+		if ( false === $total ) {
+			$total = $remaining;
+			\set_transient( 'aaa_option_optimizer_migration_total', $total, HOUR_IN_SECONDS );
 		}
-		\set_transient( 'aaa_option_optimizer_migrating', true, 60 );
+
+		return [
+			'needs_migration' => true,
+			'total'           => (int) $total,
+			'remaining'       => $remaining,
+		];
+	}
+
+	/**
+	 * Migrate a chunk of data from the old option format to the custom table.
+	 *
+	 * Processes in chunks to avoid timeouts on slow hosts with large datasets.
+	 *
+	 * @return array{success: bool, remaining: int, total: int}
+	 */
+	public static function migrate_chunk() {
+		$option_data = \get_option( 'option_optimizer' );
+
+		// No data or already migrated.
+		if ( ! \is_array( $option_data ) || empty( $option_data['used_options'] ) ) {
+			\delete_transient( 'aaa_option_optimizer_migration_total' );
+			return [
+				'success'   => true,
+				'remaining' => 0,
+				'total'     => 0,
+			];
+		}
 
 		// Ensure table exists.
 		if ( ! self::table_exists() ) {
 			self::create_table();
 		}
 
-		// Batch insert old data to custom table.
-		self::batch_insert( $option_data['used_options'] );
+		// Get total for progress tracking.
+		$total = \get_transient( 'aaa_option_optimizer_migration_total' );
+		if ( false === $total ) {
+			$total = \count( $option_data['used_options'] );
+			\set_transient( 'aaa_option_optimizer_migration_total', $total, HOUR_IN_SECONDS );
+		}
 
-		// Set used_options to an empty array, so we avoid php fatal error in case user decides to downgrade the plugin.
-		$option_data['used_options'] = [];
+		// Take a chunk of options to migrate.
+		$chunk = \array_slice( $option_data['used_options'], 0, self::MIGRATION_CHUNK_SIZE, true );
+
+		// Batch insert chunk to custom table.
+		self::batch_insert( $chunk );
+
+		// Remove migrated options from the array.
+		$option_data['used_options'] = \array_slice( $option_data['used_options'], self::MIGRATION_CHUNK_SIZE, null, true );
 
 		\update_option( 'option_optimizer', $option_data, false );
 
-		\delete_transient( 'aaa_option_optimizer_migrating' );
+		$remaining = \count( $option_data['used_options'] );
+
+		// Clean up total transient when done.
+		if ( 0 === $remaining ) {
+			\delete_transient( 'aaa_option_optimizer_migration_total' );
+		}
+
+		return [
+			'success'   => true,
+			'remaining' => $remaining,
+			'total'     => (int) $total,
+		];
 	}
 
 	/**

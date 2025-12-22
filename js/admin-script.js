@@ -631,4 +631,74 @@ jQuery( document ).ready( function () {
 			initializeDataTable( selector );
 		}
 	} );
+
+	// Migration functionality.
+	jQuery( '#aaa-start-migration' ).on( 'click', function ( e ) {
+		e.preventDefault();
+		const button = jQuery( this );
+		const progressContainer = jQuery( '#aaa-migration-progress' );
+		const progressBar = jQuery( '#aaa-migration-progress-bar' );
+		const statusText = jQuery( '#aaa-migration-status' );
+		const total = aaaOptionOptimizer.migration.total;
+
+		button.prop( 'disabled', true );
+		progressContainer.show();
+		statusText.text( aaaOptionOptimizer.i18n.migrating );
+
+		/**
+		 * Performs a single migration chunk via AJAX.
+		 */
+		function migrateChunk() {
+			jQuery.ajax( {
+				url:
+					aaaOptionOptimizer.root +
+					'aaa-option-optimizer/v1/migrate',
+				method: 'POST',
+				beforeSend: ( xhr ) =>
+					xhr.setRequestHeader(
+						'X-WP-Nonce',
+						aaaOptionOptimizer.nonce
+					),
+				success( response ) {
+					if ( ! response.success ) {
+						statusText.text(
+							response.message ||
+								aaaOptionOptimizer.i18n.migrationError
+						);
+						button.prop( 'disabled', false );
+						return;
+					}
+
+					const migrated = total - response.remaining;
+					const percent = Math.round( ( migrated / total ) * 100 );
+
+					progressBar.css( 'width', percent + '%' );
+					statusText.text(
+						aaaOptionOptimizer.i18n.migratedOf
+							.replace( '%1$d', migrated )
+							.replace( '%2$d', total )
+					);
+
+					if ( response.remaining > 0 ) {
+						// Continue with next chunk.
+						migrateChunk();
+					} else {
+						// Migration complete.
+						statusText.text(
+							aaaOptionOptimizer.i18n.migrationComplete
+						);
+						setTimeout( function () {
+							window.location.reload();
+						}, 1000 );
+					}
+				},
+				error() {
+					statusText.text( aaaOptionOptimizer.i18n.migrationError );
+					button.prop( 'disabled', false );
+				},
+			} );
+		}
+
+		migrateChunk();
+	} );
 } );
