@@ -19,9 +19,9 @@ class Plugin {
 	public static $instance;
 
 	/**
-	 * Holds the names of the options accessed during the request.
+	 * Holds the options accessed during the request with their access counts.
 	 *
-	 * @var string[]
+	 * @var array<string, int>
 	 */
 	protected $accessed_options = [];
 
