@@ -92,6 +92,12 @@ class Database {
 			return;
 		}
 
+		// Prevent concurrent migrations.
+		if ( \get_transient( 'aaa_option_optimizer_migrating' ) ) {
+			return;
+		}
+		\set_transient( 'aaa_option_optimizer_migrating', true, 60 );
+
 		// Ensure table exists.
 		if ( ! self::table_exists() ) {
 			self::create_table();
@@ -104,6 +110,8 @@ class Database {
 		$option_data['used_options'] = [];
 
 		\update_option( 'option_optimizer', $option_data, false );
+
+		\delete_transient( 'aaa_option_optimizer_migrating' );
 	}
 
 	/**
