@@ -144,9 +144,6 @@ class Plugin {
 	/**
 	 * Update the tracked options at the end of the page load.
 	 *
-	 * Uses transient batching to reduce database writes - only flushes to the custom table
-	 * every 5 minutes instead of on every request.
-	 *
 	 * @return void
 	 */
 	public function update_tracked_options() {
@@ -155,66 +152,15 @@ class Plugin {
 			return;
 		}
 
-		// Handle reset: clear batch and custom table.
+		// Handle reset.
 		if ( $this->should_reset ) {
-			\delete_transient( 'option_optimizer_batch' );
 			Database::clear_tracked_options();
 			return;
 		}
 
-		// Get the batch data.
-		$batch_data = $this->get_batch_data();
-
-		// Add current request's options to the batch.
-		foreach ( $this->accessed_options as $option_name => $count ) {
-			if ( ! isset( $batch_data['options'][ $option_name ] ) ) {
-				$batch_data['options'][ $option_name ] = 0;
-			}
-			$batch_data['options'][ $option_name ] += $count;
+		// Write accessed options directly to the custom table.
+		if ( ! empty( $this->accessed_options ) ) {
+			Database::batch_insert( $this->accessed_options );
 		}
-
-		// Check if it's time to flush the batch.
-		$should_flush = ( \time() - $batch_data['last_flush'] ) >= $this->get_flush_interval();
-
-		// Flush batch to custom table every 5 minutes.
-		if ( ! empty( $batch_data['options'] ) && $should_flush ) {
-			Database::batch_insert( $batch_data['options'] );
-
-			// Reset the batch data.
-			$batch_data = [
-				'options'    => [],
-				'last_flush' => \time(),
-			];
-		}
-
-		// No expiry - batch is explicitly deleted on flush, expiry would only cause data loss.
-		\set_transient( 'option_optimizer_batch', $batch_data, 0 );
-	}
-
-	/**
-	 * Get the batch data.
-	 *
-	 * @return array<string, int>
-	 */
-	protected function get_batch_data() {
-		// Get existing batch (stores both data and flush timestamp in one transient).
-		$batch_data = \get_transient( 'option_optimizer_batch' );
-		if ( ! \is_array( $batch_data ) || ! isset( $batch_data['options'], $batch_data['last_flush'] ) ) {
-			$batch_data = [
-				'options'    => [],
-				'last_flush' => \time(),
-			];
-		}
-
-		return $batch_data;
-	}
-
-	/**
-	 * Get the flush interval.
-	 *
-	 * @return int
-	 */
-	protected function get_flush_interval() {
-		return (int) \apply_filters( 'aaa_option_optimizer_flush_interval', 5 * MINUTE_IN_SECONDS );
 	}
 }
