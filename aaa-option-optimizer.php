@@ -37,9 +37,6 @@ function aaa_option_optimizer_activation() {
 	// Create the custom table.
 	Progress_Planner\OptionOptimizer\Database::create_table();
 
-	// Migrate existing data if present.
-	Progress_Planner\OptionOptimizer\Database::maybe_migrate();
-
 	$autoload_values = \wp_autoload_values_to_autoload();
 	$placeholders    = implode( ',', array_fill( 0, count( $autoload_values ), '%s' ) );
 

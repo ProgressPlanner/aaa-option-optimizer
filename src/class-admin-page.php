@@ -281,7 +281,7 @@ class Admin_Page {
 					printf(
 						/* translators: %d: number of options to migrate */
 						\esc_html__( 'We need to migrate %d tracked options to the new database format.', 'aaa-option-optimizer' ),
-						\esc_html( $migration_status['remaining'] )
+						(int) $migration_status['remaining']
 					);
 					?>
 				</p>
