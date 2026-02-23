@@ -2,10 +2,10 @@
 /**
  * Plugin functionality for AAA Option Optimizer.
  *
- * @package Emilia\OptionOptimizer
+ * @package Progress_Planner\OptionOptimizer
  */
 
-namespace Emilia\OptionOptimizer;
+namespace Progress_Planner\OptionOptimizer;
 
 /**
  * Core functionality of AAA Option Optimizer.
@@ -19,9 +19,9 @@ class Plugin {
 	public static $instance;
 
 	/**
-	 * Holds the names of the options accessed during the request.
+	 * Holds the options accessed during the request with their access counts.
 	 *
-	 * @var string[]
+	 * @var array<string, int>
 	 */
 	protected $accessed_options = [];
 
@@ -60,8 +60,6 @@ class Plugin {
 	 * @return void
 	 */
 	public function register_hooks() {
-		$this->accessed_options = \get_option( 'option_optimizer', [ 'used_options' => [] ] )['used_options'];
-
 		if ( Admin_Page::get_option_tracking() === 'pre_option' ) {
 			\add_filter( 'pre_option', [ $this, 'monitor_option_accesses_pre_option' ], PHP_INT_MAX, 2 );
 		} else {
@@ -144,7 +142,7 @@ class Plugin {
 	}
 
 	/**
-	 * Update the 'option_optimizer' option with the list of used options at the end of the page load.
+	 * Update the tracked options at the end of the page load.
 	 *
 	 * @return void
 	 */
@@ -153,19 +151,16 @@ class Plugin {
 		if ( isset( $_GET['page'] ) && $_GET['page'] === 'aaa-option-optimizer' ) {
 			return;
 		}
-		// Retrieve the existing option_optimizer data.
-		$option_optimizer = get_option( 'option_optimizer', [ 'used_options' => [] ] );
 
-		foreach ( $this->accessed_options as $option => $count ) {
-			$option_optimizer['used_options'][ $option ] =
-				( $option_optimizer['used_options'][ $option ] ?? 0 ) + $count;
-		}
-
+		// Handle reset.
 		if ( $this->should_reset ) {
-			$option_optimizer['used_options'] = [];
+			Database::clear_tracked_options();
+			return;
 		}
 
-		// Update the 'option_optimizer' option with the new list.
-		update_option( 'option_optimizer', $option_optimizer, false );
+		// Write accessed options directly to the custom table.
+		if ( ! empty( $this->accessed_options ) ) {
+			Database::batch_insert( $this->accessed_options );
+		}
 	}
 }

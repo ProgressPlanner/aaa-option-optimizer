@@ -2,7 +2,7 @@
 /**
  * Plugin that tracks autoloaded options usage and allows the user to optimize them.
  *
- * @package Emilia\OptionOptimizer
+ * @package Progress_Planner\OptionOptimizer
  *
  * Plugin Name: AAA Option Optimizer
  * Plugin URI: https://progressplanner.com/plugins/aaa-option-optimizer/
@@ -27,12 +27,16 @@ register_activation_hook( __FILE__, 'aaa_option_optimizer_activation' );
 register_deactivation_hook( __FILE__, 'aaa_option_optimizer_deactivation' );
 
 /**
- * Activation hooked function to store start stats.
+ * Activation hooked function to store start stats and create table.
  *
  * @return void
  */
 function aaa_option_optimizer_activation() {
 	global $wpdb;
+
+	// Create the custom table.
+	Progress_Planner\OptionOptimizer\Database::create_table();
+
 	$autoload_values = \wp_autoload_values_to_autoload();
 	$placeholders    = implode( ',', array_fill( 0, count( $autoload_values ), '%s' ) );
 
@@ -42,19 +46,23 @@ function aaa_option_optimizer_activation() {
 	);
 	// phpcs:enable WordPress.DB
 
-	update_option(
-		'option_optimizer',
-		[
-			'starting_point_kb'   => ( $result->autoload_size / 1024 ),
-			'starting_point_num'  => $result->count,
-			'starting_point_date' => current_time( 'mysql' ),
-			'used_options'        => [],
-			'settings'            => [
-				'option_tracking' => 'pre_option',
+	// Only set starting point if not already set (preserve existing data).
+	$existing = get_option( 'option_optimizer' );
+	if ( empty( $existing['starting_point_date'] ) ) {
+		update_option(
+			'option_optimizer',
+			[
+				'starting_point_kb'   => ( $result->autoload_size / 1024 ),
+				'starting_point_num'  => $result->count,
+				'starting_point_date' => current_time( 'mysql' ),
+				'used_options'        => [], // For backward compatibility.
+				'settings'            => [
+					'option_tracking' => 'pre_option',
+				],
 			],
-		],
-		false
-	);
+			false
+		);
+	}
 }
 
 /**
@@ -68,12 +76,32 @@ function aaa_option_optimizer_deactivation() {
 }
 
 /**
+ * Ensure database table exists.
+ * Runs on plugins_loaded to handle existing installs that don't trigger activation.
+ * Migration is handled via AJAX on the plugin admin page.
+ *
+ * @return void
+ */
+function aaa_option_optimizer_maybe_upgrade() {
+	// Only run on admin pages, not on AJAX or REST requests to avoid race conditions.
+	if ( ! is_admin() || wp_doing_ajax() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
+		return;
+	}
+
+	// Check if table exists, create if not.
+	if ( ! Progress_Planner\OptionOptimizer\Database::table_exists() ) {
+		Progress_Planner\OptionOptimizer\Database::create_table();
+	}
+}
+add_action( 'plugins_loaded', 'aaa_option_optimizer_maybe_upgrade' );
+
+/**
  * Initializes the plugin.
  *
  * @return void
  */
 function aaa_option_optimizer_init() {
-	$optimizer = new Emilia\OptionOptimizer\Plugin();
+	$optimizer = new Progress_Planner\OptionOptimizer\Plugin();
 	$optimizer->register_hooks();
 }
 

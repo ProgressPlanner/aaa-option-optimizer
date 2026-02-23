@@ -2,10 +2,10 @@
 /**
  * REST functionality for AAA Option Optimizer.
  *
- * @package Emilia\OptionOptimizer
+ * @package Progress_Planner\OptionOptimizer
  */
 
-namespace Emilia\OptionOptimizer;
+namespace Progress_Planner\OptionOptimizer;
 
 use WP_Error;
 use WP_REST_Request;
@@ -181,6 +181,18 @@ class REST {
 				},
 			]
 		);
+
+		\register_rest_route(
+			'aaa-option-optimizer/v1',
+			'/migrate',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ $this, 'migrate_chunk' ],
+				'permission_callback' => function () {
+					return current_user_can( 'manage_options' );
+				},
+			]
+		);
 	}
 
 	/**
@@ -191,6 +203,16 @@ class REST {
 	public function reset_stats() {
 		Plugin::get_instance()->reset();
 		return new \WP_REST_Response( [ 'success' => true ], 200 );
+	}
+
+	/**
+	 * Migrate a chunk of data from old format to custom table.
+	 *
+	 * @return \WP_REST_Response
+	 */
+	public function migrate_chunk() {
+		$result = Database::migrate_chunk();
+		return new \WP_REST_Response( $result, 200 );
 	}
 
 	/**
@@ -229,9 +251,8 @@ class REST {
 
 		global $wpdb;
 
-		// Load used options from option_optimizer.
-		$option_optimizer = get_option( 'option_optimizer', [ 'used_options' => [] ] );
-		$used_options     = $option_optimizer['used_options'];
+		// Load used options from custom table.
+		$used_options = Database::get_tracked_option_keys();
 
 		$query = "
 			SELECT option_name
@@ -345,9 +366,8 @@ class REST {
 
 		global $wpdb;
 
-		// Load used options from option_optimizer.
-		$option_optimizer = get_option( 'option_optimizer', [ 'used_options' => [] ] );
-		$used_options     = $option_optimizer['used_options'];
+		// Load used options from custom table (with counts).
+		$used_options = Database::get_tracked_options();
 
 		if ( empty( $used_options ) ) {
 			return new \WP_REST_Response(
@@ -481,9 +501,8 @@ class REST {
 
 		global $wpdb;
 
-		// Load used options.
-		$option_optimizer = get_option( 'option_optimizer', [ 'used_options' => [] ] );
-		$used_options     = $option_optimizer['used_options'];
+		// Load used options from custom table (with counts).
+		$used_options = Database::get_tracked_options();
 
 		if ( empty( $used_options ) ) {
 			return new \WP_REST_Response(

@@ -1,5 +1,5 @@
 {
-    "name": "emilia/aaa-option-optimizer",
+    "name": "progress-planner/aaa-option-optimizer",
 	"description": "Plugin that tracks autoloaded options usage and allows the user to optimize them.",
 	"type": "wordpress-plugin",
 	"license": "GPL-3.0-or-later",

@@ -29,7 +29,7 @@ Yes!! Backup your database.
 
 = Where can I report bugs? =
 
-Please use [our GitHub](https://github.com/emilia-Capital/aaa-option-optimizer/) for reporting bugs or making code suggestions. Feel free to use the forums for asking questions too, of course.
+Please use [our GitHub](https://github.com/ProgressPlanner/aaa-option-optimizer/) for reporting bugs or making code suggestions. Feel free to use the forums for asking questions too, of course.
 
 For security issues, please see the next question.
 
@@ -39,7 +39,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 = How can I add recognized plugins? =
 
-Please do a pull request via GitHub on [this file](https://github.com/Emilia-Capital/aaa-option-optimizer/blob/develop/known-plugins/known-plugins.json) in the plugin.
+Please do a pull request via GitHub on [this file](https://github.com/ProgressPlanner/aaa-option-optimizer/blob/develop/known-plugins/known-plugins.json) in the plugin.
 
 == Installation ==
 1. Search for AAA Option Optimizer on the repository.
@@ -113,7 +113,7 @@ Implement the missing functionality to create an option with value `false` when 
 = 1.1 =
 
 The plugin now recognizes plugins from which the options came (thanks to a great pull by [Rogier Lankhorst](https://profiles.wordpress.org/rogierlankhorst/)). If you're a plugin developer and want your plugin's options
-properly recognized, please do a pull request [on this file](https://github.com/Emilia-Capital/aaa-option-optimizer/blob/main/known-plugins/known-plugins.json).
+properly recognized, please do a pull request [on this file](https://github.com/ProgressPlanner/aaa-option-optimizer/blob/main/known-plugins/known-plugins.json).
 
 Small enhancements:
 
