@@ -1,5 +1,5 @@
 === AAA Option Optimizer ===
-Contributors: joostdevalk, aristath, filipi
+Contributors: joostdevalk, aristath, filipi, progressplanner
 Tags: options, database, cleanup
 Requires at least: 6.7
 Tested up to: 7.0
