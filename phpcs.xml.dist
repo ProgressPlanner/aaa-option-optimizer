@@ -108,10 +108,16 @@
 	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
 		<properties>
 			<property name="prefixes" type="array">
-				<element value="Emilia"/>
+				<element value="Progress_Planner"/>
+				<element value="aaa_option_optimizer"/>
 				<element value="AAA"/>
 			</property>
 		</properties>
+	</rule>
+
+	<!-- Allow the short 'aaa' prefix since plugin is already published with this naming. -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals.ShortPrefixPassed">
+		<severity>0</severity>
 	</rule>
 
 	<rule ref="WordPress">

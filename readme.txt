@@ -1,10 +1,10 @@
 === AAA Option Optimizer ===
-Contributors: joostdevalk
+Contributors: joostdevalk, aristath, filipi
 Tags: options, database, cleanup
-Requires at least: 6.6
-Tested up to: 6.8
+Requires at least: 6.7
+Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.5.1
+Stable tag: 1.6.0
 License: GPL3+
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
 
@@ -29,7 +29,7 @@ Yes!! Backup your database.
 
 = Where can I report bugs? =
 
-Please use [our GitHub](https://github.com/emilia-Capital/aaa-option-optimizer/) for reporting bugs or making code suggestions. Feel free to use the forums for asking questions too, of course.
+Please use [our GitHub](https://github.com/ProgressPlanner/aaa-option-optimizer/) for reporting bugs or making code suggestions. Feel free to use the forums for asking questions too, of course.
 
 For security issues, please see the next question.
 
@@ -39,7 +39,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 = How can I add recognized plugins? =
 
-Please do a pull request via GitHub on [this file](https://github.com/Emilia-Capital/aaa-option-optimizer/blob/develop/known-plugins/known-plugins.json) in the plugin.
+Please do a pull request via GitHub on [this file](https://github.com/ProgressPlanner/aaa-option-optimizer/blob/develop/known-plugins/known-plugins.json) in the plugin.
 
 == Installation ==
 1. Search for AAA Option Optimizer on the repository.
@@ -53,6 +53,11 @@ Please do a pull request via GitHub on [this file](https://github.com/Emilia-Cap
 2. Screenshot of the "All options" screen, showing you can browse all the options.
 
 == Changelog ==
+
+= 1.6.0
+
+* Replace using 'all' filter for monitoring option usage with 'pre_option' filter for better performance.
+* Migrate tracked options data from a single wp_option to a custom database table for improved performance and reliability.
 
 = 1.5.1 =
 
@@ -109,7 +114,7 @@ Implement the missing functionality to create an option with value `false` when 
 = 1.1 =
 
 The plugin now recognizes plugins from which the options came (thanks to a great pull by [Rogier Lankhorst](https://profiles.wordpress.org/rogierlankhorst/)). If you're a plugin developer and want your plugin's options
-properly recognized, please do a pull request [on this file](https://github.com/Emilia-Capital/aaa-option-optimizer/blob/main/known-plugins/known-plugins.json).
+properly recognized, please do a pull request [on this file](https://github.com/ProgressPlanner/aaa-option-optimizer/blob/main/known-plugins/known-plugins.json).
 
 Small enhancements:
 

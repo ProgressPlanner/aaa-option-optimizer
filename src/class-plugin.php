@@ -2,10 +2,10 @@
 /**
  * Plugin functionality for AAA Option Optimizer.
  *
- * @package Emilia\OptionOptimizer
+ * @package Progress_Planner\OptionOptimizer
  */
 
-namespace Emilia\OptionOptimizer;
+namespace Progress_Planner\OptionOptimizer;
 
 /**
  * Core functionality of AAA Option Optimizer.
@@ -19,9 +19,9 @@ class Plugin {
 	public static $instance;
 
 	/**
-	 * Holds the names of the options accessed during the request.
+	 * Holds the options accessed during the request with their access counts.
 	 *
-	 * @var string[]
+	 * @var array<string, int>
 	 */
 	protected $accessed_options = [];
 
@@ -60,11 +60,13 @@ class Plugin {
 	 * @return void
 	 */
 	public function register_hooks() {
-		$this->accessed_options = \get_option( 'option_optimizer', [ 'used_options' => [] ] )['used_options'];
-
-		// Hook into all actions and filters to monitor option accesses.
-		// @phpstan-ignore-next-line -- The 'all' hook does not need a return.
-		\add_filter( 'all', [ $this, 'monitor_option_accesses' ] );
+		if ( Admin_Page::get_option_tracking() === 'pre_option' ) {
+			\add_filter( 'pre_option', [ $this, 'monitor_option_accesses_pre_option' ], PHP_INT_MAX, 2 );
+		} else {
+			// Hook into all actions and filters to monitor option accesses.
+			// @phpstan-ignore-next-line -- The 'all' hook does not need a return.
+			\add_filter( 'all', [ $this, 'monitor_option_accesses_legacy' ] );
+		}
 
 		// Use the shutdown action to update the option with tracked data.
 		\add_action( 'shutdown', [ $this, 'update_tracked_options' ] );
@@ -98,7 +100,7 @@ class Plugin {
 	 *
 	 * @return void
 	 */
-	public function monitor_option_accesses( $tag ) {
+	public function monitor_option_accesses_legacy( $tag ) {
 		// Check if the tag is related to an option access.
 		if ( str_starts_with( $tag, 'option_' ) || str_starts_with( $tag, 'default_option_' ) ) {
 			$option_name = preg_replace( '#^(default_)?option_#', '', $tag );
@@ -109,21 +111,38 @@ class Plugin {
 	/**
 	 * Add an option to the list of used options if it's not already there.
 	 *
+	 * @param mixed  $pre The value to return instead of the option value.
+	 * @param string $option_name Name of the option being accessed.
+	 *
+	 * @return mixed
+	 */
+	public function monitor_option_accesses_pre_option( $pre, $option_name ) {
+
+		// If the $pre is false the get_option() will not be short-circuited.
+		if ( ! defined( 'WP_SETUP_CONFIG' ) && false === $pre ) {
+			$this->add_option_usage( $option_name );
+		}
+
+		return $pre;
+	}
+
+	/**
+	 * Add an option to the list of used options if it's not already there.
+	 *
 	 * @param string $option_name Name of the option being accessed.
 	 *
 	 * @return void
 	 */
 	protected function add_option_usage( $option_name ) {
-		// Check if this option hasn't been tracked yet and add it to the array.
 		if ( ! array_key_exists( $option_name, $this->accessed_options ) ) {
-			$this->accessed_options[ $option_name ] = 1;
-			return;
+			$this->accessed_options[ $option_name ] = 0;
 		}
+
 		++$this->accessed_options[ $option_name ];
 	}
 
 	/**
-	 * Update the 'option_optimizer' option with the list of used options at the end of the page load.
+	 * Update the tracked options at the end of the page load.
 	 *
 	 * @return void
 	 */
@@ -132,16 +151,16 @@ class Plugin {
 		if ( isset( $_GET['page'] ) && $_GET['page'] === 'aaa-option-optimizer' ) {
 			return;
 		}
-		// Retrieve the existing option_optimizer data.
-		$option_optimizer = get_option( 'option_optimizer', [ 'used_options' => [] ] );
 
-		$option_optimizer['used_options'] = $this->accessed_options;
-
+		// Handle reset.
 		if ( $this->should_reset ) {
-			$option_optimizer['used_options'] = [];
+			Database::clear_tracked_options();
+			return;
 		}
 
-		// Update the 'option_optimizer' option with the new list.
-		update_option( 'option_optimizer', $option_optimizer, false );
+		// Write accessed options directly to the custom table.
+		if ( ! empty( $this->accessed_options ) ) {
+			Database::batch_insert( $this->accessed_options );
+		}
 	}
 }

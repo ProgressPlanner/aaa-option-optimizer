@@ -37,7 +37,6 @@
 .aaa_option_table .actions .button span.dashicons, .aaa_option_table .button.dashicon span.dashicons {
 	padding: 0;
 	margin: 0 3px 0 0;
-	vertical-align: middle;
 }
 .aaa_option_table td span.num {
 	font-family: monospace;
@@ -91,9 +90,6 @@ div.dt-container .dt-input {
 }
 .aaa-option-optimizer-popover__close:hover {
 	cursor: pointer;
-}
-.aaa-option-optimizer-reset {
-	float: right;
 }
 .aaa-option-optimizer-tabs {
 	clear: both;
@@ -149,4 +145,19 @@ div.dt-container .dt-input {
 }
 .aaa_option_table .source {
 	width: 20%;
+}
+
+/* Settings page */
+.aaa-option-optimizer-tracking-fieldset {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+/* Version 6.9 compatibility */
+.branch-6-9 {
+	.aaa_option_table .actions .button span.dashicons,
+	.aaa_option_table .button.dashicon span.dashicons {
+		vertical-align: middle;
+	}
 }

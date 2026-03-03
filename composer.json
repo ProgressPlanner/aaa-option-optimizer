@@ -1,5 +1,5 @@
 {
-    "name": "emilia/aaa-option-optimizer",
+    "name": "progress-planner/aaa-option-optimizer",
 	"description": "Plugin that tracks autoloaded options usage and allows the user to optimize them.",
 	"type": "wordpress-plugin",
 	"license": "GPL-3.0-or-later",
@@ -16,7 +16,7 @@
         "phpstan/phpstan": "^1.10",
         "szepeviktor/phpstan-wordpress": "^1.3",
         "phpstan/extension-installer": "^1.3",
-        "phpcompatibility/php-compatibility": "dev-develop as 9.99.99"
+        "phpcompatibility/php-compatibility": "^9.3"
     },
     "config": {
         "allow-plugins": {
@@ -36,6 +36,9 @@
 		],
 		"lint-blueprint": [
 			"@php -r \"exit( intval( is_null( json_decode( file_get_contents( './.wordpress-org/blueprints/blueprint.json' ) ) ) ) );\""
+		],
+		"lint-known-plugins": [
+			"@php -r \"exit( intval( is_null( json_decode( file_get_contents( './known-plugins/known-plugins.json' ) ) ) ) );\""
 		],
 		"phpstan": [
 			"@php ./vendor/bin/phpstan analyse --memory-limit=2048M"
