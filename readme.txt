@@ -2,7 +2,7 @@
 Contributors: joostdevalk, aristath, filipi
 Tags: options, database, cleanup
 Requires at least: 6.7
-Tested up to: 6.9
+Tested up to: 7.0
 Requires PHP: 7.4
 Stable tag: 1.6.0
 License: GPL3+
