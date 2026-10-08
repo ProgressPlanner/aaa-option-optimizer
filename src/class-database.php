@@ -181,17 +181,40 @@ class Database {
 	 * Splits large datasets into chunks and wraps them in a transaction
 	 * for optimal performance on slow hosts with large datasets.
 	 *
+	 * Rows are written in a fixed (sorted) order. Every request writes the
+	 * options it read at shutdown, and InnoDB locks rows in the order of the
+	 * VALUES list; with per-request access order, concurrent requests lock
+	 * the same rows in different orders and deadlock each other.
+	 *
 	 * @param array<string, int> $options    Array of option_name => count.
 	 * @param int                $chunk_size Number of options per query. Default 500.
 	 *
 	 * @return void
 	 */
 	public static function batch_insert( $options, $chunk_size = 500 ) {
-		global $wpdb;
-
 		if ( empty( $options ) ) {
 			return;
 		}
+
+		// SORT_STRING: numeric option names become int keys, keep one total order.
+		\ksort( $options, SORT_STRING );
+
+		// A deadlock rolls back the whole transaction, so one retry can't double count.
+		if ( ! self::write_chunks( $options, $chunk_size ) && self::last_error_is_deadlock() ) {
+			self::write_chunks( $options, $chunk_size );
+		}
+	}
+
+	/**
+	 * Write option counts in chunks inside a single transaction.
+	 *
+	 * @param array<string, int> $options    Array of option_name => count, already sorted.
+	 * @param int                $chunk_size Number of options per query.
+	 *
+	 * @return bool Whether the transaction was committed.
+	 */
+	private static function write_chunks( $options, $chunk_size ) {
+		global $wpdb;
 
 		$table_name = self::get_table_name();
 
@@ -207,7 +230,7 @@ class Database {
 
 			foreach ( $chunk as $option_name => $count ) {
 				$placeholders[] = '(%s, %d, NOW())';
-				$values[]       = $option_name;
+				$values[]       = (string) $option_name;
 				$values[]       = (int) $count;
 			}
 
@@ -216,11 +239,29 @@ class Database {
 					ON DUPLICATE KEY UPDATE access_count = access_count + VALUES(access_count)';
 
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
-			$wpdb->query( $wpdb->prepare( $sql, ...$values ) );
+			if ( false === $wpdb->query( $wpdb->prepare( $sql, ...$values ) ) ) {
+				// Keep the error: ROLLBACK succeeding would clear `$wpdb->last_error`.
+				$error = $wpdb->last_error;
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$wpdb->query( 'ROLLBACK' );
+				$wpdb->last_error = $error;
+				return false;
+			}
 		}
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$wpdb->query( 'COMMIT' );
+		return false !== $wpdb->query( 'COMMIT' );
+	}
+
+	/**
+	 * Whether the last database error was an InnoDB deadlock (MySQL error 1213).
+	 *
+	 * @return bool
+	 */
+	private static function last_error_is_deadlock() {
+		global $wpdb;
+
+		return false !== \stripos( (string) $wpdb->last_error, 'Deadlock found' );
 	}
 
 	/**
