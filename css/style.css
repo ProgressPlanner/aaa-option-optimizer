@@ -19,6 +19,9 @@
 .aaa_option_table .actions .button {
 	margin-right: 10px;
 }
+.aaa_option_table .actions > .button:last-child {
+	margin-right: 0;
+}
 .aaa_option_table select {
 	max-width: 20% !important;
 }
@@ -27,7 +30,6 @@
 	max-width: 200px !important;
 }
 .aaa_option_table .actions .button-delete, .aaa-option-optimizer-reset .button-delete {
-	margin-right: 0;
 	color: #a00;
 	border-color: #a00;
 }

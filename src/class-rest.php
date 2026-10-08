@@ -193,6 +193,78 @@ class REST {
 				},
 			]
 		);
+
+		\register_rest_route(
+			'aaa-option-optimizer/v1',
+			'/quarantine',
+			[
+				'methods'             => 'GET',
+				'callback'            => [ $this, 'list_quarantine' ],
+				'permission_callback' => function () {
+					return current_user_can( 'manage_options' );
+				},
+			]
+		);
+
+		\register_rest_route(
+			'aaa-option-optimizer/v1',
+			'/quarantine/restore',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ $this, 'quarantine_restore' ],
+				'permission_callback' => function () {
+					return current_user_can( 'manage_options' );
+				},
+				'args'                => [
+					'option_name' => [
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_text_field',
+					],
+				],
+			]
+		);
+
+		\register_rest_route(
+			'aaa-option-optimizer/v1',
+			'/quarantine/delete',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ $this, 'quarantine_permanently_delete' ],
+				'permission_callback' => function () {
+					return current_user_can( 'manage_options' );
+				},
+				'args'                => [
+					'option_name' => [
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_text_field',
+					],
+				],
+			]
+		);
+
+		\register_rest_route(
+			'aaa-option-optimizer/v1',
+			'/export',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ $this, 'export_options' ],
+				'permission_callback' => function () {
+					return current_user_can( 'manage_options' );
+				},
+			]
+		);
+
+		\register_rest_route(
+			'aaa-option-optimizer/v1',
+			'/import',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ $this, 'import_options' ],
+				'permission_callback' => function () {
+					return current_user_can( 'manage_options' );
+				},
+			]
+		);
 	}
 
 	/**
@@ -632,8 +704,13 @@ class REST {
 	 * @return \WP_Error|\WP_REST_Response
 	 */
 	public function update_option_autoload( $request ) {
-		$option_name  = $request['option_name'];
-		$autoload     = $request['autoload'];
+		$option_name = $request['option_name'];
+		$autoload    = $request['autoload'];
+
+		if ( Protected_Options::is_protected( $option_name ) ) {
+			return new \WP_Error( 'option_protected', 'Option is protected', [ 'status' => 403 ] );
+		}
+
 		$option_value = get_option( $option_name );
 
 		if ( ! in_array( $autoload, [ 'yes', 'on', 'no', 'off','auto', 'auto-on', 'auto-off' ], true ) ) {
@@ -661,20 +738,56 @@ class REST {
 	/**
 	 * Delete an option.
 	 *
+	 * By default the option is moved to quarantine. Pass `force=true` to skip
+	 * quarantine and call delete_option() directly. Protected options are always
+	 * refused.
+	 *
 	 * @param \WP_REST_Request $request The REST request object.
 	 *
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function delete_option( $request ) {
 		$option_name = $request['option_name'];
-		if ( delete_option( $option_name ) ) {
-			return new \WP_REST_Response( [ 'success' => true ], 200 );
+
+		if ( Protected_Options::is_protected( $option_name ) ) {
+			return new \WP_Error( 'option_protected', 'Option is protected and cannot be deleted', [ 'status' => 403 ] );
 		}
-		return new \WP_Error( 'option_not_found_or_deleted', 'Option does not exist or could not be deleted', [ 'status' => 404 ] );
+
+		$force = \filter_var( $request['force'] ?? false, FILTER_VALIDATE_BOOLEAN );
+
+		if ( $force ) {
+			if ( delete_option( $option_name ) ) {
+				return new \WP_REST_Response(
+					[
+						'success' => true,
+						'forced'  => true,
+					],
+					200
+				);
+			}
+			return new \WP_Error( 'option_not_found_or_deleted', 'Option does not exist or could not be deleted', [ 'status' => 404 ] );
+		}
+
+		$quarantine = new Quarantine();
+		$result     = $quarantine->quarantine( $option_name );
+		if ( \is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return new \WP_REST_Response(
+			[
+				'success'     => true,
+				'quarantined' => true,
+			],
+			200
+		);
 	}
 
 	/**
-	 * Delete multiple options.
+	 * Delete (quarantine) multiple options.
+	 *
+	 * Protected options are skipped and reported in the response. Pass
+	 * `force=true` to hard-delete instead of quarantining.
 	 *
 	 * @param \WP_REST_Request $request The REST request object.
 	 *
@@ -686,10 +799,58 @@ class REST {
 		}
 
 		$option_names = $request['option_names'];
+		$force        = \filter_var( $request['force'] ?? false, FILTER_VALIDATE_BOOLEAN );
+
+		$processed = [];
+		$skipped   = [];
+		$errors    = [];
+
+		$quarantine = $force ? null : new Quarantine();
+
 		foreach ( $option_names as $option_name ) {
-			delete_option( $option_name );
+			$option_name = \sanitize_text_field( (string) $option_name );
+
+			if ( Protected_Options::is_protected( $option_name ) ) {
+				$skipped[] = [
+					'option_name' => $option_name,
+					'reason'      => 'protected',
+				];
+				continue;
+			}
+
+			if ( $force ) {
+				if ( delete_option( $option_name ) ) {
+					$processed[] = $option_name;
+				} else {
+					$errors[] = [
+						'option_name' => $option_name,
+						'reason'      => 'delete_failed',
+					];
+				}
+				continue;
+			}
+
+			$result = $quarantine->quarantine( $option_name );
+			if ( \is_wp_error( $result ) ) {
+				$errors[] = [
+					'option_name' => $option_name,
+					'reason'      => $result->get_error_code(),
+				];
+			} else {
+				$processed[] = $option_name;
+			}
 		}
-		return new \WP_REST_Response( [ 'success' => true ], 200 );
+
+		return new \WP_REST_Response(
+			[
+				'success'   => true,
+				'forced'    => $force,
+				'processed' => $processed,
+				'skipped'   => $skipped,
+				'errors'    => $errors,
+			],
+			200
+		);
 	}
 
 	/**
@@ -745,6 +906,116 @@ class REST {
 			return new \WP_REST_Response( [ 'success' => true ], 200 );
 		}
 		return new \WP_Error( 'option_not_created', 'Option could not be created', [ 'status' => 400 ] );
+	}
+
+	/**
+	 * List quarantined options.
+	 *
+	 * @return \WP_REST_Response
+	 */
+	public function list_quarantine() {
+		$quarantine = new Quarantine();
+		return new \WP_REST_Response( [ 'data' => $quarantine->list_all() ], 200 );
+	}
+
+	/**
+	 * Restore an option from quarantine.
+	 *
+	 * @param \WP_REST_Request $request The REST request object.
+	 *
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function quarantine_restore( $request ) {
+		if ( ! isset( $_SERVER['HTTP_X_WP_NONCE'] ) || ! \wp_verify_nonce( \sanitize_text_field( \wp_unslash( $_SERVER['HTTP_X_WP_NONCE'] ) ), 'wp_rest' ) ) {
+			return new \WP_REST_Response( [ 'error' => 'Invalid nonce' ], 403 );
+		}
+
+		$quarantine = new Quarantine();
+		$result     = $quarantine->restore( (string) $request['option_name'] );
+		if ( \is_wp_error( $result ) ) {
+			return $result;
+		}
+		return new \WP_REST_Response( [ 'success' => true ], 200 );
+	}
+
+	/**
+	 * Permanently delete an option from quarantine.
+	 *
+	 * @param \WP_REST_Request $request The REST request object.
+	 *
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function quarantine_permanently_delete( $request ) {
+		if ( ! isset( $_SERVER['HTTP_X_WP_NONCE'] ) || ! \wp_verify_nonce( \sanitize_text_field( \wp_unslash( $_SERVER['HTTP_X_WP_NONCE'] ) ), 'wp_rest' ) ) {
+			return new \WP_REST_Response( [ 'error' => 'Invalid nonce' ], 403 );
+		}
+
+		$quarantine = new Quarantine();
+		$result     = $quarantine->permanently_delete( (string) $request['option_name'] );
+		if ( \is_wp_error( $result ) ) {
+			return $result;
+		}
+		return new \WP_REST_Response( [ 'success' => true ], 200 );
+	}
+
+	/**
+	 * Export options to a JSON payload.
+	 *
+	 * Responds with the JSON payload directly. The client is responsible for
+	 * triggering the download (via a Blob URL); we just set the appropriate
+	 * filename and content type via response headers.
+	 *
+	 * @param \WP_REST_Request $request The REST request object.
+	 *
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function export_options( $request ) {
+		if ( ! isset( $_SERVER['HTTP_X_WP_NONCE'] ) || ! \wp_verify_nonce( \sanitize_text_field( \wp_unslash( $_SERVER['HTTP_X_WP_NONCE'] ) ), 'wp_rest' ) ) {
+			return new \WP_REST_Response( [ 'error' => 'Invalid nonce' ], 403 );
+		}
+
+		$raw_names = $request['option_names'] ?? [];
+		if ( ! \is_array( $raw_names ) ) {
+			return new \WP_Error( 'invalid_args', 'option_names must be an array', [ 'status' => 400 ] );
+		}
+
+		$option_names = \array_map( 'sanitize_text_field', $raw_names );
+
+		$exporter = new Exporter();
+		$payload  = $exporter->export( $option_names );
+
+		$response = new \WP_REST_Response( $payload, 200 );
+		$response->header( 'X-AAAOO-Filename', $exporter->suggested_filename() );
+
+		return $response;
+	}
+
+	/**
+	 * Import options from a JSON payload.
+	 *
+	 * @param \WP_REST_Request $request The REST request object.
+	 *
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function import_options( $request ) {
+		if ( ! isset( $_SERVER['HTTP_X_WP_NONCE'] ) || ! \wp_verify_nonce( \sanitize_text_field( \wp_unslash( $_SERVER['HTTP_X_WP_NONCE'] ) ), 'wp_rest' ) ) {
+			return new \WP_REST_Response( [ 'error' => 'Invalid nonce' ], 403 );
+		}
+
+		$payload = $request['payload'] ?? null;
+		if ( ! \is_array( $payload ) ) {
+			return new \WP_Error( 'invalid_args', 'payload must be an object/array', [ 'status' => 400 ] );
+		}
+
+		$overwrite = \filter_var( $request['overwrite'] ?? false, FILTER_VALIDATE_BOOLEAN );
+
+		$importer = new Importer();
+		$result   = $importer->import( $payload, $overwrite );
+		if ( \is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return new \WP_REST_Response( $result, 200 );
 	}
 
 	/**

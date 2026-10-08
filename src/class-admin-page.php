@@ -73,6 +73,24 @@ class Admin_Page {
 		}
 		$existing['settings']['option_tracking'] = $option_tracking;
 
+		// Sanitize the quarantine retention days (1..30, default 7).
+		$retention = Quarantine::DEFAULT_RETENTION_DAYS;
+		if ( isset( $input['settings']['quarantine_retention_days'] ) ) {
+			$retention = (int) $input['settings']['quarantine_retention_days'];
+			$retention = \max( 1, \min( 30, $retention ) );
+		}
+		$existing['settings']['quarantine_retention_days'] = $retention;
+
+		// Sanitize the quarantine expiry action ('keep' or 'delete', default 'keep').
+		$expiry_action = Quarantine::DEFAULT_EXPIRY_ACTION;
+		if ( isset( $input['settings']['quarantine_expiry_action'] ) ) {
+			$candidate = \sanitize_text_field( $input['settings']['quarantine_expiry_action'] );
+			if ( \in_array( $candidate, [ 'keep', 'delete' ], true ) ) {
+				$expiry_action = $candidate;
+			}
+		}
+		$existing['settings']['quarantine_expiry_action'] = $expiry_action;
+
 		// Return the full option structure with merged settings.
 		return $existing;
 	}
@@ -84,7 +102,9 @@ class Admin_Page {
 	 */
 	public static function get_settings(): array {
 		$defaults = [
-			'option_tracking' => 'pre_option',
+			'option_tracking'           => 'pre_option',
+			'quarantine_retention_days' => Quarantine::DEFAULT_RETENTION_DAYS,
+			'quarantine_expiry_action'  => Quarantine::DEFAULT_EXPIRY_ACTION,
 		];
 
 		$option_optimizer = \get_option( self::OPTION_NAME, [] );
@@ -189,10 +209,18 @@ class Admin_Page {
 			'aaa-option-optimizer-admin-js',
 			'aaaOptionOptimizer',
 			[
-				'root'      => \esc_url_raw( \rest_url() ),
-				'nonce'     => \wp_create_nonce( 'wp_rest' ),
-				'migration' => Database::get_migration_status(),
-				'i18n'      => [
+				'root'              => \esc_url_raw( \rest_url() ),
+				'nonce'             => \wp_create_nonce( 'wp_rest' ),
+				'migration'         => Database::get_migration_status(),
+				'protectedOptions'  => Protected_Options::get_protected_map(),
+				'protectedPrefixes' => [
+					'option_optimizer',
+					'aaa_option_optimizer',
+					'_aaaoo_q__',
+					'_transient_',
+					'_site_transient_',
+				],
+				'i18n'              => [
 					'filterBySource'         => \esc_html__( 'Filter by source', 'aaa-option-optimizer' ),
 					'showValue'              => \esc_html__( 'Show', 'aaa-option-optimizer' ),
 					'addAutoload'            => \esc_html__( 'Add autoload', 'aaa-option-optimizer' ),
@@ -206,6 +234,26 @@ class Admin_Page {
 					'noBulkActionSelected'   => \esc_html__( 'No action selected.', 'aaa-option-optimizer' ),
 					'delete'                 => \esc_html__( 'Delete', 'aaa-option-optimizer' ),
 					'apply'                  => \esc_html__( 'Apply', 'aaa-option-optimizer' ),
+					'export'                 => \esc_html__( 'Export', 'aaa-option-optimizer' ),
+					'exportSelected'         => \esc_html__( 'Export selected', 'aaa-option-optimizer' ),
+					'protectedTooltip'       => \esc_html__( 'Protected — cannot delete', 'aaa-option-optimizer' ),
+					'restore'                => \esc_html__( 'Restore', 'aaa-option-optimizer' ),
+					'permanentlyDelete'      => \esc_html__( 'Permanently delete', 'aaa-option-optimizer' ),
+					'confirmPermanentDelete' => \esc_html__( 'Permanently delete this option? This cannot be undone.', 'aaa-option-optimizer' ),
+					/* translators: %d: number of selected options */
+					'confirmBulkQuarantine'  => \esc_html__( 'You are about to quarantine %d options. They can be restored from the Quarantine tab. Continue?', 'aaa-option-optimizer' ),
+					'importSelectFile'       => \esc_html__( 'Select JSON file', 'aaa-option-optimizer' ),
+					'importOverwriteLabel'   => \esc_html__( 'Overwrite existing options', 'aaa-option-optimizer' ),
+					'importButton'           => \esc_html__( 'Import', 'aaa-option-optimizer' ),
+					/* translators: %1$d imported, %2$d skipped */
+					'importResult'           => \esc_html__( 'Imported %1$d options, skipped %2$d.', 'aaa-option-optimizer' ),
+					'importInvalidJson'      => \esc_html__( 'Selected file is not valid JSON.', 'aaa-option-optimizer' ),
+					'quarantineEmpty'        => \esc_html__( 'No options are currently in quarantine.', 'aaa-option-optimizer' ),
+					'quarantineColOption'    => \esc_html__( 'Option', 'aaa-option-optimizer' ),
+					'quarantineColSize'      => \esc_html__( 'Size (KB)', 'aaa-option-optimizer' ),
+					'quarantineColAutoload'  => \esc_html__( 'Autoload', 'aaa-option-optimizer' ),
+					'quarantineColExpires'   => \esc_html__( 'Expires', 'aaa-option-optimizer' ),
+					'quarantineColQueuedAt'  => \esc_html__( 'Quarantined at', 'aaa-option-optimizer' ),
 
 					'search'                 => \esc_html__( 'Search:', 'aaa-option-optimizer' ),
 					'migrating'              => \esc_html__( 'Migrating...', 'aaa-option-optimizer' ),
@@ -458,7 +506,71 @@ class Admin_Page {
 				</div>
 
 				<input class="input" name="tabs" type="radio" id="tab-5"/>
-				<label class="label" for="tab-5"><?php \esc_html_e( 'Settings', 'aaa-option-optimizer' ); ?></label>
+				<label class="label" for="tab-5"><?php \esc_html_e( 'Quarantine', 'aaa-option-optimizer' ); ?></label>
+				<div class="panel">
+					<h2 id="quarantine"><?php \esc_html_e( 'Quarantine', 'aaa-option-optimizer' ); ?></h2>
+					<p><?php \esc_html_e( 'Options moved here are removed from wp_options but kept recoverable for the configured retention period. Use Restore to put one back, or Permanently delete to drop it for good.', 'aaa-option-optimizer' ); ?></p>
+					<table style="width:100%" id="quarantine_table" class="aaa_option_table">
+						<thead>
+							<tr>
+								<th><?php \esc_html_e( 'Option', 'aaa-option-optimizer' ); ?></th>
+								<th><?php \esc_html_e( 'Size (KB)', 'aaa-option-optimizer' ); ?></th>
+								<th><?php \esc_html_e( 'Autoload', 'aaa-option-optimizer' ); ?></th>
+								<th><?php \esc_html_e( 'Quarantined at', 'aaa-option-optimizer' ); ?></th>
+								<th><?php \esc_html_e( 'Expires', 'aaa-option-optimizer' ); ?></th>
+								<th><?php \esc_html_e( 'Actions', 'aaa-option-optimizer' ); ?></th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td></td>
+								<td></td>
+								<td></td>
+								<td></td>
+								<td></td>
+								<td class="actions"></td>
+							</tr>
+						</tbody>
+						<tfoot>
+							<tr>
+								<th><?php \esc_html_e( 'Option', 'aaa-option-optimizer' ); ?></th>
+								<th><?php \esc_html_e( 'Size (KB)', 'aaa-option-optimizer' ); ?></th>
+								<th><?php \esc_html_e( 'Autoload', 'aaa-option-optimizer' ); ?></th>
+								<th><?php \esc_html_e( 'Quarantined at', 'aaa-option-optimizer' ); ?></th>
+								<th><?php \esc_html_e( 'Expires', 'aaa-option-optimizer' ); ?></th>
+								<th><?php \esc_html_e( 'Actions', 'aaa-option-optimizer' ); ?></th>
+							</tr>
+						</tfoot>
+					</table>
+				</div>
+
+				<input class="input" name="tabs" type="radio" id="tab-6"/>
+				<label class="label" for="tab-6"><?php \esc_html_e( 'Import', 'aaa-option-optimizer' ); ?></label>
+				<div class="panel">
+					<h2 id="import"><?php \esc_html_e( 'Import options', 'aaa-option-optimizer' ); ?></h2>
+					<p><?php \esc_html_e( 'Restore options from a previous export. Protected options are always skipped. By default existing options are not overwritten; tick the box below to overwrite them.', 'aaa-option-optimizer' ); ?></p>
+					<form id="aaa_import_form" method="post" enctype="multipart/form-data">
+						<p>
+							<label for="aaa_import_file"><?php \esc_html_e( 'JSON file', 'aaa-option-optimizer' ); ?>:</label>
+							<input type="file" id="aaa_import_file" name="aaa_import_file" accept="application/json,.json" />
+						</p>
+						<p>
+							<label for="aaa_import_overwrite">
+								<input type="checkbox" id="aaa_import_overwrite" name="aaa_import_overwrite" value="1" />
+								<?php \esc_html_e( 'Overwrite existing options', 'aaa-option-optimizer' ); ?>
+							</label>
+						</p>
+						<p>
+							<button type="submit" id="aaa_import_submit" class="button button-primary">
+								<?php \esc_html_e( 'Import', 'aaa-option-optimizer' ); ?>
+							</button>
+						</p>
+						<div id="aaa_import_result" style="margin-top:10px;"></div>
+					</form>
+				</div>
+
+				<input class="input" name="tabs" type="radio" id="tab-7"/>
+				<label class="label" for="tab-7"><?php \esc_html_e( 'Settings', 'aaa-option-optimizer' ); ?></label>
 				<div class="panel">
 					<?php $this->render_settings_tab( $option_optimizer, $result ); ?>
 				</div>
@@ -533,6 +645,36 @@ class Admin_Page {
 					<?php \esc_html_e( 'Legacy', 'aaa-option-optimizer' ); ?>
 				</label>
 			</fieldset>
+
+			<h2><?php \esc_html_e( 'Quarantine', 'aaa-option-optimizer' ); ?></h2>
+			<p><?php \esc_html_e( 'When an option is deleted from the tables above, it is moved here first so you can restore it if something breaks.', 'aaa-option-optimizer' ); ?></p>
+			<table class="form-table" role="presentation">
+				<tr>
+					<th scope="row">
+						<label for="aaa_option_optimizer_retention_days"><?php \esc_html_e( 'Retention (days)', 'aaa-option-optimizer' ); ?></label>
+					</th>
+					<td>
+						<input type="number" min="1" max="30" step="1" id="aaa_option_optimizer_retention_days" name="<?php echo \esc_attr( self::OPTION_NAME ); ?>[settings][quarantine_retention_days]" value="<?php echo \esc_attr( (string) $settings['quarantine_retention_days'] ); ?>" class="small-text" />
+						<p class="description"><?php \esc_html_e( 'How long an option stays in quarantine before the expiry action below applies. Range: 1–30 days.', 'aaa-option-optimizer' ); ?></p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><?php \esc_html_e( 'On expiry', 'aaa-option-optimizer' ); ?></th>
+					<td>
+						<fieldset>
+							<label for="aaa_option_optimizer_expiry_keep">
+								<input type="radio" name="<?php echo \esc_attr( self::OPTION_NAME ); ?>[settings][quarantine_expiry_action]" value="keep" id="aaa_option_optimizer_expiry_keep" <?php \checked( $settings['quarantine_expiry_action'], 'keep' ); ?>>
+								<?php \esc_html_e( 'Keep in quarantine (recommended) — require manual action.', 'aaa-option-optimizer' ); ?>
+							</label><br>
+							<label for="aaa_option_optimizer_expiry_delete">
+								<input type="radio" name="<?php echo \esc_attr( self::OPTION_NAME ); ?>[settings][quarantine_expiry_action]" value="delete" id="aaa_option_optimizer_expiry_delete" <?php \checked( $settings['quarantine_expiry_action'], 'delete' ); ?>>
+								<?php \esc_html_e( 'Permanently delete automatically after expiry.', 'aaa-option-optimizer' ); ?>
+							</label>
+						</fieldset>
+					</td>
+				</tr>
+			</table>
+
 			<?php \submit_button( \__( 'Save Settings', 'aaa-option-optimizer' ) ); ?>
 		</form>
 		<?php

@@ -1,4 +1,4 @@
-/* global jQuery, aaaOptionOptimizer, Option, DataTable, alert */
+/* global jQuery, aaaOptionOptimizer, Option, DataTable, alert, Blob, URL, FileReader */
 
 /**
  * JavaScript for the admin page.
@@ -19,6 +19,7 @@ jQuery( document ).ready( function () {
 		'#unused_options_table',
 		'#used_not_autoloaded_table',
 		'#requested_do_not_exist_table',
+		'#quarantine_table',
 	];
 
 	jQuery( '#all_options_table' ).hide();
@@ -162,7 +163,103 @@ jQuery( document ).ready( function () {
 			options.order = [ [ 1, 'asc' ] ]; // Order by 2nd column, first column is checkbox.
 		}
 
+		if ( selector === '#quarantine_table' ) {
+			options.ajax = {
+				url: `${ aaaOptionOptimizer.root }aaa-option-optimizer/v1/quarantine`,
+				headers: { 'X-WP-Nonce': aaaOptionOptimizer.nonce },
+				type: 'GET',
+				dataSrc: 'data',
+			};
+			options.columns = [
+				{ name: 'name', data: 'name' },
+				{ name: 'size', data: 'size', searchable: false },
+				{
+					name: 'autoload',
+					data: 'autoload',
+					searchable: false,
+				},
+				{
+					name: 'quarantined_at',
+					data: 'quarantined_at',
+					searchable: false,
+				},
+				{
+					name: 'expires_at',
+					data: 'expires_at',
+					searchable: false,
+				},
+				{
+					name: 'actions',
+					data: 'name',
+					render: ( data, type, row ) =>
+						renderQuarantineActionsColumn( row ),
+					orderable: false,
+					searchable: false,
+					className: 'actions',
+				},
+			];
+			options.order = [ [ 3, 'desc' ] ];
+			options.language = {
+				sZeroRecords: aaaOptionOptimizer.i18n.quarantineEmpty,
+			};
+			delete options.initComplete;
+		}
+
 		new DataTable( selector, options ).columns.adjust().responsive.recalc();
+	}
+
+	/**
+	 * Renders the Actions column for a quarantine row.
+	 *
+	 * @param {Object} row - The row data.
+	 * @return {string} HTML.
+	 */
+	function renderQuarantineActionsColumn( row ) {
+		return `<button class="button dashicon restore-option" data-option="${ row.name }">
+				<span class="dashicons dashicons-undo"></span>
+				${ aaaOptionOptimizer.i18n.restore }
+			</button>
+			<button class="button button-delete permanently-delete" data-option="${ row.name }">
+				<span class="dashicons dashicons-trash"></span>
+				${ aaaOptionOptimizer.i18n.permanentlyDelete }
+			</button>`;
+	}
+
+	/**
+	 * Handles quarantine table actions (restore, permanently-delete).
+	 *
+	 * @param {Event} e - The click event.
+	 */
+	function handleQuarantineActions( e ) {
+		e.preventDefault();
+		const button = jQuery( this );
+		const optionName = button.data( 'option' );
+		const dt = jQuery( '#quarantine_table' ).DataTable();
+
+		let route;
+		if ( button.hasClass( 'restore-option' ) ) {
+			route = 'quarantine/restore';
+		} else {
+			// eslint-disable-next-line no-alert
+			if ( ! window.confirm( aaaOptionOptimizer.i18n.confirmPermanentDelete ) ) {
+				return;
+			}
+			route = 'quarantine/delete';
+		}
+
+		jQuery.ajax( {
+			url: `${ aaaOptionOptimizer.root }aaa-option-optimizer/v1/${ route }`,
+			method: 'POST',
+			beforeSend: ( xhr ) =>
+				xhr.setRequestHeader( 'X-WP-Nonce', aaaOptionOptimizer.nonce ),
+			data: { option_name: optionName },
+			success: () => {
+				dt.ajax.reload( null, false );
+			},
+			error: ( response ) =>
+				// eslint-disable-next-line no-console
+				console.error( 'Quarantine action failed.', response ),
+		} );
 	}
 
 	/**
@@ -333,13 +430,10 @@ jQuery( document ).ready( function () {
 			<pre>${ row.value }</pre>
 		</div>`;
 
-		const actions = [
-			`<button class="button dashicon" popovertarget="popover_${ row.name }">
-				<span class="dashicons dashicons-search"></span>
-				${ aaaOptionOptimizer.i18n.showValue }
-			</button>`,
-			popoverContent,
-			row.autoload === 'no'
+		const protectedRow = isProtected( row.name );
+		const autoloadBtn = protectedRow
+			? ''
+			: row.autoload === 'no'
 				? `<button class="button dashicon add-autoload" data-option="${ row.name }">
 					<span class="dashicons dashicons-plus"></span>
 					${ aaaOptionOptimizer.i18n.addAutoload }
@@ -347,14 +441,76 @@ jQuery( document ).ready( function () {
 				: `<button class="button dashicon remove-autoload" data-option="${ row.name }">
 					<span class="dashicons dashicons-minus"></span>
 					${ aaaOptionOptimizer.i18n.removeAutoload }
-				</button>`,
-			`<button class="button button-delete delete-option" data-option="${ row.name }">
+				</button>`;
+
+		const deleteBtn = protectedRow
+			? `<span class="button dashicon button-disabled aaa-protected" title="${ aaaOptionOptimizer.i18n.protectedTooltip }" aria-disabled="true">
+				<span class="dashicons dashicons-lock"></span>
+				${ aaaOptionOptimizer.i18n.deleteOption }
+			</span>`
+			: `<button class="button button-delete delete-option" data-option="${ row.name }">
 				<span class="dashicons dashicons-trash"></span>
 				${ aaaOptionOptimizer.i18n.deleteOption }
+			</button>`;
+
+		const exportBtn = `<button class="button dashicon export-option" data-option="${ row.name }">
+				<span class="dashicons dashicons-download"></span>
+				${ aaaOptionOptimizer.i18n.export }
+			</button>`;
+
+		const actions = [
+			`<button class="button dashicon" popovertarget="popover_${ row.name }">
+				<span class="dashicons dashicons-search"></span>
+				${ aaaOptionOptimizer.i18n.showValue }
 			</button>`,
+			popoverContent,
+			autoloadBtn,
+			deleteBtn,
+			exportBtn,
 		];
 
 		return actions.join( '' );
+	}
+
+	/**
+	 * Checks whether the given option name is protected according to the
+	 * server-localized lookup map and prefix list.
+	 *
+	 * @param {string} optionName - The option name.
+	 * @return {boolean} - Whether the option is protected.
+	 */
+	function isProtected( optionName ) {
+		const map = aaaOptionOptimizer.protectedOptions || {};
+		if ( map[ optionName ] ) {
+			return true;
+		}
+		const prefixes = aaaOptionOptimizer.protectedPrefixes || [];
+		for ( let i = 0; i < prefixes.length; i++ ) {
+			if ( optionName.indexOf( prefixes[ i ] ) === 0 ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Triggers a browser download of the given JSON payload.
+	 *
+	 * @param {Object} payload  - The JSON payload to download.
+	 * @param {string} filename - Suggested filename.
+	 */
+	function downloadJson( payload, filename ) {
+		const blob = new Blob( [ JSON.stringify( payload, null, 2 ) ], {
+			type: 'application/json',
+		} );
+		const url = URL.createObjectURL( blob );
+		const a = document.createElement( 'a' );
+		a.href = url;
+		a.download = filename || 'aaa-option-optimizer-export.json';
+		document.body.appendChild( a );
+		a.click();
+		document.body.removeChild( a );
+		URL.revokeObjectURL( url );
 	}
 
 	/**
@@ -410,6 +566,12 @@ jQuery( document ).ready( function () {
 		const table = button.closest( 'table' ).DataTable();
 		const optionName = button.data( 'option' );
 
+		// Per-row export bypasses the standard AJAX/update pattern.
+		if ( button.hasClass( 'export-option' ) ) {
+			exportOptions( [ optionName ] );
+			return;
+		}
+
 		const requestData = { option_name: optionName };
 		let action = '';
 		let route = '';
@@ -440,6 +602,30 @@ jQuery( document ).ready( function () {
 					`Failed to ${ action } for ${ optionName }.`,
 					response
 				),
+		} );
+	}
+
+	/**
+	 * Requests an export from the REST API and triggers a browser download.
+	 *
+	 * @param {string[]} optionNames - The option names to export.
+	 */
+	function exportOptions( optionNames ) {
+		jQuery.ajax( {
+			url: `${ aaaOptionOptimizer.root }aaa-option-optimizer/v1/export`,
+			method: 'POST',
+			beforeSend: ( xhr ) =>
+				xhr.setRequestHeader( 'X-WP-Nonce', aaaOptionOptimizer.nonce ),
+			data: { option_names: optionNames },
+			success: ( payload, status, xhr ) => {
+				const filename =
+					xhr.getResponseHeader( 'X-AAAOO-Filename' ) ||
+					'aaa-option-optimizer-export.json';
+				downloadJson( payload, filename );
+			},
+			error: ( response ) =>
+				// eslint-disable-next-line no-console
+				console.error( 'Failed to export options.', response ),
 		} );
 	}
 
@@ -485,11 +671,18 @@ jQuery( document ).ready( function () {
 		}
 	}
 
-	// AJAX Event Handling (add-autoload, remove-autoload, delete-option).
+	// AJAX Event Handling (add-autoload, remove-autoload, delete-option, export-option).
 	jQuery( 'table tbody' ).on(
 		'click',
-		'.add-autoload, .remove-autoload, .delete-option, .create-option-false',
+		'.add-autoload, .remove-autoload, .delete-option, .create-option-false, .export-option',
 		handleTableActions
+	);
+
+	// Quarantine actions (restore / permanently delete) live on the quarantine table only.
+	jQuery( document ).on(
+		'click',
+		'#quarantine_table .restore-option, #quarantine_table .permanently-delete',
+		handleQuarantineActions
 	);
 
 	// Select all options.
@@ -528,6 +721,7 @@ jQuery( document ).ready( function () {
 					<option value="">${ aaaOptionOptimizer.i18n.bulkActions }</option>
 					${ selectOptions }
 					<option value="delete">${ aaaOptionOptimizer.i18n.delete }</option>
+					<option value="export">${ aaaOptionOptimizer.i18n.exportSelected }</option>
 				</select>`
 			);
 
@@ -573,13 +767,30 @@ jQuery( document ).ready( function () {
 				return;
 			}
 
-			// For now we only have delete in bulk action.
-
 			const requestData = {
 				option_names: Array.from( selectedOptions ).map( ( option ) =>
 					option.getAttribute( 'data-option' )
 				),
 			};
+
+			// Bulk export bypasses the row-removal AJAX flow and just downloads.
+			if ( bulkAction === 'export' ) {
+				exportOptions( requestData.option_names );
+				return;
+			}
+
+			// Warn before quarantining a large batch — quarantine is recoverable
+			// but sifting through hundreds of rows to find a culprit is painful.
+			if ( bulkAction === 'delete' && requestData.option_names.length > 25 ) {
+				const msg = aaaOptionOptimizer.i18n.confirmBulkQuarantine.replace(
+					'%d',
+					requestData.option_names.length
+				);
+				// eslint-disable-next-line no-alert
+				if ( ! window.confirm( msg ) ) {
+					return;
+				}
+			}
 
 			const endpoint =
 				'delete' === bulkAction
@@ -700,5 +911,73 @@ jQuery( document ).ready( function () {
 		}
 
 		migrateChunk();
+	} );
+
+	// Import form handler.
+	jQuery( '#aaa_import_form' ).on( 'submit', function ( e ) {
+		e.preventDefault();
+
+		const fileInput = document.getElementById( 'aaa_import_file' );
+		const resultBox = jQuery( '#aaa_import_result' );
+		const overwrite = jQuery( '#aaa_import_overwrite' ).is( ':checked' );
+
+		resultBox.empty();
+
+		if ( ! fileInput.files || ! fileInput.files[ 0 ] ) {
+			resultBox.html(
+				`<div class="notice notice-error"><p>${ aaaOptionOptimizer.i18n.importSelectFile }</p></div>`
+			);
+			return;
+		}
+
+		const reader = new FileReader();
+		reader.onload = function ( ev ) {
+			let payload;
+			try {
+				payload = JSON.parse( ev.target.result );
+			} catch ( err ) {
+				resultBox.html(
+					`<div class="notice notice-error"><p>${ aaaOptionOptimizer.i18n.importInvalidJson }</p></div>`
+				);
+				return;
+			}
+
+			jQuery.ajax( {
+				url: `${ aaaOptionOptimizer.root }aaa-option-optimizer/v1/import`,
+				method: 'POST',
+				beforeSend: ( xhr ) =>
+					xhr.setRequestHeader(
+						'X-WP-Nonce',
+						aaaOptionOptimizer.nonce
+					),
+				contentType: 'application/json',
+				data: JSON.stringify( { payload, overwrite } ),
+				success: ( response ) => {
+					const msg = aaaOptionOptimizer.i18n.importResult
+						.replace( '%1$d', response.imported )
+						.replace( '%2$d', response.skipped );
+					let html = `<div class="notice notice-success"><p>${ msg }</p></div>`;
+					if ( response.errors && response.errors.length ) {
+						const rows = response.errors
+							.map(
+								( err ) =>
+									`<li><code>${ err.option_name }</code>: ${ err.reason }</li>`
+							)
+							.join( '' );
+						html += `<ul style="margin-left:18px;list-style:disc;">${ rows }</ul>`;
+					}
+					resultBox.html( html );
+				},
+				error: ( response ) => {
+					const reason =
+						( response.responseJSON && response.responseJSON.message ) ||
+						'Import failed.';
+					resultBox.html(
+						`<div class="notice notice-error"><p>${ reason }</p></div>`
+					);
+				},
+			} );
+		};
+		reader.readAsText( fileInput.files[ 0 ] );
 	} );
 } );

@@ -83,6 +83,10 @@ class Plugin {
 		$rest = new REST();
 		$rest->register_hooks();
 
+		// Register the quarantine cleanup cron callback.
+		$quarantine = new Quarantine();
+		$quarantine->register_hooks();
+
 		if ( \is_admin() ) {
 			// Register the admin page.
 			$admin_page = new Admin_Page();

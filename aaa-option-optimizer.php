@@ -34,8 +34,14 @@ register_deactivation_hook( __FILE__, 'aaa_option_optimizer_deactivation' );
 function aaa_option_optimizer_activation() {
 	global $wpdb;
 
-	// Create the custom table.
+	// Create the custom tables.
 	Progress_Planner\OptionOptimizer\Database::create_table();
+	Progress_Planner\OptionOptimizer\Database::create_quarantine_table();
+
+	// Schedule the daily quarantine cleanup event.
+	if ( ! wp_next_scheduled( 'aaa_option_optimizer_quarantine_cleanup' ) ) {
+		wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', 'aaa_option_optimizer_quarantine_cleanup' );
+	}
 
 	$autoload_values = \wp_autoload_values_to_autoload();
 	$placeholders    = implode( ',', array_fill( 0, count( $autoload_values ), '%s' ) );
@@ -73,6 +79,12 @@ function aaa_option_optimizer_activation() {
 function aaa_option_optimizer_deactivation() {
 	$aaa_option_value = get_option( 'option_optimizer' );
 	update_option( 'option_optimizer', $aaa_option_value, false );
+
+	// Unschedule the quarantine cleanup event.
+	$timestamp = wp_next_scheduled( 'aaa_option_optimizer_quarantine_cleanup' );
+	if ( $timestamp ) {
+		wp_unschedule_event( $timestamp, 'aaa_option_optimizer_quarantine_cleanup' );
+	}
 }
 
 /**
@@ -91,6 +103,16 @@ function aaa_option_optimizer_maybe_upgrade() {
 	// Check if table exists, create if not.
 	if ( ! Progress_Planner\OptionOptimizer\Database::table_exists() ) {
 		Progress_Planner\OptionOptimizer\Database::create_table();
+	}
+
+	// Check if quarantine table exists, create if not.
+	if ( ! Progress_Planner\OptionOptimizer\Database::quarantine_table_exists() ) {
+		Progress_Planner\OptionOptimizer\Database::create_quarantine_table();
+	}
+
+	// Ensure cleanup event is scheduled (covers installs that predate this feature).
+	if ( ! wp_next_scheduled( 'aaa_option_optimizer_quarantine_cleanup' ) ) {
+		wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', 'aaa_option_optimizer_quarantine_cleanup' );
 	}
 }
 add_action( 'plugins_loaded', 'aaa_option_optimizer_maybe_upgrade' );
