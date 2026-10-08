@@ -73,6 +73,11 @@ class Admin_Page {
 		}
 		$existing['settings']['option_tracking'] = $option_tracking;
 
+		// Consent to contacting our servers (checkbox: present means granted).
+		$existing['settings']['remote_data_consent'] = isset( $input['settings']['remote_data_consent'] )
+			? (bool) $input['settings']['remote_data_consent']
+			: false;
+
 		// Return the full option structure with merged settings.
 		return $existing;
 	}
@@ -84,13 +89,98 @@ class Admin_Page {
 	 */
 	public static function get_settings(): array {
 		$defaults = [
-			'option_tracking' => 'pre_option',
+			'option_tracking'     => 'pre_option',
+			'remote_data_consent' => false,
 		];
 
 		$option_optimizer = \get_option( self::OPTION_NAME, [] );
 		$settings         = isset( $option_optimizer['settings'] ) ? $option_optimizer['settings'] : [];
 
 		return \wp_parse_args( $settings, $defaults );
+	}
+
+	/**
+	 * Get the options this site has already reported.
+	 *
+	 * Reports are POSTed to an external endpoint which never reports back, so
+	 * this record is only ever "we sent this", not "this was accepted". It is
+	 * kept beside `settings` rather than inside it so the settings page, which
+	 * saves that subarray wholesale, cannot drop it.
+	 *
+	 * @return array<string, array<string, string>> Reported options, keyed by option name.
+	 */
+	public static function get_reported_options(): array {
+		$option   = \get_option( self::OPTION_NAME, [] );
+		$reported = isset( $option['reported_options'] ) ? $option['reported_options'] : [];
+
+		return \is_array( $reported ) ? $reported : [];
+	}
+
+	/**
+	 * Record that an option has been reported from this site.
+	 *
+	 * Re-reporting is allowed -- a user who picked the wrong plugin needs a way
+	 * to correct it -- so an existing entry is overwritten rather than kept.
+	 *
+	 * @param string $option_name The option that was reported.
+	 * @param string $slug        The wp.org slug it was reported as.
+	 * @param string $plugin_name The plugin name shown at verification time.
+	 * @param string $prefix      The option prefix the report covered, if given.
+	 *
+	 * @return void
+	 */
+	public static function record_reported_option( string $option_name, string $slug, string $plugin_name, string $prefix = '' ): void {
+		$option = \get_option( self::OPTION_NAME, [] );
+
+		$reported = isset( $option['reported_options'] ) && \is_array( $option['reported_options'] )
+			? $option['reported_options']
+			: [];
+
+		$reported[ $option_name ] = [
+			'slug'     => $slug,
+			'name'     => $plugin_name,
+			'prefix'   => $prefix,
+			'reported' => \gmdate( 'c' ),
+		];
+
+		$option['reported_options'] = $reported;
+		\update_option( self::OPTION_NAME, $option );
+	}
+
+	/**
+	 * The option prefixes this site has reported, and what they were reported as.
+	 *
+	 * A report that names a prefix is the user telling us which plugin owns a
+	 * whole family of options. That is first-hand evidence about this site, so
+	 * the sibling options can be prefilled from it while the submission waits
+	 * for a maintainer to publish the prefix to the shared mapping.
+	 *
+	 * Longest prefix first, so a more specific report wins over a broader one.
+	 *
+	 * @return array<string, array<string, string>> Reported plugin data, keyed by prefix.
+	 */
+	public static function get_reported_prefixes(): array {
+		$prefixes = [];
+
+		foreach ( self::get_reported_options() as $record ) {
+			if ( empty( $record['prefix'] ) || empty( $record['slug'] ) ) {
+				continue;
+			}
+
+			$prefixes[ $record['prefix'] ] = [
+				'slug' => $record['slug'],
+				'name' => isset( $record['name'] ) ? $record['name'] : '',
+			];
+		}
+
+		\uksort(
+			$prefixes,
+			static function ( $a, $b ) {
+				return \strlen( (string) $b ) <=> \strlen( (string) $a );
+			}
+		);
+
+		return $prefixes;
 	}
 
 	/**
@@ -185,20 +275,60 @@ class Admin_Page {
 			true // In footer.
 		);
 
+		/**
+		 * Filter the URL the plugin POSTs unknown-option reports to.
+		 *
+		 * @param string $url The submission endpoint URL.
+		 */
+		$report_url = \apply_filters( 'aaa_option_optimizer_report_url', 'https://option-optimizer-api.progressplanner.com/submit' );
+
 		\wp_localize_script(
 			'aaa-option-optimizer-admin-js',
 			'aaaOptionOptimizer',
 			[
-				'root'      => \esc_url_raw( \rest_url() ),
-				'nonce'     => \wp_create_nonce( 'wp_rest' ),
-				'migration' => Database::get_migration_status(),
-				'i18n'      => [
+				'root'             => \esc_url_raw( \rest_url() ),
+				'nonce'            => \wp_create_nonce( 'wp_rest' ),
+				'migration'        => Database::get_migration_status(),
+				'reportUrl'        => \esc_url_raw( $report_url ),
+				'hasRemoteConsent' => Known_Plugins::has_consent(),
+				'reportedOptions'  => self::get_reported_options(),
+				'reportedPrefixes' => self::get_reported_prefixes(),
+				'installedPlugins' => $this->get_installed_plugins(),
+				'i18n'             => [
 					'filterBySource'         => \esc_html__( 'Filter by source', 'aaa-option-optimizer' ),
 					'showValue'              => \esc_html__( 'Show', 'aaa-option-optimizer' ),
 					'addAutoload'            => \esc_html__( 'Add autoload', 'aaa-option-optimizer' ),
 					'removeAutoload'         => \esc_html__( 'Remove autoload', 'aaa-option-optimizer' ),
 					'deleteOption'           => \esc_html__( 'Delete', 'aaa-option-optimizer' ),
 					'createOptionFalse'      => \esc_html__( 'Create option with value false', 'aaa-option-optimizer' ),
+					'unknownLabel'           => \esc_html__( 'Unknown', 'aaa-option-optimizer' ),
+					'reportOrigin'           => \esc_html__( 'Report', 'aaa-option-optimizer' ),
+					'reportReported'         => \esc_html__( 'Reported', 'aaa-option-optimizer' ),
+					/* translators: %s: plugin name the option was reported as. */
+					'reportReportedAs'       => \esc_html__( 'Reported as %s. Awaiting review -- submit again to correct it.', 'aaa-option-optimizer' ),
+					'reportReportedPending'  => \esc_html__( 'Reported, awaiting review', 'aaa-option-optimizer' ),
+					'reportOriginOf'         => \esc_html__( 'Report origin of', 'aaa-option-optimizer' ),
+					'reportSlugOrUrlLabel'   => \esc_html__( 'wp.org slug or URL', 'aaa-option-optimizer' ),
+					'reportSlugPlaceholder'  => \esc_html__( 'Pick an installed plugin, or type a slug or URL', 'aaa-option-optimizer' ),
+					'reportSlugOrUrlHelp'    => \esc_html__( 'Choose from the installed plugins, or type the slug yourself if the plugin has been removed.', 'aaa-option-optimizer' ),
+					'reportListLabel'        => \esc_html__( 'Installed plugins', 'aaa-option-optimizer' ),
+					'reportNoMatches'        => \esc_html__( 'No installed plugin matches. Press Enter to use what you typed.', 'aaa-option-optimizer' ),
+					/* translators: %d: number of matching plugins. */
+					'reportMatchCount'       => \esc_html__( '%d plugins match', 'aaa-option-optimizer' ),
+					'reportMatchCountOne'    => \esc_html__( '1 plugin matches', 'aaa-option-optimizer' ),
+					'reportPrefixLabel'      => \esc_html__( 'Option prefix this plugin uses (optional)', 'aaa-option-optimizer' ),
+					'reportPrefixHelp'       => \esc_html__( 'Optional. If this plugin names its options with a shared prefix, adding it lets one report cover all of them. Leave empty to report only this option.', 'aaa-option-optimizer' ),
+					'reportVerifying'        => \esc_html__( 'Checking wp.org…', 'aaa-option-optimizer' ),
+					'reportNotFound'         => \esc_html__( 'Plugin not found on wordpress.org.', 'aaa-option-optimizer' ),
+					'reportVerifyError'      => \esc_html__( 'Could not verify with wordpress.org.', 'aaa-option-optimizer' ),
+					'reportVerified'         => \esc_html__( 'Verified:', 'aaa-option-optimizer' ),
+					'reportSubmit'           => \esc_html__( 'Submit', 'aaa-option-optimizer' ),
+					'reportCancel'           => \esc_html__( 'Cancel', 'aaa-option-optimizer' ),
+					'reportSubmitting'       => \esc_html__( 'Submitting…', 'aaa-option-optimizer' ),
+					'reportThanks'           => \esc_html__( 'Thanks! Your report has been submitted.', 'aaa-option-optimizer' ),
+					'reportFailed'           => \esc_html__( 'Submission failed. Please try again.', 'aaa-option-optimizer' ),
+					'reportPrivacyNote'      => \esc_html__( 'We send the option name, the prefix and the slug you provide, and your site address. Never the option value.', 'aaa-option-optimizer' ),
+					'reportConsentLabel'     => \esc_html__( 'I agree to send this report to option-optimizer-api.progressplanner.com, and to let the plugin keep the known-plugins list up to date daily.', 'aaa-option-optimizer' ),
 					'noAutoloadedButNotUsed' => \esc_html__( 'All autoloaded options are in use.', 'aaa-option-optimizer' ),
 					'noUsedButNotAutoloaded' => \esc_html__( 'All options that are used are autoloaded.', 'aaa-option-optimizer' ),
 					'noOptionsSelected'      => \esc_html__( 'No options selected.', 'aaa-option-optimizer' ),
@@ -247,6 +377,43 @@ class Admin_Page {
 				],
 			]
 		);
+	}
+
+	/**
+	 * Build the list of installed plugins offered as Report popover suggestions.
+	 *
+	 * The array key is the plugin's directory name, which for plugins hosted on
+	 * wordpress.org matches their wp.org slug — the value the report endpoint
+	 * expects. Plugins living in a single file at the plugins root have no
+	 * directory to derive a slug from and are skipped.
+	 *
+	 * These are suggestions only. A directory name can differ from the wp.org
+	 * slug (renamed folders, plugins hosted elsewhere), so a picked slug still
+	 * goes through the same wordpress.org verification as a typed one.
+	 *
+	 * @return array<string, string> Slug => plugin name.
+	 */
+	private function get_installed_plugins(): array {
+		if ( ! \function_exists( 'get_plugins' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
+		$plugins = [];
+		foreach ( \get_plugins() as $file => $data ) {
+			// "slug/slug.php" gives a directory to use; "single-file.php" does not.
+			if ( \strpos( $file, '/' ) === false ) {
+				continue;
+			}
+
+			$slug = \dirname( $file );
+			if ( ! isset( $plugins[ $slug ] ) ) {
+				$plugins[ $slug ] = isset( $data['Name'] ) ? (string) $data['Name'] : $slug;
+			}
+		}
+
+		\asort( $plugins, SORT_NATURAL | SORT_FLAG_CASE );
+
+		return $plugins;
 	}
 
 	/**
@@ -532,6 +699,23 @@ class Admin_Page {
 					<input type="radio" name="<?php echo \esc_attr( self::OPTION_NAME ); ?>[settings][option_tracking]" value="legacy" id="aaa_option_optimizer_tracking_legacy" <?php \checked( $settings['option_tracking'], 'legacy' ); ?>>
 					<?php \esc_html_e( 'Legacy', 'aaa-option-optimizer' ); ?>
 				</label>
+			</fieldset>
+
+			<h2><?php \esc_html_e( 'Remote data', 'aaa-option-optimizer' ); ?></h2>
+			<fieldset class="aaa-option-optimizer-consent-fieldset">
+				<label for="aaa_option_optimizer_remote_data_consent">
+					<input type="checkbox" name="<?php echo \esc_attr( self::OPTION_NAME ); ?>[settings][remote_data_consent]" value="1" id="aaa_option_optimizer_remote_data_consent" <?php \checked( ! empty( $settings['remote_data_consent'] ) ); ?>>
+					<?php \esc_html_e( 'Keep the known-plugins list up to date automatically', 'aaa-option-optimizer' ); ?>
+				</label>
+				<p class="description">
+					<?php
+					printf(
+						/* translators: %s is the host the data is fetched from. */
+						\esc_html__( 'When enabled, the plugin fetches an updated known-plugins list once a day from %s, and sends your plugin and WordPress version so we can keep anonymous usage statistics. No site identity is sent. When disabled, only the list bundled with the plugin is used.', 'aaa-option-optimizer' ),
+						'<code>option-optimizer-api.progressplanner.com</code>'
+					);
+					?>
+				</p>
 			</fieldset>
 			<?php \submit_button( \__( 'Save Settings', 'aaa-option-optimizer' ) ); ?>
 		</form>

@@ -79,6 +79,18 @@ class Plugin {
 		// Use the shutdown action to update the option with tracked data.
 		\add_action( 'shutdown', [ $this, 'update_tracked_options' ] );
 
+		// Daily refresh of the known-plugins mapping, only with user consent.
+		// The mapping fetch contacts our servers and sends version stats, so it
+		// stays unscheduled until the user opts in (settings or Report popover).
+		\add_action( Known_Plugins::CRON_HOOK, [ $this, 'refresh_known_plugins' ] );
+		if ( Known_Plugins::has_consent() ) {
+			if ( ! \wp_next_scheduled( Known_Plugins::CRON_HOOK ) ) {
+				\wp_schedule_event( \time(), 'daily', Known_Plugins::CRON_HOOK );
+			}
+		} elseif ( \wp_next_scheduled( Known_Plugins::CRON_HOOK ) ) {
+			\wp_clear_scheduled_hook( Known_Plugins::CRON_HOOK );
+		}
+
 		// Register the REST routes.
 		$rest = new REST();
 		$rest->register_hooks();
@@ -158,6 +170,15 @@ class Plugin {
 		}
 
 		++$this->accessed_options[ $option_name ];
+	}
+
+	/**
+	 * Refresh the cached known-plugins mapping from the maintainers' server.
+	 *
+	 * @return void
+	 */
+	public function refresh_known_plugins() {
+		( new Known_Plugins() )->refresh();
 	}
 
 	/**

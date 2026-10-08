@@ -156,7 +156,33 @@ Submit a pull request on GitHub to
 <!-- TODO: add screenshot showing bulk actions in use -->
 <!-- TODO: add screenshot showing the source filtering feature -->
 
+== External services ==
+
+This plugin connects to two external services to identify the source plugins of WordPress options.
+
+= WordPress.org plugin directory (api.wordpress.org) =
+
+When you click "Report" on an option whose source is "Unknown" and choose or type a plugin slug, the plugin queries `https://api.wordpress.org/plugins/info/1.0/{slug}.json` to verify the slug exists and to display the official plugin name for confirmation. Only the slug is sent. The list of installed plugins offered as suggestions in that field is read locally and is never sent anywhere.
+
+WordPress.org terms of service: https://wordpress.org/about/privacy/
+
+= Known-plugins mapping and origin reporting (option-optimizer-api.progressplanner.com) =
+
+**This is off until you opt in.** Once you enable "Keep the known-plugins list up to date automatically" (on the plugin's settings tab, or by agreeing in the Report popover), the plugin fetches an updated list of recognized plugins once a day from `https://option-optimizer-api.progressplanner.com/known-plugins.json`. This lets the plugin identify newly-added plugins as the maintained list grows, without requiring a plugin update. With this request the plugin sends your plugin version and WordPress version, so the maintainers can keep anonymous usage statistics. No site identity is sent. Until you opt in, only the list bundled with the plugin is used and no request is made. The fetch URL can be overridden, or the feature disabled, via the `aaa_option_optimizer_known_plugins_url` filter.
+
+When you submit a "Report origin" form, the plugin sends the option name you reported, the option prefix shown in the form, the wp.org plugin slug you supplied, and your site's hostname to `https://option-optimizer-api.progressplanner.com/submit`. The submission is recorded as a GitHub issue for a maintainer to review and add to the recognized plugins list. The site hostname is hashed before storage and never published. The option name and slug appear in the public GitHub issue. Submissions only happen when you click Submit on the Report form; nothing is sent automatically.
+
+The endpoint is operated by the plugin maintainers. The submission URL can be overridden via the `aaa_option_optimizer_report_url` filter for users who want to disable or redirect the feature.
+
 == Changelog ==
+
+= 1.7.0 =
+
+* Add "Report origin" feature: for options whose source plugin is unknown, users can submit the matching wp.org slug to help maintainers expand the recognized plugins list. Submissions land as GitHub issues for maintainer review; no auto-merge.
+* The "Report origin" slug field suggests the plugins installed on your site, so the slug can be picked from a list instead of typed. The field still accepts a typed slug or wp.org URL, so options left behind by a plugin that has since been deleted remain reportable. Suggestions are read locally and never sent anywhere.
+* When an unrecognized option names a plugin installed on the site, the Report form opens with that plugin already filled in and verified, so a plugin the recognized-plugins list only partly covers takes one click to report. The guess is made locally from the installed plugin list and is only ever a starting point -- the slug is still verified against wordpress.org, and it can be changed or cleared.
+* "Report origin" also submits the option prefix the plugin appears to use, alongside the option name, so a single report can cover every option sharing that prefix instead of just the one reported. The prefix is prefilled from the option name and can be corrected, or cleared to report only that option.
+* Recognized-plugins list can refresh once a day in the background from the maintainers' server, so the list grows for users without requiring plugin updates. This is opt-in: enable it on the settings tab or agree in the Report popover. The refresh sends only your plugin and WordPress version for anonymous statistics; no site identity is sent.
 
 = 1.6.1 =
 

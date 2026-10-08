@@ -73,6 +73,8 @@ function aaa_option_optimizer_activation() {
 function aaa_option_optimizer_deactivation() {
 	$aaa_option_value = get_option( 'option_optimizer' );
 	update_option( 'option_optimizer', $aaa_option_value, false );
+
+	wp_clear_scheduled_hook( Progress_Planner\OptionOptimizer\Known_Plugins::CRON_HOOK );
 }
 
 /**

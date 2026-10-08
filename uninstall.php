@@ -24,3 +24,9 @@ delete_transient( 'option_optimizer_batch' );
 
 // Delete the plugin option.
 delete_option( 'option_optimizer' );
+
+// Delete the cached known-plugins mapping.
+delete_option( 'aaa_option_optimizer_known_plugins' );
+
+// Clear the daily refresh cron event (defense-in-depth; deactivation already does this).
+wp_clear_scheduled_hook( 'aaa_option_optimizer_refresh_known_plugins' );
