@@ -1,9 +1,9 @@
 === Autoload Optimizer ===
 Contributors: joostdevalk, aristath, filipi, progressplanner
 Tags: autoload, options, database, performance, cleanup
-Requires at least: 6.4
-Tested up to: 7.0
-Stable tag: 1.6.1
+Requires at least: 6.7
+Tested up to: 7.1
+Stable tag: 1.6.2
 Requires PHP: 7.4
 License: GPL-3.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -157,6 +157,12 @@ Submit a pull request on GitHub to
 <!-- TODO: add screenshot showing the source filtering feature -->
 
 == Changelog ==
+
+= 1.6.2 =
+
+* Fix database deadlocks when concurrent requests write tracked options.
+* Fix a fatal error when W3 Total Cache's database cache is active.
+* Readme improvements.
 
 = 1.6.1 =
 
