@@ -279,6 +279,9 @@ Initial release on GitHub and WordPress.org.
 
 == Upgrade Notice ==
 
+= 1.6.2 =
+Bug fixes for concurrent requests and W3 Total Cache.
+
 = 1.6.1 =
 Fixes a potential fatal error from infinite recursion in option
 monitoring on certain hosts.
