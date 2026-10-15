@@ -1,6 +1,6 @@
 <?php
 /**
- * REST functionality for AAA Option Optimizer.
+ * REST functionality for AAA Autoload Optimizer.
  *
  * @package Progress_Planner\OptionOptimizer
  */
@@ -12,7 +12,7 @@ use WP_REST_Request;
 use WP_REST_Response;
 
 /**
- * REST functionality of AAA Option Optimizer.
+ * REST functionality of AAA Autoload Optimizer.
  */
 class REST {
 

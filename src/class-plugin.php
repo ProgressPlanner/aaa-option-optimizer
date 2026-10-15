@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin functionality for AAA Option Optimizer.
+ * Plugin functionality for AAA Autoload Optimizer.
  *
  * @package Progress_Planner\OptionOptimizer
  */
@@ -8,7 +8,7 @@
 namespace Progress_Planner\OptionOptimizer;
 
 /**
- * Core functionality of AAA Option Optimizer.
+ * Core functionality of AAA Autoload Optimizer.
  */
 class Plugin {
 	/**

@@ -1,9 +1,9 @@
-=== Autoload Optimizer ===
+=== AAA Autoload Optimizer ===
 Contributors: joostdevalk, aristath, filipi, progressplanner
 Tags: autoload, options, database, performance, cleanup
 Requires at least: 6.7
 Tested up to: 7.1
-Stable tag: 1.6.2
+Stable tag: 1.7.0
 Requires PHP: 7.4
 License: GPL-3.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -18,7 +18,7 @@ those options belong to plugins you removed long ago, or simply don't need
 to be autoloaded. The result: a bigger database query, slower page loads,
 and wasted server resources.
 
-**Autoload Optimizer** tracks which autoloaded options your site actually
+**AAA Autoload Optimizer** tracks which autoloaded options your site actually
 uses, then shows you the ones it doesn't — so you can safely remove them
 or turn off autoloading.
 
@@ -74,11 +74,11 @@ accurate measurement.
 = Automatic installation =
 
 1. In your WordPress dashboard, go to **Plugins → Add New**.
-2. Search for **Autoload Optimizer**.
+2. Search for **AAA Autoload Optimizer**.
 3. Click **Install Now**, then **Activate**.
 4. Browse your site normally for a few days — or visit every page
    manually if you're in a hurry.
-5. Go to **Tools → Option Optimizer** to review and optimize your
+5. Go to **Tools → Autoload Optimizer** to review and optimize your
    autoloaded options.
 
 = Manual installation =
@@ -158,8 +158,9 @@ Submit a pull request on GitHub to
 
 == Changelog ==
 
-= 1.6.2 =
+= 1.7.0 =
 
+* Rename the plugin to AAA Autoload Optimizer.
 * Fix database deadlocks when concurrent requests write tracked options.
 * Fix a fatal error when W3 Total Cache's database cache is active.
 * Readme improvements.
@@ -279,8 +280,9 @@ Initial release on GitHub and WordPress.org.
 
 == Upgrade Notice ==
 
-= 1.6.2 =
-Bug fixes for concurrent requests and W3 Total Cache.
+= 1.7.0 =
+The plugin is now called AAA Autoload Optimizer. Also fixes bugs with
+concurrent requests and W3 Total Cache.
 
 = 1.6.1 =
 Fixes a potential fatal error from infinite recursion in option

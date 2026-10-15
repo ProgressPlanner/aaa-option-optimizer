@@ -1,6 +1,6 @@
 <?php
 /**
- * Admin page functionality for AAA Option Optimizer.
+ * Admin page functionality for AAA Autoload Optimizer.
  *
  * @package Progress_Planner\OptionOptimizer
  */
@@ -8,7 +8,7 @@
 namespace Progress_Planner\OptionOptimizer;
 
 /**
- * Admin page functionality for AAA Option Optimizer.
+ * Admin page functionality for AAA Autoload Optimizer.
  */
 class Admin_Page {
 
@@ -135,8 +135,8 @@ class Admin_Page {
 	 */
 	public function add_admin_page() {
 		\add_management_page(
-			__( 'AAA Option Optimizer', 'aaa-option-optimizer' ),
-			__( 'Option Optimizer', 'aaa-option-optimizer' ),
+			__( 'AAA Autoload Optimizer', 'aaa-option-optimizer' ),
+			__( 'Autoload Optimizer', 'aaa-option-optimizer' ),
 			'manage_options',
 			'aaa-option-optimizer',
 			[ $this, 'render_admin_page_ajax' ]
@@ -271,7 +271,7 @@ class Admin_Page {
 		$migration_status = Database::get_migration_status();
 		?>
 		<div class="wrap">
-			<h1><?php \esc_html_e( 'AAA Option Optimizer', 'aaa-option-optimizer' ); ?></h1>
+			<h1><?php \esc_html_e( 'AAA Autoload Optimizer', 'aaa-option-optimizer' ); ?></h1>
 
 			<?php if ( $migration_status['needs_migration'] ) : ?>
 			<div id="aaa-migration-notice" class="notice notice-warning">
@@ -306,7 +306,7 @@ class Admin_Page {
 				<label class="label" for="tab-1"><?php \esc_html_e( 'Unused, but autoloaded', 'aaa-option-optimizer' ); ?></label>
 				<div class="panel">
 					<h2 id="unused-autoloaded"><?php \esc_html_e( 'Unused, but autoloaded', 'aaa-option-optimizer' ); ?></h2>
-					<p><?php \esc_html_e( 'The following options are autoloaded on each pageload, but AAA Option Optimizer has not been able to detect them being used.', 'aaa-option-optimizer' ); ?></p>
+					<p><?php \esc_html_e( 'The following options are autoloaded on each pageload, but AAA Autoload Optimizer has not been able to detect them being used.', 'aaa-option-optimizer' ); ?></p>
 
 					<table style="width:100%" id="unused_options_table" class="aaa_option_table">
 						<thead>
@@ -347,7 +347,7 @@ class Admin_Page {
 				<div class="panel">
 					<?php // Render differences. ?>
 					<h2 id="used-not-autoloaded"><?php \esc_html_e( 'Used, but not autoloaded options', 'aaa-option-optimizer' ); ?></h2>
-					<p><?php \esc_html_e( 'The following options are *not* autoloaded on each pageload, but AAA Option Optimizer has detected that they are being used. If one of the options below has been called a lot and is not very big, you might consider adding autoload to that option.', 'aaa-option-optimizer' ); ?></p>
+					<p><?php \esc_html_e( 'The following options are *not* autoloaded on each pageload, but AAA Autoload Optimizer has detected that they are being used. If one of the options below has been called a lot and is not very big, you might consider adding autoload to that option.', 'aaa-option-optimizer' ); ?></p>
 					<table style="width:100%;" id="used_not_autoloaded_table" class="aaa_option_table">
 						<thead>
 							<tr>
@@ -389,7 +389,7 @@ class Admin_Page {
 				<label class="label" for="tab-3"><?php \esc_html_e( 'Requested options that do not exist', 'aaa-option-optimizer' ); ?></label>
 				<div class="panel">
 					<h2 id="requested-do-not-exist"><?php \esc_html_e( 'Requested options that do not exist', 'aaa-option-optimizer' ); ?></h2>
-					<p><?php \esc_html_e( 'The following options are requested sometimes, but AAA Option Optimizer has detected that they do not exist. If one of the options below has been called a lot, it might help to create it with a value of false.', 'aaa-option-optimizer' ); ?></p>
+					<p><?php \esc_html_e( 'The following options are requested sometimes, but AAA Autoload Optimizer has detected that they do not exist. If one of the options below has been called a lot, it might help to create it with a value of false.', 'aaa-option-optimizer' ); ?></p>
 					<table width="100%" id="requested_do_not_exist_table" class="aaa_option_table">
 						<thead>
 							<tr>

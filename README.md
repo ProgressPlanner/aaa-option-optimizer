@@ -14,7 +14,7 @@
 
 ![GitHub banner](/.wordpress-org/github_banner_aaaoo_pp.png)
 
-# AAA Option Optimizer
+# AAA Autoload Optimizer
 This plugin tracks which of the autoloaded options are used on a page, and stores that data at the end of page render. It keeps an array of options that it has seen as being used. On the admin page, it compares all the autoloaded options to the array of stored options, and shows the autoloaded options that have not been used as you were browsing the site. If you've been to every page on your site, or you've kept the plugin around for a week or so, this means that those options probably don't need to be autoloaded.
 
 ## How to use this plugin
