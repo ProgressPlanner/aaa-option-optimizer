@@ -1,6 +1,6 @@
 <?php
 /**
- * Database functionality for AAA Option Optimizer.
+ * Database functionality for AAA Autoload Optimizer.
  *
  * @package Progress_Planner\OptionOptimizer
  */
