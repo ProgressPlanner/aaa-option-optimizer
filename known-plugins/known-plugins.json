@@ -1,6 +1,6 @@
 {
     "aaa-option-optimizer": {
-        "name": "AAA Option Optimizer",
+        "name": "AAA Autoload Optimizer",
         "option_prefixes": ["option_optimizer"]
     },
     "accessibility-checker": {

@@ -4,6 +4,4 @@ parameters:
     - .
   excludePaths:
     - vendor
-    - tests
-  ignoreErrors:
-    - identifier: missingType.generics
+    - tests (?)
