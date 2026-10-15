@@ -20,6 +20,13 @@ class Database {
 	const TABLE_NAME = 'option_optimizer_tracked';
 
 	/**
+	 * The quarantine table name (without prefix).
+	 *
+	 * @var string
+	 */
+	const QUARANTINE_TABLE_NAME = 'option_optimizer_quarantine';
+
+	/**
 	 * Get the full table name with prefix.
 	 *
 	 * @return string
@@ -27,6 +34,16 @@ class Database {
 	public static function get_table_name() {
 		global $wpdb;
 		return $wpdb->prefix . self::TABLE_NAME;
+	}
+
+	/**
+	 * Get the full quarantine table name with prefix.
+	 *
+	 * @return string
+	 */
+	public static function get_quarantine_table_name() {
+		global $wpdb;
+		return $wpdb->prefix . self::QUARANTINE_TABLE_NAME;
 	}
 
 	/**
@@ -321,5 +338,181 @@ class Database {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is safe (from constant).
 		$wpdb->query( "TRUNCATE TABLE {$table_name}" );
+	}
+
+	/**
+	 * Create the quarantine table.
+	 *
+	 * @return void
+	 */
+	public static function create_quarantine_table() {
+		global $wpdb;
+
+		$table_name      = self::get_quarantine_table_name();
+		$charset_collate = $wpdb->get_charset_collate();
+
+		$sql = "CREATE TABLE {$table_name} (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			option_name VARCHAR(191) NOT NULL,
+			option_value LONGTEXT NOT NULL,
+			autoload VARCHAR(20) NOT NULL DEFAULT 'no',
+			quarantined_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			expires_at DATETIME NOT NULL,
+			expiry_action VARCHAR(10) NOT NULL DEFAULT 'keep',
+			PRIMARY KEY (id),
+			UNIQUE KEY option_name (option_name)
+		) {$charset_collate};";
+
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		\dbDelta( $sql );
+	}
+
+	/**
+	 * Drop the quarantine table.
+	 *
+	 * @return void
+	 */
+	public static function drop_quarantine_table() {
+		global $wpdb;
+
+		$table_name = self::get_quarantine_table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Table name is safe (from constant).
+		$wpdb->query( "DROP TABLE IF EXISTS {$table_name}" );
+	}
+
+	/**
+	 * Check if the quarantine table exists.
+	 *
+	 * @return bool
+	 */
+	public static function quarantine_table_exists() {
+		global $wpdb;
+
+		$table_name = self::get_quarantine_table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		return $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) === $table_name;
+	}
+
+	/**
+	 * Insert a quarantine row.
+	 *
+	 * @param string $option_name   Option name.
+	 * @param string $option_value  Serialized option value as stored in wp_options.
+	 * @param string $autoload      Autoload value as stored in wp_options.
+	 * @param string $expires_at    MySQL DATETIME for expiry.
+	 * @param string $expiry_action 'keep' or 'delete'.
+	 *
+	 * @return bool True on success.
+	 */
+	public static function insert_quarantine_row( $option_name, $option_value, $autoload, $expires_at, $expiry_action = 'keep' ) {
+		global $wpdb;
+
+		$result = $wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			self::get_quarantine_table_name(),
+			[
+				'option_name'    => $option_name,
+				'option_value'   => $option_value,
+				'autoload'       => $autoload,
+				'quarantined_at' => \current_time( 'mysql' ),
+				'expires_at'     => $expires_at,
+				'expiry_action'  => $expiry_action,
+			],
+			[ '%s', '%s', '%s', '%s', '%s', '%s' ]
+		);
+
+		return false !== $result;
+	}
+
+	/**
+	 * Get a quarantine row by option name.
+	 *
+	 * @param string $option_name Option name.
+	 *
+	 * @return array<string, mixed>|null Row data, or null if not found.
+	 */
+	public static function get_quarantine_row( $option_name ) {
+		global $wpdb;
+
+		$table_name = self::get_quarantine_table_name();
+
+		$row = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->prepare( "SELECT * FROM {$table_name} WHERE option_name = %s", $option_name ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is safe (from constant).
+			ARRAY_A
+		);
+
+		return null === $row ? null : $row;
+	}
+
+	/**
+	 * Delete a quarantine row by option name.
+	 *
+	 * @param string $option_name Option name.
+	 *
+	 * @return bool True on success.
+	 */
+	public static function delete_quarantine_row( $option_name ) {
+		global $wpdb;
+
+		$result = $wpdb->delete( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			self::get_quarantine_table_name(),
+			[ 'option_name' => $option_name ],
+			[ '%s' ]
+		);
+
+		return false !== $result && $result > 0;
+	}
+
+	/**
+	 * Get all quarantine rows.
+	 *
+	 * @return array<int, array<string, mixed>> Rows.
+	 */
+	public static function get_all_quarantine_rows() {
+		global $wpdb;
+
+		$table_name = self::get_quarantine_table_name();
+
+		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			"SELECT * FROM {$table_name} ORDER BY quarantined_at DESC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is safe (from constant).
+			ARRAY_A
+		);
+
+		return empty( $rows ) ? [] : $rows;
+	}
+
+	/**
+	 * Count quarantine rows.
+	 *
+	 * @return int
+	 */
+	public static function count_quarantine_rows() {
+		global $wpdb;
+
+		$table_name = self::get_quarantine_table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is safe (from constant).
+		return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table_name}" );
+	}
+
+	/**
+	 * Get expired quarantine rows whose expiry_action is 'delete'.
+	 *
+	 * @return array<int, array<string, mixed>> Rows.
+	 */
+	public static function get_expired_quarantine_rows() {
+		global $wpdb;
+
+		$table_name = self::get_quarantine_table_name();
+
+		$sql = "SELECT * FROM {$table_name} WHERE expires_at <= %s AND expiry_action = %s"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is safe (from constant).
+
+		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->prepare( $sql, \current_time( 'mysql' ), 'delete' ), // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			ARRAY_A
+		);
+
+		return empty( $rows ) ? [] : $rows;
 	}
 }
