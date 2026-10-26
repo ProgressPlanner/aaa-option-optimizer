@@ -452,36 +452,21 @@ jQuery( document ).ready( function () {
 	 * @param {string}    action     - The action performed.
 	 */
 	function updateRowOnSuccess( response, table, optionName, action ) {
-		// Get the row ID for the option name.
-		const rowId = generateRowId( optionName );
+		// Look the row up by DataTables row ID, not a CSS selector, so option names with special characters still match.
+		const row = table.row( '#' + generateRowId( optionName ) );
 		if ( action === 'delete-option' || action === 'create-option-false' ) {
-			table
-				.row( 'tr#' + rowId )
-				.remove()
-				.draw( 'full-hold' );
+			row.remove().draw( 'full-hold' );
 		} else if (
 			action === 'add-autoload' ||
 			action === 'remove-autoload'
 		) {
-			const autoloadStatus = action === 'add-autoload' ? 'yes' : 'no';
-			const buttonHTML =
-				action === 'add-autoload'
-					? `<button class="button dashicon remove-autoload" data-option="${ optionName }">
-						<span class="dashicons dashicons-minus"></span>
-						${ aaaOptionOptimizer.i18n.removeAutoload }
-					</button>`
-					: `<button class="button dashicon add-autoload" data-option="${ optionName }">
-						<span class="dashicons dashicons-plus"></span>
-						${ aaaOptionOptimizer.i18n.addAutoload }
-					</button>`;
-
-			jQuery( `tr#${ rowId }` )
-				.find( 'td.autoload' )
-				.text( autoloadStatus );
-			const oldButton = `button.${
-				action === 'add-autoload' ? 'add' : 'remove'
-			}-autoload`;
-			jQuery( `tr#${ rowId } ${ oldButton }` ).replaceWith( buttonHTML );
+			// Update the row data and redraw, so Responsive child rows (collapsed columns) re-render too.
+			// Server-side tables re-fetch the page, client-side tables re-render the row.
+			row.data( {
+				...row.data(),
+				autoload: action === 'add-autoload' ? 'yes' : 'no',
+			} );
+			table.draw( 'full-hold' );
 		}
 	}
 
@@ -607,7 +592,7 @@ jQuery( document ).ready( function () {
 					const dt = table.DataTable();
 
 					requestData.option_names.forEach( ( optionName ) => {
-						dt.row( 'tr#option_' + optionName ).remove();
+						dt.row( '#' + generateRowId( optionName ) ).remove();
 					} );
 
 					dt.draw( 'full-hold' );
