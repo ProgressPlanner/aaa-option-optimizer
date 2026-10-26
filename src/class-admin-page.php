@@ -159,7 +159,7 @@ class Admin_Page {
 			'aaa-option-optimizer',
 			plugin_dir_url( AAA_OPTION_OPTIMIZER_FILE ) . 'css/style.css',
 			[],
-			'2.0.1'
+			'2.0.2'
 		);
 
 		\wp_enqueue_script(

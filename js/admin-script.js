@@ -320,6 +320,18 @@ jQuery( document ).ready( function () {
 	}
 
 	/**
+	 * Checks whether an autoload value means the option is not autoloaded.
+	 * WordPress 6.6+ stores 'on', 'off', 'auto', 'auto-on' and 'auto-off' next to the legacy 'yes' and 'no'.
+	 *
+	 * @param {string} autoload - The autoload value.
+	 *
+	 * @return {boolean} True if the option is not autoloaded.
+	 */
+	function isNotAutoloaded( autoload ) {
+		return [ 'no', 'off', 'auto-off' ].includes( autoload );
+	}
+
+	/**
 	 * Renders the value column for a row.
 	 *
 	 * @param {Object} row - The row data.
@@ -339,7 +351,7 @@ jQuery( document ).ready( function () {
 				${ aaaOptionOptimizer.i18n.showValue }
 			</button>`,
 			popoverContent,
-			row.autoload === 'no'
+			isNotAutoloaded( row.autoload )
 				? `<button class="button dashicon add-autoload" data-option="${ row.name }">
 					<span class="dashicons dashicons-plus"></span>
 					${ aaaOptionOptimizer.i18n.addAutoload }
@@ -615,6 +627,13 @@ jQuery( document ).ready( function () {
 		if ( jQuery( selector ).length ) {
 			initializeDataTable( selector );
 		}
+	} );
+
+	// Tables in hidden tabs can't measure their columns, so recalculate them once their tab is shown.
+	jQuery( '.aaa-option-optimizer-tabs > .input' ).on( 'change', function () {
+		DataTable.tables( { visible: true, api: true } )
+			.columns.adjust()
+			.responsive.recalc();
 	} );
 
 	// Migration functionality.
