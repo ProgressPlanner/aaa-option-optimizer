@@ -207,7 +207,8 @@ jQuery( document ).ready( function () {
 			{
 				name: 'checkbox',
 				data: 'name',
-				render: ( data, type, row ) => renderCheckboxColumn( row ),
+				render: ( data, type, row, meta ) =>
+					renderCheckboxColumn( row, meta.settings.sTableId ),
 				orderable: false,
 				searchable: false,
 				className: 'select-all',
@@ -226,7 +227,8 @@ jQuery( document ).ready( function () {
 			{
 				name: 'value',
 				data: 'value',
-				render: ( data, type, row ) => renderValueColumn( row ),
+				render: ( data, type, row, meta ) =>
+					renderValueColumn( row, meta.settings.sTableId ),
 				orderable: false,
 				searchable: false,
 				className: 'actions',
@@ -266,7 +268,8 @@ jQuery( document ).ready( function () {
 				{
 					name: 'checkbox',
 					data: 'name',
-					render: ( data, type, row ) => renderCheckboxColumn( row ),
+					render: ( data, type, row, meta ) =>
+						renderCheckboxColumn( row, meta.settings.sTableId ),
 					orderable: false,
 					searchable: false,
 					className: 'select-all',
@@ -295,7 +298,8 @@ jQuery( document ).ready( function () {
 				{
 					name: 'value',
 					data: 'value',
-					render: ( data, type, row ) => renderValueColumn( row ),
+					render: ( data, type, row, meta ) =>
+						renderValueColumn( row, meta.settings.sTableId ),
 					orderable: false,
 					searchable: false,
 					className: 'actions',
@@ -306,7 +310,8 @@ jQuery( document ).ready( function () {
 				{
 					name: 'checkbox',
 					data: 'name',
-					render: ( data, type, row ) => renderCheckboxColumn( row ),
+					render: ( data, type, row, meta ) =>
+						renderCheckboxColumn( row, meta.settings.sTableId ),
 					orderable: false,
 					searchable: false,
 					className: 'select-all',
@@ -334,7 +339,8 @@ jQuery( document ).ready( function () {
 				{
 					name: 'value',
 					data: 'value',
-					render: ( data, type, row ) => renderValueColumn( row ),
+					render: ( data, type, row, meta ) =>
+						renderValueColumn( row, meta.settings.sTableId ),
 					orderable: false,
 					searchable: false,
 					className: 'actions',
@@ -395,14 +401,16 @@ jQuery( document ).ready( function () {
 	/**
 	 * Renders the value column for a row.
 	 *
-	 * @param {Object} row - The row data.
+	 * @param {Object} row     - The row data.
+	 * @param {string} tableId - The id of the table the row belongs to.
 	 *
 	 * @return {string} - The HTML for the value column.
 	 */
-	function renderValueColumn( row ) {
+	function renderValueColumn( row, tableId ) {
 		// Build the popover id from the sanitized row id, never the raw name, so
 		// it is a safe token both here and in the matching popovertarget below.
-		const popoverId = 'popover_' + generateRowId( row.name );
+		// The same option can be listed in several tables, so prefix the table id to keep it unique.
+		const popoverId = tableId + '-popover_' + generateRowId( row.name );
 		const optionAttr = escapeHtml( row.name );
 
 		const popoverContent = `<div id="${ popoverId }" popover class="aaa-option-optimizer-popover">
@@ -453,14 +461,17 @@ jQuery( document ).ready( function () {
 	/**
 	 * Renders the checkbox column for a row.
 	 *
-	 * @param {Object} row - The row data.
+	 * @param {Object} row     - The row data.
+	 * @param {string} tableId - The id of the table the row belongs to.
 	 *
 	 * @return {string} - The HTML for the value column.
 	 */
-	function renderCheckboxColumn( row ) {
+	function renderCheckboxColumn( row, tableId ) {
 		// Build the checkbox id from the sanitized row id, never the raw name, so
 		// the id and its matching label `for` cannot break out of the markup.
-		const checkboxId = 'select-option-' + generateRowId( row.name );
+		// The same option can be listed in several tables, so prefix the table id to keep it unique.
+		const checkboxId =
+			tableId + '-select-option-' + generateRowId( row.name );
 		return `<label for="${ checkboxId }">
 				<input type="checkbox" id="${ checkboxId }" class="select-option" data-option="${ escapeHtml(
 					row.name
