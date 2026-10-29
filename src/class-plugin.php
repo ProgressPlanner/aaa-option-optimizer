@@ -113,6 +113,11 @@ class Plugin {
 			return;
 		}
 
+		// The option page capability filter is not an option access, and its tag suffix comes from the request.
+		if ( str_starts_with( $tag, 'option_page_capability_' ) ) {
+			return;
+		}
+
 		// Check if the tag is related to an option access.
 		if ( str_starts_with( $tag, 'option_' ) || str_starts_with( $tag, 'default_option_' ) ) {
 			$this->is_processing = true;
@@ -154,10 +159,44 @@ class Plugin {
 	 */
 	protected function add_option_usage( $option_name ) {
 		if ( ! array_key_exists( $option_name, $this->accessed_options ) ) {
+			// Only validate the first access in a request, repeat accesses are already known to be valid.
+			if ( ! $this->is_trackable_option_name( $option_name ) ) {
+				return;
+			}
 			$this->accessed_options[ $option_name ] = 0;
 		}
 
 		++$this->accessed_options[ $option_name ];
+	}
+
+	/**
+	 * Whether an accessed option name should be tracked.
+	 *
+	 * Option names can come from request data (via dynamic hook names or get_option() calls),
+	 * so names that can't be real options or that contain markup characters are rejected.
+	 *
+	 * @param string $option_name Name of the option being accessed.
+	 *
+	 * @return bool
+	 */
+	protected function is_trackable_option_name( $option_name ) {
+		// The tracking table's option_name column is VARCHAR(191), same as wp_options. Not filterable.
+		if ( $option_name === '' || strlen( $option_name ) > 191 ) {
+			return false;
+		}
+
+		$is_trackable = ! preg_match( '/[\s"\'<>\\\\]/', $option_name );
+
+		/**
+		 * Filters whether an accessed option name should be tracked.
+		 *
+		 * By default, names containing whitespace, quotes, backslashes or angle brackets are not tracked.
+		 * Option names are always escaped on output, regardless of this filter.
+		 *
+		 * @param bool   $is_trackable Whether the name passed the default checks.
+		 * @param string $option_name  The option name.
+		 */
+		return (bool) \apply_filters( 'aaa_option_optimizer_is_trackable_option_name', $is_trackable, $option_name );
 	}
 
 	/**

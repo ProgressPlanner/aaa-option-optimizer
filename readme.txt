@@ -130,6 +130,15 @@ disable autoloading instead of deleting — it's the safer choice.
 Yes, always back up your database before optimizing. Disabling autoload
 is safe and reversible, but deleting options is permanent.
 
+= Why are some option names not tracked? =
+
+Names that can't be real options are ignored: names longer than 191
+characters, and names containing whitespace, quotes, backslashes or angle
+brackets. Developers can change this with the
+`aaa_option_optimizer_is_trackable_option_name` filter, which receives
+whether the name passed the default checks and the option name. The 191
+character limit can't be changed.
+
 = Where can I report bugs? =
 
 Please use [the GitHub repository](https://github.com/ProgressPlanner/aaa-option-optimizer/)
