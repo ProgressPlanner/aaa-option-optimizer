@@ -172,31 +172,29 @@ class Plugin {
 	/**
 	 * Whether an accessed option name should be tracked.
 	 *
-	 * Option names can come from request data (via dynamic hook names or get_option() calls),
-	 * so names that can't be real options or that contain markup characters are rejected.
+	 * Only names that can't exist in the options table are rejected. Any other name can be a
+	 * real option, and an untracked option would be reported as unused.
 	 *
 	 * @param string $option_name Name of the option being accessed.
 	 *
 	 * @return bool
 	 */
 	protected function is_trackable_option_name( $option_name ) {
-		// The tracking table's option_name column is VARCHAR(191), same as wp_options. Not filterable.
-		if ( $option_name === '' || strlen( $option_name ) > 191 ) {
+		// The option_name column is VARCHAR(191) here and in wp_options, which counts characters, not bytes. Not filterable.
+		if ( $option_name === '' || \mb_strlen( $option_name ) > 191 ) {
 			return false;
 		}
-
-		$is_trackable = ! preg_match( '/[\s"\'<>\\\\]/', $option_name );
 
 		/**
 		 * Filters whether an accessed option name should be tracked.
 		 *
-		 * By default, names containing whitespace, quotes, backslashes or angle brackets are not tracked.
-		 * Option names are always escaped on output, regardless of this filter.
+		 * Option names are always escaped on output, regardless of this filter. Note that an
+		 * autoloaded option excluded here will be listed as "Unused, but autoloaded".
 		 *
-		 * @param bool   $is_trackable Whether the name passed the default checks.
+		 * @param bool   $is_trackable Whether the name should be tracked. Default true.
 		 * @param string $option_name  The option name.
 		 */
-		return (bool) \apply_filters( 'aaa_option_optimizer_is_trackable_option_name', $is_trackable, $option_name );
+		return (bool) \apply_filters( 'aaa_option_optimizer_is_trackable_option_name', true, $option_name );
 	}
 
 	/**

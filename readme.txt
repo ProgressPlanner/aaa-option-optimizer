@@ -132,11 +132,11 @@ is safe and reversible, but deleting options is permanent.
 
 = Why are some option names not tracked? =
 
-Names that can't be real options are ignored: names longer than 191
-characters, and names containing whitespace, quotes, backslashes or angle
-brackets. Developers can change this with the
+Names that can't be real options are ignored: empty names and names longer
+than 191 characters. Developers can exclude more names with the
 `aaa_option_optimizer_is_trackable_option_name` filter, which receives
-whether the name passed the default checks and the option name. The 191
+whether the name should be tracked and the option name. Keep in mind that
+an autoloaded option excluded this way will be listed as unused. The 191
 character limit can't be changed.
 
 = Where can I report bugs? =
