@@ -320,6 +320,18 @@ jQuery( document ).ready( function () {
 	}
 
 	/**
+	 * Checks whether an autoload value means the option is not autoloaded.
+	 * WordPress 6.6+ stores 'on', 'off', 'auto', 'auto-on' and 'auto-off' next to the legacy 'yes' and 'no'.
+	 *
+	 * @param {string} autoload - The autoload value.
+	 *
+	 * @return {boolean} True if the option is not autoloaded.
+	 */
+	function isNotAutoloaded( autoload ) {
+		return [ 'no', 'off', 'auto-off' ].includes( autoload );
+	}
+
+	/**
 	 * Renders the value column for a row.
 	 *
 	 * @param {Object} row - The row data.
@@ -339,7 +351,7 @@ jQuery( document ).ready( function () {
 				${ aaaOptionOptimizer.i18n.showValue }
 			</button>`,
 			popoverContent,
-			row.autoload === 'no'
+			isNotAutoloaded( row.autoload )
 				? `<button class="button dashicon add-autoload" data-option="${ row.name }">
 					<span class="dashicons dashicons-plus"></span>
 					${ aaaOptionOptimizer.i18n.addAutoload }
@@ -452,36 +464,21 @@ jQuery( document ).ready( function () {
 	 * @param {string}    action     - The action performed.
 	 */
 	function updateRowOnSuccess( response, table, optionName, action ) {
-		// Get the row ID for the option name.
-		const rowId = generateRowId( optionName );
+		// Look the row up by DataTables row ID, not a CSS selector, so option names with special characters still match.
+		const row = table.row( '#' + generateRowId( optionName ) );
 		if ( action === 'delete-option' || action === 'create-option-false' ) {
-			table
-				.row( 'tr#' + rowId )
-				.remove()
-				.draw( 'full-hold' );
+			row.remove().draw( 'full-hold' );
 		} else if (
 			action === 'add-autoload' ||
 			action === 'remove-autoload'
 		) {
-			const autoloadStatus = action === 'add-autoload' ? 'yes' : 'no';
-			const buttonHTML =
-				action === 'add-autoload'
-					? `<button class="button dashicon remove-autoload" data-option="${ optionName }">
-						<span class="dashicons dashicons-minus"></span>
-						${ aaaOptionOptimizer.i18n.removeAutoload }
-					</button>`
-					: `<button class="button dashicon add-autoload" data-option="${ optionName }">
-						<span class="dashicons dashicons-plus"></span>
-						${ aaaOptionOptimizer.i18n.addAutoload }
-					</button>`;
-
-			jQuery( `tr#${ rowId }` )
-				.find( 'td.autoload' )
-				.text( autoloadStatus );
-			const oldButton = `button.${
-				action === 'add-autoload' ? 'add' : 'remove'
-			}-autoload`;
-			jQuery( `tr#${ rowId } ${ oldButton }` ).replaceWith( buttonHTML );
+			// Update the row data and redraw, so Responsive child rows (collapsed columns) re-render too.
+			// Server-side tables re-fetch the page, client-side tables re-render the row.
+			row.data( {
+				...row.data(),
+				autoload: action === 'add-autoload' ? 'yes' : 'no',
+			} );
+			table.draw( 'full-hold' );
 		}
 	}
 
@@ -607,7 +604,7 @@ jQuery( document ).ready( function () {
 					const dt = table.DataTable();
 
 					requestData.option_names.forEach( ( optionName ) => {
-						dt.row( 'tr#option_' + optionName ).remove();
+						dt.row( '#' + generateRowId( optionName ) ).remove();
 					} );
 
 					dt.draw( 'full-hold' );
@@ -630,6 +627,13 @@ jQuery( document ).ready( function () {
 		if ( jQuery( selector ).length ) {
 			initializeDataTable( selector );
 		}
+	} );
+
+	// Tables in hidden tabs can't measure their columns, so recalculate them once their tab is shown.
+	jQuery( '.aaa-option-optimizer-tabs > .input' ).on( 'change', function () {
+		DataTable.tables( { visible: true, api: true } )
+			.columns.adjust()
+			.responsive.recalc();
 	} );
 
 	// Migration functionality.
