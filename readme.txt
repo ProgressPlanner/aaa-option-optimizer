@@ -3,7 +3,7 @@ Contributors: joostdevalk, aristath, filipi, progressplanner
 Tags: autoload, options, database, performance, cleanup
 Requires at least: 6.7
 Tested up to: 7.1
-Stable tag: 1.7.0
+Stable tag: 1.7.1
 Requires PHP: 7.4
 License: GPL-3.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -166,6 +166,28 @@ Submit a pull request on GitHub to
 <!-- TODO: add screenshot showing the source filtering feature -->
 
 == Changelog ==
+
+= 1.7.1 =
+
+Security:
+
+* Hardened the escaping of option data in the admin screens.
+
+Bug fixes:
+
+* Fix the autoload toggle and delete button not updating rows when the
+  table columns are collapsed on smaller screens.
+* Fix tables on hidden tabs not fitting their panel.
+* Show the correct autoload button for options with the "off" and
+  "auto-off" autoload values.
+* Fix bulk delete for option names that contain a dot.
+* Fix duplicate element ids when the same option appears in more than
+  one table.
+
+Enhancements:
+
+* Add the `aaa_option_optimizer_is_trackable_option_name` filter to
+  exclude option names from tracking.
 
 = 1.7.0 =
 
