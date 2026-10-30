@@ -56,16 +56,20 @@ jQuery( document ).ready( function () {
 	 *
 	 * The result is used both as a DataTables row id and as an HTML id/attribute
 	 * target, so it must not contain characters that could break out of markup.
-	 * Any character outside a conservative allow-list is replaced with '_'.
-	 * Dots are kept: they are common in option names, valid in HTML ids, and
-	 * DataTables resolves '#id' row selectors by direct id lookup, not as CSS.
+	 * Letters, digits and '_' are kept, every other character is encoded as
+	 * '-<hex code point>-'. A literal '-' never appears otherwise, so distinct
+	 * option names always get distinct IDs (e.g. 'foo:bar' vs 'foo_bar').
 	 *
 	 * @param {string} optionName - The option name.
 	 * @return {string} The row ID.
 	 */
 	function generateRowId( optionName ) {
 		return (
-			'option_' + String( optionName ).replace( /[^A-Za-z0-9_.-]/g, '_' )
+			'option_' +
+			String( optionName ).replace(
+				/[^A-Za-z0-9_]/gu,
+				( char ) => '-' + char.codePointAt( 0 ).toString( 16 ) + '-'
+			)
 		);
 	}
 
