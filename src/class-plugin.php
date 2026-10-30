@@ -113,6 +113,11 @@ class Plugin {
 			return;
 		}
 
+		// The option page capability filter is not an option access, and its tag suffix comes from the request.
+		if ( str_starts_with( $tag, 'option_page_capability_' ) ) {
+			return;
+		}
+
 		// Check if the tag is related to an option access.
 		if ( str_starts_with( $tag, 'option_' ) || str_starts_with( $tag, 'default_option_' ) ) {
 			$this->is_processing = true;
@@ -154,10 +159,42 @@ class Plugin {
 	 */
 	protected function add_option_usage( $option_name ) {
 		if ( ! array_key_exists( $option_name, $this->accessed_options ) ) {
+			// Only validate the first access in a request, repeat accesses are already known to be valid.
+			if ( ! $this->is_trackable_option_name( $option_name ) ) {
+				return;
+			}
 			$this->accessed_options[ $option_name ] = 0;
 		}
 
 		++$this->accessed_options[ $option_name ];
+	}
+
+	/**
+	 * Whether an accessed option name should be tracked.
+	 *
+	 * Only names that can't exist in the options table are rejected. Any other name can be a
+	 * real option, and an untracked option would be reported as unused.
+	 *
+	 * @param string $option_name Name of the option being accessed.
+	 *
+	 * @return bool
+	 */
+	protected function is_trackable_option_name( $option_name ) {
+		// The option_name column is VARCHAR(191) here and in wp_options, which counts characters, not bytes. Not filterable.
+		if ( $option_name === '' || \mb_strlen( $option_name ) > 191 ) {
+			return false;
+		}
+
+		/**
+		 * Filters whether an accessed option name should be tracked.
+		 *
+		 * Option names are always escaped on output, regardless of this filter. Note that an
+		 * autoloaded option excluded here will be listed as "Unused, but autoloaded".
+		 *
+		 * @param bool   $is_trackable Whether the name should be tracked. Default true.
+		 * @param string $option_name  The option name.
+		 */
+		return (bool) \apply_filters( 'aaa_option_optimizer_is_trackable_option_name', true, $option_name );
 	}
 
 	/**
