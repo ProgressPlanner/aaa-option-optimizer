@@ -171,7 +171,8 @@ Submit a pull request on GitHub to
 
 Security:
 
-* Hardened the escaping of option data in the admin screens.
+* Hardened the escaping of option data in the admin screens
+  ([CVE-2026-119211](https://www.cve.org/CVERecord?id=CVE-2026-119211)).
 
 Bug fixes:
 
