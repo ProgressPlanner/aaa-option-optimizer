@@ -230,7 +230,7 @@ class REST {
 			$output[] = [
 				'name'     => $option->option_name,
 				'plugin'   => $this->get_plugin_name( $option->option_name ),
-				'value'    => htmlentities( $option->option_value, ENT_QUOTES | ENT_SUBSTITUTE ),
+				'value'    => $option->option_value,
 				'size'     => $this->get_length( $option->option_value ),
 				'raw_size' => strlen( $option->option_value ),
 				'autoload' => $option->autoload,
@@ -322,7 +322,7 @@ class REST {
 				$response_data[] = [
 					'name'     => $row->option_name,
 					'plugin'   => $this->get_plugin_name( $row->option_name ),
-					'value'    => htmlentities( $row->option_value, ENT_QUOTES | ENT_SUBSTITUTE ),
+					'value'    => $row->option_value,
 					'size'     => $this->get_length( $row->option_value ),
 					'raw_size' => strlen( $row->option_value ),
 					'autoload' => 'yes',
@@ -461,7 +461,7 @@ class REST {
 			$response_data[] = [
 				'name'     => $row->option_name,
 				'plugin'   => $this->get_plugin_name( $row->option_name ),
-				'value'    => htmlentities( maybe_serialize( $row->option_value ), ENT_QUOTES | ENT_SUBSTITUTE ),
+				'value'    => maybe_serialize( $row->option_value ),
 				'size'     => $this->get_length( $row->option_value ),
 				'raw_size' => strlen( $row->option_value ),
 				'autoload' => 'no',

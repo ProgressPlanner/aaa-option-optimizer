@@ -30,13 +30,47 @@ jQuery( document ).ready( function () {
 	} );
 
 	/**
+	 * Escape a string for safe insertion into HTML text or a double-quoted attribute.
+	 *
+	 * Option names are arbitrary strings that can contain HTML metacharacters, so
+	 * every value interpolated into markup below is passed through this first.
+	 *
+	 * @param {*} value - The value to escape.
+	 * @return {string} The escaped string.
+	 */
+	function escapeHtml( value ) {
+		return String( value ).replace( /[&<>"'`]/g, ( char ) => {
+			return {
+				'&': '&amp;',
+				'<': '&lt;',
+				'>': '&gt;',
+				'"': '&quot;',
+				"'": '&#39;',
+				'`': '&#96;',
+			}[ char ];
+		} );
+	}
+
+	/**
 	 * Generate row ID for an option name.
+	 *
+	 * The result is used both as a DataTables row id and as an HTML id/attribute
+	 * target, so it must not contain characters that could break out of markup.
+	 * Letters, digits and '_' are kept, every other character is encoded as
+	 * '-<hex code point>-'. A literal '-' never appears otherwise, so distinct
+	 * option names always get distinct IDs (e.g. 'foo:bar' vs 'foo_bar').
 	 *
 	 * @param {string} optionName - The option name.
 	 * @return {string} The row ID.
 	 */
 	function generateRowId( optionName ) {
-		return 'option_' + optionName.replace( /\./g, '_' );
+		return (
+			'option_' +
+			String( optionName ).replace(
+				/[^A-Za-z0-9_]/gu,
+				( char ) => '-' + char.codePointAt( 0 ).toString( 16 ) + '-'
+			)
+		);
 	}
 
 	/**
@@ -177,13 +211,14 @@ jQuery( document ).ready( function () {
 			{
 				name: 'checkbox',
 				data: 'name',
-				render: ( data, type, row ) => renderCheckboxColumn( row ),
+				render: ( data, type, row, meta ) =>
+					renderCheckboxColumn( row, meta.settings.sTableId ),
 				orderable: false,
 				searchable: false,
 				className: 'select-all',
 			},
-			{ name: 'name', data: 'name' },
-			{ name: 'source', data: 'plugin' },
+			{ name: 'name', data: 'name', render: DataTable.render.text() },
+			{ name: 'source', data: 'plugin', render: DataTable.render.text() },
 			{ name: 'size', data: 'size', searchable: false },
 			{
 				name: 'autoload',
@@ -191,11 +226,13 @@ jQuery( document ).ready( function () {
 				className: 'autoload',
 				searchable: false,
 				orderable: false,
+				render: DataTable.render.text(),
 			},
 			{
 				name: 'value',
 				data: 'value',
-				render: ( data, type, row ) => renderValueColumn( row ),
+				render: ( data, type, row, meta ) =>
+					renderValueColumn( row, meta.settings.sTableId ),
 				orderable: false,
 				searchable: false,
 				className: 'actions',
@@ -203,9 +240,23 @@ jQuery( document ).ready( function () {
 		];
 		if ( selector === '#requested_do_not_exist_table' ) {
 			return [
-				{ name: 'option', data: 'name' },
-				{ name: 'source', data: 'plugin', searchable: false },
-				{ name: 'calls', data: 'count', searchable: false },
+				{
+					name: 'option',
+					data: 'name',
+					render: DataTable.render.text(),
+				},
+				{
+					name: 'source',
+					data: 'plugin',
+					searchable: false,
+					render: DataTable.render.text(),
+				},
+				{
+					name: 'calls',
+					data: 'count',
+					searchable: false,
+					render: DataTable.render.text(),
+				},
 				{
 					name: 'option_name',
 					data: 'option_name',
@@ -221,13 +272,18 @@ jQuery( document ).ready( function () {
 				{
 					name: 'checkbox',
 					data: 'name',
-					render: ( data, type, row ) => renderCheckboxColumn( row ),
+					render: ( data, type, row, meta ) =>
+						renderCheckboxColumn( row, meta.settings.sTableId ),
 					orderable: false,
 					searchable: false,
 					className: 'select-all',
 				},
-				{ name: 'name', data: 'name' },
-				{ name: 'source', data: 'plugin' },
+				{ name: 'name', data: 'name', render: DataTable.render.text() },
+				{
+					name: 'source',
+					data: 'plugin',
+					render: DataTable.render.text(),
+				},
 				{ name: 'size', data: 'size', searchable: false },
 				{
 					name: 'autoload',
@@ -235,12 +291,19 @@ jQuery( document ).ready( function () {
 					className: 'autoload',
 					searchable: false,
 					orderable: false,
+					render: DataTable.render.text(),
 				},
-				{ name: 'calls', data: 'count', searchable: false },
+				{
+					name: 'calls',
+					data: 'count',
+					searchable: false,
+					render: DataTable.render.text(),
+				},
 				{
 					name: 'value',
 					data: 'value',
-					render: ( data, type, row ) => renderValueColumn( row ),
+					render: ( data, type, row, meta ) =>
+						renderValueColumn( row, meta.settings.sTableId ),
 					orderable: false,
 					searchable: false,
 					className: 'actions',
@@ -251,29 +314,37 @@ jQuery( document ).ready( function () {
 				{
 					name: 'checkbox',
 					data: 'name',
-					render: ( data, type, row ) => renderCheckboxColumn( row ),
+					render: ( data, type, row, meta ) =>
+						renderCheckboxColumn( row, meta.settings.sTableId ),
 					orderable: false,
 					searchable: false,
 					className: 'select-all',
 				},
-				{ name: 'name', data: 'name' },
-				{ name: 'source', data: 'plugin' },
+				{ name: 'name', data: 'name', render: DataTable.render.text() },
+				{
+					name: 'source',
+					data: 'plugin',
+					render: DataTable.render.text(),
+				},
 				{
 					name: 'size',
 					data: 'size',
 					searchable: false,
-					render: ( data ) => `<span class="num">${ data }</span>`,
+					render: ( data ) =>
+						`<span class="num">${ escapeHtml( data ) }</span>`,
 				},
 				{
 					name: 'autoload',
 					data: 'autoload',
 					className: 'autoload',
 					searchable: false,
+					render: DataTable.render.text(),
 				},
 				{
 					name: 'value',
 					data: 'value',
-					render: ( data, type, row ) => renderValueColumn( row ),
+					render: ( data, type, row, meta ) =>
+						renderValueColumn( row, meta.settings.sTableId ),
 					orderable: false,
 					searchable: false,
 					className: 'actions',
@@ -320,35 +391,54 @@ jQuery( document ).ready( function () {
 	}
 
 	/**
+	 * Checks whether an autoload value means the option is not autoloaded.
+	 * WordPress 6.6+ stores 'on', 'off', 'auto', 'auto-on' and 'auto-off' next to the legacy 'yes' and 'no'.
+	 *
+	 * @param {string} autoload - The autoload value.
+	 *
+	 * @return {boolean} True if the option is not autoloaded.
+	 */
+	function isNotAutoloaded( autoload ) {
+		return [ 'no', 'off', 'auto-off' ].includes( autoload );
+	}
+
+	/**
 	 * Renders the value column for a row.
 	 *
-	 * @param {Object} row - The row data.
+	 * @param {Object} row     - The row data.
+	 * @param {string} tableId - The id of the table the row belongs to.
 	 *
 	 * @return {string} - The HTML for the value column.
 	 */
-	function renderValueColumn( row ) {
-		const popoverContent = `<div id="popover_${ row.name }" popover class="aaa-option-optimizer-popover">
-			<button class="aaa-option-optimizer-popover__close" popovertarget="popover_${ row.name }" popovertargetaction="hide">X</button>
-			<p><strong>Value of <code>${ row.name }</code></strong></p>
-			<pre>${ row.value }</pre>
+	function renderValueColumn( row, tableId ) {
+		// Build the popover id from the sanitized row id, never the raw name, so
+		// it is a safe token both here and in the matching popovertarget below.
+		// The same option can be listed in several tables, so prefix the table id to keep it unique.
+		const popoverId = tableId + '-popover_' + generateRowId( row.name );
+		const optionAttr = escapeHtml( row.name );
+
+		const popoverContent = `<div id="${ popoverId }" popover class="aaa-option-optimizer-popover">
+			<button class="aaa-option-optimizer-popover__close" popovertarget="${ popoverId }" popovertargetaction="hide">X</button>
+			<p><strong>Value of <code>${ escapeHtml( row.name ) }</code></strong></p>
+			<pre>${ escapeHtml( row.value ) }</pre>
 		</div>`;
 
 		const actions = [
-			`<button class="button dashicon" popovertarget="popover_${ row.name }">
+			`<button class="button dashicon" popovertarget="${ popoverId }">
 				<span class="dashicons dashicons-search"></span>
 				${ aaaOptionOptimizer.i18n.showValue }
 			</button>`,
 			popoverContent,
-			row.autoload === 'no'
-				? `<button class="button dashicon add-autoload" data-option="${ row.name }">
+			isNotAutoloaded( row.autoload )
+				? `<button class="button dashicon add-autoload" data-option="${ optionAttr }">
 					<span class="dashicons dashicons-plus"></span>
 					${ aaaOptionOptimizer.i18n.addAutoload }
 				</button>`
-				: `<button class="button dashicon remove-autoload" data-option="${ row.name }">
+				: `<button class="button dashicon remove-autoload" data-option="${ optionAttr }">
 					<span class="dashicons dashicons-minus"></span>
 					${ aaaOptionOptimizer.i18n.removeAutoload }
 				</button>`,
-			`<button class="button button-delete delete-option" data-option="${ row.name }">
+			`<button class="button button-delete delete-option" data-option="${ optionAttr }">
 				<span class="dashicons dashicons-trash"></span>
 				${ aaaOptionOptimizer.i18n.deleteOption }
 			</button>`,
@@ -365,7 +455,9 @@ jQuery( document ).ready( function () {
 	 * @return {string} - The HTML for the value column.
 	 */
 	function renderNonExistingOptionsColumn( row ) {
-		return `<button class="button button-primary create-option-false" data-option="${ row.name }">
+		return `<button class="button button-primary create-option-false" data-option="${ escapeHtml(
+			row.name
+		) }">
 				${ aaaOptionOptimizer.i18n.createOptionFalse }
 			</button>`;
 	}
@@ -373,13 +465,21 @@ jQuery( document ).ready( function () {
 	/**
 	 * Renders the checkbox column for a row.
 	 *
-	 * @param {Object} row - The row data.
+	 * @param {Object} row     - The row data.
+	 * @param {string} tableId - The id of the table the row belongs to.
 	 *
 	 * @return {string} - The HTML for the value column.
 	 */
-	function renderCheckboxColumn( row ) {
-		return `<label for="select-option-${ row.name }">
-				<input type="checkbox" id="select-option-${ row.name }" class="select-option" data-option="${ row.name }">
+	function renderCheckboxColumn( row, tableId ) {
+		// Build the checkbox id from the sanitized row id, never the raw name, so
+		// the id and its matching label `for` cannot break out of the markup.
+		// The same option can be listed in several tables, so prefix the table id to keep it unique.
+		const checkboxId =
+			tableId + '-select-option-' + generateRowId( row.name );
+		return `<label for="${ checkboxId }">
+				<input type="checkbox" id="${ checkboxId }" class="select-option" data-option="${ escapeHtml(
+					row.name
+				) }">
 			</label>`;
 	}
 
@@ -452,36 +552,21 @@ jQuery( document ).ready( function () {
 	 * @param {string}    action     - The action performed.
 	 */
 	function updateRowOnSuccess( response, table, optionName, action ) {
-		// Get the row ID for the option name.
-		const rowId = generateRowId( optionName );
+		// Look the row up by DataTables row ID, not a CSS selector, so option names with special characters still match.
+		const row = table.row( '#' + generateRowId( optionName ) );
 		if ( action === 'delete-option' || action === 'create-option-false' ) {
-			table
-				.row( 'tr#' + rowId )
-				.remove()
-				.draw( 'full-hold' );
+			row.remove().draw( 'full-hold' );
 		} else if (
 			action === 'add-autoload' ||
 			action === 'remove-autoload'
 		) {
-			const autoloadStatus = action === 'add-autoload' ? 'yes' : 'no';
-			const buttonHTML =
-				action === 'add-autoload'
-					? `<button class="button dashicon remove-autoload" data-option="${ optionName }">
-						<span class="dashicons dashicons-minus"></span>
-						${ aaaOptionOptimizer.i18n.removeAutoload }
-					</button>`
-					: `<button class="button dashicon add-autoload" data-option="${ optionName }">
-						<span class="dashicons dashicons-plus"></span>
-						${ aaaOptionOptimizer.i18n.addAutoload }
-					</button>`;
-
-			jQuery( `tr#${ rowId }` )
-				.find( 'td.autoload' )
-				.text( autoloadStatus );
-			const oldButton = `button.${
-				action === 'add-autoload' ? 'add' : 'remove'
-			}-autoload`;
-			jQuery( `tr#${ rowId } ${ oldButton }` ).replaceWith( buttonHTML );
+			// Update the row data and redraw, so Responsive child rows (collapsed columns) re-render too.
+			// Server-side tables re-fetch the page, client-side tables re-render the row.
+			row.data( {
+				...row.data(),
+				autoload: action === 'add-autoload' ? 'yes' : 'no',
+			} );
+			table.draw( 'full-hold' );
 		}
 	}
 
@@ -607,7 +692,7 @@ jQuery( document ).ready( function () {
 					const dt = table.DataTable();
 
 					requestData.option_names.forEach( ( optionName ) => {
-						dt.row( 'tr#option_' + optionName ).remove();
+						dt.row( '#' + generateRowId( optionName ) ).remove();
 					} );
 
 					dt.draw( 'full-hold' );
@@ -630,6 +715,13 @@ jQuery( document ).ready( function () {
 		if ( jQuery( selector ).length ) {
 			initializeDataTable( selector );
 		}
+	} );
+
+	// Tables in hidden tabs can't measure their columns, so recalculate them once their tab is shown.
+	jQuery( '.aaa-option-optimizer-tabs > .input' ).on( 'change', function () {
+		DataTable.tables( { visible: true, api: true } )
+			.columns.adjust()
+			.responsive.recalc();
 	} );
 
 	// Migration functionality.
