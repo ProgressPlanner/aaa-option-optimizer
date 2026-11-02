@@ -74,6 +74,20 @@ jQuery( document ).ready( function () {
 	}
 
 	/**
+	 * Generate the DataTables row ID for an option name in a table.
+	 *
+	 * The same option can be listed in more than one table, so the table ID is
+	 * included to keep the <tr> ids unique on the page.
+	 *
+	 * @param {string} tableId    - The table ID, without '#'.
+	 * @param {string} optionName - The option name.
+	 * @return {string} The row ID.
+	 */
+	function getTableRowId( tableId, optionName ) {
+		return tableId + '-' + generateRowId( optionName );
+	}
+
+	/**
 	 * Store sources (plugin names) for each table from AJAX responses.
 	 *
 	 * @type {Object}
@@ -106,7 +120,7 @@ jQuery( document ).ready( function () {
 			responsive: true,
 			columns: getColumns( selector ),
 			rowId( data ) {
-				return generateRowId( data.name );
+				return getTableRowId( selector.substring( 1 ), data.name );
 			},
 			initComplete() {
 				this.api().columns( 'source:name' ).every( filterSetup );
@@ -508,7 +522,8 @@ jQuery( document ).ready( function () {
 		e.preventDefault();
 		const button = jQuery( this );
 		const table = button.closest( 'table' ).DataTable();
-		const optionName = button.data( 'option' );
+		// Read the raw attribute, .data() parses JSON-like names such as '["foo"]' or 'null'.
+		const optionName = button.attr( 'data-option' );
 
 		const requestData = { option_name: optionName };
 		let action = '';
@@ -553,7 +568,9 @@ jQuery( document ).ready( function () {
 	 */
 	function updateRowOnSuccess( response, table, optionName, action ) {
 		// Look the row up by DataTables row ID, not a CSS selector, so option names with special characters still match.
-		const row = table.row( '#' + generateRowId( optionName ) );
+		const row = table.row(
+			'#' + getTableRowId( table.table().node().id, optionName )
+		);
 		if ( action === 'delete-option' || action === 'create-option-false' ) {
 			row.remove().draw( 'full-hold' );
 		} else if (
@@ -690,9 +707,12 @@ jQuery( document ).ready( function () {
 				data: requestData,
 				success: () => {
 					const dt = table.DataTable();
+					const tableId = dt.table().node().id;
 
 					requestData.option_names.forEach( ( optionName ) => {
-						dt.row( '#' + generateRowId( optionName ) ).remove();
+						dt.row(
+							'#' + getTableRowId( tableId, optionName )
+						).remove();
 					} );
 
 					dt.draw( 'full-hold' );

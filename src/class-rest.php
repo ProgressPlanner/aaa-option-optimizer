@@ -35,6 +35,23 @@ class REST {
 	}
 
 	/**
+	 * The REST argument definition for a single option name.
+	 *
+	 * The name is used as is, sanitize_text_field() would change names like 'a  b' or 'a<b>c'
+	 * and make the request act on a different option. Requiring a string rejects arrays and objects.
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function get_option_name_arg() {
+		return [
+			'required'  => true,
+			'type'      => 'string',
+			'minLength' => 1,
+			'maxLength' => 191,
+		];
+	}
+
+	/**
 	 * Register the REST API routes.
 	 *
 	 * @return void
@@ -50,10 +67,7 @@ class REST {
 					return current_user_can( 'manage_options' );
 				},
 				'args'                => [
-					'option_name' => [
-						'required'          => true,
-						'sanitize_callback' => 'sanitize_text_field',
-					],
+					'option_name' => $this->get_option_name_arg(),
 					'autoload'    => [
 						'required'          => true,
 						'sanitize_callback' => 'sanitize_text_field',
@@ -72,10 +86,7 @@ class REST {
 					return current_user_can( 'manage_options' );
 				},
 				'args'                => [
-					'option_name' => [
-						'required'          => true,
-						'sanitize_callback' => 'sanitize_text_field',
-					],
+					'option_name' => $this->get_option_name_arg(),
 				],
 			]
 		);
@@ -90,10 +101,7 @@ class REST {
 					return current_user_can( 'manage_options' );
 				},
 				'args'                => [
-					'option_name' => [
-						'required'          => true,
-						'sanitize_callback' => 'sanitize_text_field',
-					],
+					'option_name' => $this->get_option_name_arg(),
 				],
 			]
 		);
