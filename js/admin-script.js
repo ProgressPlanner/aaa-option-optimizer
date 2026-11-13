@@ -106,7 +106,7 @@ jQuery( document ).ready( function () {
 			responsive: true,
 			columns: getColumns( selector ),
 			rowId( data ) {
-				return generateRowId( data.name );
+				return selector.substring( 1 ) + '-' + generateRowId( data.name );
 			},
 			initComplete() {
 				this.api().columns( 'source:name' ).every( filterSetup );
@@ -122,6 +122,14 @@ jQuery( document ).ready( function () {
 				headers: { 'X-WP-Nonce': aaaOptionOptimizer.nonce },
 				type: 'GET',
 				dataSrc( json ) {
+					if (
+						json.tracking_limited &&
+						! jQuery( '#aaa-tracking-limited' ).length
+					) {
+						jQuery( '<p id="aaa-tracking-limited" role="status"></p>' )
+							.text( aaaOptionOptimizer.i18n.trackingLimited )
+							.insertBefore( selector );
+					}
 					tableSources[ selector ] = json.sources || [];
 					return json.data;
 				},
@@ -444,7 +452,7 @@ jQuery( document ).ready( function () {
 			</button>`,
 		];
 
-		return actions.join( '' );
+		return ( row.protected ? actions.slice( 0, 2 ) : actions ).join( '' );
 	}
 
 	/**
@@ -455,6 +463,9 @@ jQuery( document ).ready( function () {
 	 * @return {string} - The HTML for the value column.
 	 */
 	function renderNonExistingOptionsColumn( row ) {
+		if ( row.protected ) {
+			return '';
+		}
 		return `<button class="button button-primary create-option-false" data-option="${ escapeHtml(
 			row.name
 		) }">
@@ -471,6 +482,9 @@ jQuery( document ).ready( function () {
 	 * @return {string} - The HTML for the value column.
 	 */
 	function renderCheckboxColumn( row, tableId ) {
+		if ( row.protected ) {
+			return '';
+		}
 		// Build the checkbox id from the sanitized row id, never the raw name, so
 		// the id and its matching label `for` cannot break out of the markup.
 		// The same option can be listed in several tables, so prefix the table id to keep it unique.
@@ -494,8 +508,9 @@ jQuery( document ).ready( function () {
 				response // eslint-disable-line no-unused-vars
 			) =>
 				( window.location = `${ window.location.href }&tracking_reset=true` ),
-			error: ( response ) =>
-				console.error( 'Failed to reset tracking.', response ), // eslint-disable-line no-console
+			error: ( response ) => {
+				alert( response.responseJSON?.message || aaaOptionOptimizer.i18n.actionFailed ); // eslint-disable-line no-alert
+			},
 		} );
 	} );
 
@@ -508,7 +523,7 @@ jQuery( document ).ready( function () {
 		e.preventDefault();
 		const button = jQuery( this );
 		const table = button.closest( 'table' ).DataTable();
-		const optionName = button.data( 'option' );
+		const optionName = button.attr( 'data-option' );
 
 		const requestData = { option_name: optionName };
 		let action = '';
@@ -517,6 +532,13 @@ jQuery( document ).ready( function () {
 		if ( button.hasClass( 'create-option-false' ) ) {
 			action = route = 'create-option-false';
 		} else if ( button.hasClass( 'delete-option' ) ) {
+			if (
+				! window.confirm( // eslint-disable-line no-alert
+					aaaOptionOptimizer.i18n.confirmDelete + '\n' + optionName
+				)
+			) {
+				return;
+			}
 			action = route = 'delete-option';
 		} else {
 			action = button.hasClass( 'add-autoload' )
@@ -534,12 +556,10 @@ jQuery( document ).ready( function () {
 			data: requestData,
 			success: ( response ) =>
 				updateRowOnSuccess( response, table, optionName, action ),
-			error: ( response ) =>
-				// eslint-disable-next-line no-console
-				console.error(
-					`Failed to ${ action } for ${ optionName }.`,
-					response
-				),
+			error: ( response ) => {
+				table.ajax.reload( null, false );
+				alert( response.responseJSON?.message || aaaOptionOptimizer.i18n.actionFailed ); // eslint-disable-line no-alert
+			},
 		} );
 	}
 
@@ -553,7 +573,9 @@ jQuery( document ).ready( function () {
 	 */
 	function updateRowOnSuccess( response, table, optionName, action ) {
 		// Look the row up by DataTables row ID, not a CSS selector, so option names with special characters still match.
-		const row = table.row( '#' + generateRowId( optionName ) );
+		const row = table.row(
+			'#' + table.table().node().id + '-' + generateRowId( optionName )
+		);
 		if ( action === 'delete-option' || action === 'create-option-false' ) {
 			row.remove().draw( 'full-hold' );
 		} else if (
@@ -658,7 +680,15 @@ jQuery( document ).ready( function () {
 				return;
 			}
 
-			// For now we only have delete in bulk action.
+			if (
+				bulkAction === 'delete' &&
+				! window.confirm( // eslint-disable-line no-alert
+					aaaOptionOptimizer.i18n.confirmDelete + '\n' +
+					selectedOptions.length + ' ' + aaaOptionOptimizer.i18n.selectedOptions
+				)
+			) {
+				return;
+			}
 
 			const requestData = {
 				option_names: Array.from( selectedOptions ).map( ( option ) =>
@@ -691,11 +721,7 @@ jQuery( document ).ready( function () {
 				success: () => {
 					const dt = table.DataTable();
 
-					requestData.option_names.forEach( ( optionName ) => {
-						dt.row( '#' + generateRowId( optionName ) ).remove();
-					} );
-
-					dt.draw( 'full-hold' );
+					dt.ajax.reload( null, false );
 
 					// Clear the select-all checkbox.
 					table
@@ -703,6 +729,8 @@ jQuery( document ).ready( function () {
 						.prop( 'checked', false );
 				},
 				error: ( response ) => {
+					table.DataTable().ajax.reload( null, false );
+					alert( response.responseJSON?.message || aaaOptionOptimizer.i18n.actionFailed ); // eslint-disable-line no-alert
 					// eslint-disable-next-line no-console
 					console.error( 'Failed to delete options.', response );
 				},
@@ -784,8 +812,8 @@ jQuery( document ).ready( function () {
 						}, 1000 );
 					}
 				},
-				error() {
-					statusText.text( aaaOptionOptimizer.i18n.migrationError );
+				error( response ) {
+					statusText.text( response.responseJSON?.message || aaaOptionOptimizer.i18n.migrationError );
 					button.prop( 'disabled', false );
 				},
 			} );

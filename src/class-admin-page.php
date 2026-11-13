@@ -7,6 +7,10 @@
 
 namespace Progress_Planner\OptionOptimizer;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Admin page functionality for AAA Autoload Optimizer.
  */
@@ -197,9 +201,13 @@ class Admin_Page {
 					'showValue'              => \esc_html__( 'Show', 'aaa-option-optimizer' ),
 					'addAutoload'            => \esc_html__( 'Add autoload', 'aaa-option-optimizer' ),
 					'removeAutoload'         => \esc_html__( 'Remove autoload', 'aaa-option-optimizer' ),
+					'confirmDelete'          => \__( 'Permanently delete the selected option(s)? This cannot be undone. Make sure you have a database backup.', 'aaa-option-optimizer' ),
+					'selectedOptions'        => \__( 'options selected', 'aaa-option-optimizer' ),
+					'trackingLimited'        => \__( 'Tracking is incomplete. Reset tracking and collect fresh observations before reviewing unused options.', 'aaa-option-optimizer' ),
+					'actionFailed'           => \__( 'The action could not be completed.', 'aaa-option-optimizer' ),
 					'deleteOption'           => \esc_html__( 'Delete', 'aaa-option-optimizer' ),
 					'createOptionFalse'      => \esc_html__( 'Create option with value false', 'aaa-option-optimizer' ),
-					'noAutoloadedButNotUsed' => \esc_html__( 'All autoloaded options are in use.', 'aaa-option-optimizer' ),
+					'noAutoloadedButNotUsed' => \esc_html__( 'No unused autoloaded options to display.', 'aaa-option-optimizer' ),
 					'noUsedButNotAutoloaded' => \esc_html__( 'All options that are used are autoloaded.', 'aaa-option-optimizer' ),
 					'noOptionsSelected'      => \esc_html__( 'No options selected.', 'aaa-option-optimizer' ),
 					'bulkActions'            => \esc_html__( 'Bulk actions', 'aaa-option-optimizer' ),
@@ -272,6 +280,11 @@ class Admin_Page {
 		?>
 		<div class="wrap">
 			<h1><?php \esc_html_e( 'AAA Autoload Optimizer', 'aaa-option-optimizer' ); ?></h1>
+			<p><?php \esc_html_e( 'Option values may contain passwords, API keys and licence keys. Anyone with permission to manage options can view these values through this plugin. Only grant access to trusted administrators.', 'aaa-option-optimizer' ); ?></p>
+
+			<?php if ( Database::is_tracking_limited() ) : ?>
+			<div class="notice notice-warning"><p><?php \esc_html_e( 'Tracking reached its storage or request limit, or a tracking write failed. Unused-option recommendations are paused because observations are incomplete. Reset tracking to start a new observation period.', 'aaa-option-optimizer' ); ?></p></div>
+			<?php endif; ?>
 
 			<?php if ( $migration_status['needs_migration'] ) : ?>
 			<div id="aaa-migration-notice" class="notice notice-warning">

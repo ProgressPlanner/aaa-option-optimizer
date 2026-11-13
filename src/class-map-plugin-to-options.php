@@ -7,6 +7,10 @@
 
 namespace Progress_Planner\OptionOptimizer;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Class Map_Plugin_To_Options
  *

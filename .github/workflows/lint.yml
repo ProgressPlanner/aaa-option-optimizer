@@ -70,3 +70,16 @@ jobs:
 
       - name: Lint known plugins file
         run: composer lint-known-plugins
+
+  javascript-regressions:
+    name: Admin action regressions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test exact option names and deletion confirmation
+        run: node --test tests/admin-hardening.test.cjs
