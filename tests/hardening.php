@@ -91,6 +91,13 @@ check(
 	)->get_status(),
 	'Bulk autoload.'
 );
+// List responses must preserve the serialized bytes already stored in wp_options.
+Database::batch_insert( array_fill_keys( $names, 1 ) );
+$listed_values = array_column( request( 'used-not-autoloaded-options', [], 'GET' )->get_data()['data'], 'value', 'name' );
+foreach ( $names as $name ) {
+	$stored_value = $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM $wpdb->options WHERE option_name = %s", $name ) );
+	check( $stored_value === ( $listed_values[ $name ] ?? null ), 'List response must not serialize the raw value again: ' . $name );
+}
 add_option( 'aaaoo_false', false, '', false );
 check(
 	200 === request(

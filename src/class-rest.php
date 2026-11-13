@@ -524,7 +524,7 @@ class REST {
 				'name'      => $row->option_name,
 				'protected' => Protected_Options::is_protected( $row->option_name ),
 				'plugin'    => $this->get_plugin_name( $row->option_name ),
-				'value'     => maybe_serialize( $row->option_value ),
+				'value'     => $row->option_value,
 				'size'      => $this->get_length( $row->option_value ),
 				'raw_size'  => strlen( $row->option_value ),
 				'autoload'  => 'no',
