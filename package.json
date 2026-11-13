@@ -22,6 +22,7 @@
 		"husky": "^9.0.11"
 	},
 	"scripts": {
+		"test:hardening:js": "node --test tests/admin-hardening.test.cjs",
 		"format": "wp-scripts format ./assets",
 		"lint:css": "wp-scripts lint-style \"**/*.css\"",
 		"lint:css:fix": "npm run lint:css -- --fix",

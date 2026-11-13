@@ -7,9 +7,15 @@
 
 namespace Progress_Planner\OptionOptimizer;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
+
+// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Core REST authentication checks cookie nonces; application passwords need no nonce.
 
 /**
  * REST functionality of AAA Autoload Optimizer.
@@ -35,6 +41,75 @@ class REST {
 	}
 
 	/**
+	 * Describe an option identifier without changing its contents.
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function get_option_name_arg() {
+		return [
+			'required'          => true,
+			'type'              => 'string',
+			'minLength'         => 1,
+			'maxLength'         => 191,
+			'validate_callback' => [ $this, 'validate_option_name' ],
+		];
+	}
+
+	/**
+	 * Reject identifiers that WordPress would trim or that cannot exist.
+	 *
+	 * @param mixed $value Submitted identifier.
+	 * @return bool
+	 */
+	public function validate_option_name( $value ) {
+		return is_string( $value ) && '' !== $value && trim( $value ) === $value
+			&& false === strpos( $value, "\0" ) && mb_strlen( $value ) <= 191;
+	}
+
+	/**
+	 * Describe a bounded list of exact option identifiers.
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function get_option_names_arg() {
+		return [
+			'required'          => true,
+			'type'              => 'array',
+			'minItems'          => 1,
+			'maxItems'          => 500,
+			'items'             => [
+				'type'      => 'string',
+				'minLength' => 1,
+				'maxLength' => 191,
+			],
+			'validate_callback' => function ( $value ) {
+				if ( ! is_array( $value ) || ! $value || count( $value ) > 500 || array_keys( $value ) !== range( 0, count( $value ) - 1 ) ) {
+					return false;
+				}
+				foreach ( $value as $name ) {
+					if ( ! $this->validate_option_name( $name ) ) {
+						return false;
+					}
+				}
+				return true;
+			},
+		];
+	}
+
+	/**
+	 * Describe supported autoload states.
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function get_autoload_arg() {
+		return [
+			'required' => true,
+			'type'     => 'string',
+			'enum'     => [ 'yes', 'on', 'no', 'off', 'auto', 'auto-on', 'auto-off' ],
+		];
+	}
+
+	/**
 	 * Register the REST API routes.
 	 *
 	 * @return void
@@ -50,14 +125,8 @@ class REST {
 					return current_user_can( 'manage_options' );
 				},
 				'args'                => [
-					'option_name' => [
-						'required'          => true,
-						'sanitize_callback' => 'sanitize_text_field',
-					],
-					'autoload'    => [
-						'required'          => true,
-						'sanitize_callback' => 'sanitize_text_field',
-					],
+					'option_name' => $this->get_option_name_arg(),
+					'autoload'    => $this->get_autoload_arg(),
 				],
 			]
 		);
@@ -72,10 +141,7 @@ class REST {
 					return current_user_can( 'manage_options' );
 				},
 				'args'                => [
-					'option_name' => [
-						'required'          => true,
-						'sanitize_callback' => 'sanitize_text_field',
-					],
+					'option_name' => $this->get_option_name_arg(),
 				],
 			]
 		);
@@ -90,10 +156,7 @@ class REST {
 					return current_user_can( 'manage_options' );
 				},
 				'args'                => [
-					'option_name' => [
-						'required'          => true,
-						'sanitize_callback' => 'sanitize_text_field',
-					],
+					'option_name' => $this->get_option_name_arg(),
 				],
 			]
 		);
@@ -167,6 +230,9 @@ class REST {
 				'permission_callback' => function () {
 					return current_user_can( 'manage_options' );
 				},
+				'args'                => [
+					'option_names' => $this->get_option_names_arg(),
+				],
 			]
 		);
 
@@ -179,6 +245,10 @@ class REST {
 				'permission_callback' => function () {
 					return current_user_can( 'manage_options' );
 				},
+				'args'                => [
+					'option_names' => $this->get_option_names_arg(),
+					'autoload'     => $this->get_autoload_arg(),
+				],
 			]
 		);
 
@@ -201,7 +271,9 @@ class REST {
 	 * @return \WP_Error|\WP_REST_Response
 	 */
 	public function reset_stats() {
-		Plugin::get_instance()->reset();
+		if ( ! Plugin::get_instance()->reset() ) {
+			return new \WP_Error( 'tracking_reset_failed', \__( 'Tracking could not be reset. Please try again.', 'aaa-option-optimizer' ), [ 'status' => 503 ] );
+		}
 		return new \WP_REST_Response( [ 'success' => true ], 200 );
 	}
 
@@ -212,7 +284,7 @@ class REST {
 	 */
 	public function migrate_chunk() {
 		$result = Database::migrate_chunk();
-		return new \WP_REST_Response( $result, 200 );
+		return new \WP_REST_Response( $result, $result['success'] ? 200 : 503 );
 	}
 
 	/**
@@ -228,12 +300,13 @@ class REST {
 		$options = $wpdb->get_results( "SELECT option_name, option_value, autoload FROM $wpdb->options" );
 		foreach ( $options as $option ) {
 			$output[] = [
-				'name'     => $option->option_name,
-				'plugin'   => $this->get_plugin_name( $option->option_name ),
-				'value'    => $option->option_value,
-				'size'     => $this->get_length( $option->option_value ),
-				'raw_size' => strlen( $option->option_value ),
-				'autoload' => $option->autoload,
+				'name'      => $option->option_name,
+				'protected' => Protected_Options::is_protected( $option->option_name ),
+				'plugin'    => $this->get_plugin_name( $option->option_name ),
+				'value'     => $option->option_value,
+				'size'      => $this->get_length( $option->option_value ),
+				'raw_size'  => strlen( $option->option_value ),
+				'autoload'  => $option->autoload,
 			];
 		}
 		return new \WP_REST_Response( [ 'data' => $output ], 200 );
@@ -245,8 +318,18 @@ class REST {
 	 * @return \WP_Error|\WP_REST_Response
 	 */
 	public function get_unused_options() {
-		if ( ! isset( $_SERVER['HTTP_X_WP_NONCE'] ) || ! \wp_verify_nonce( \sanitize_text_field( \wp_unslash( $_SERVER['HTTP_X_WP_NONCE'] ) ), 'wp_rest' ) ) {
-			return new \WP_REST_Response( [ 'error' => 'Invalid nonce' ], 403 );
+		if ( Database::is_tracking_limited() ) {
+			return new \WP_REST_Response(
+				[
+					'draw'             => intval( $_GET['draw'] ?? 0 ),
+					'recordsTotal'     => 0,
+					'recordsFiltered'  => 0,
+					'data'             => [],
+					'sources'          => [],
+					'tracking_limited' => true,
+				],
+				200
+			);
 		}
 
 		global $wpdb;
@@ -308,24 +391,18 @@ class REST {
 		$response_data = [];
 
 		if ( ! empty( $paged_option_names ) ) {
-			$placeholders = implode( ',', array_fill( 0, count( $paged_option_names ), '%s' ) );
-			$value_query  = "
-				SELECT option_name, option_value
-				FROM {$wpdb->options}
-				WHERE option_name IN ( {$placeholders} )
-			";
-
-			$results = $wpdb->get_results( $wpdb->prepare( $value_query, ...$paged_option_names ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+			$results = $this->get_option_rows( $paged_option_names );
 
 			// Format output.
 			foreach ( $results as $row ) {
 				$response_data[] = [
-					'name'     => $row->option_name,
-					'plugin'   => $this->get_plugin_name( $row->option_name ),
-					'value'    => $row->option_value,
-					'size'     => $this->get_length( $row->option_value ),
-					'raw_size' => strlen( $row->option_value ),
-					'autoload' => 'yes',
+					'name'      => $row->option_name,
+					'protected' => Protected_Options::is_protected( $row->option_name ),
+					'plugin'    => $this->get_plugin_name( $row->option_name ),
+					'value'     => $row->option_value,
+					'size'      => $this->get_length( $row->option_value ),
+					'raw_size'  => strlen( $row->option_value ),
+					'autoload'  => 'yes',
 				];
 			}
 
@@ -357,13 +434,6 @@ class REST {
 	 * @return \WP_Error|\WP_REST_Response
 	 */
 	public function get_used_not_autoloaded_options() {
-		if (
-			! isset( $_SERVER['HTTP_X_WP_NONCE'] ) ||
-			! wp_verify_nonce( sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_WP_NONCE'] ) ), 'wp_rest' )
-		) {
-			return new \WP_REST_Response( [ 'error' => 'Invalid nonce' ], 403 );
-		}
-
 		global $wpdb;
 
 		// Load used options from custom table (with counts).
@@ -447,25 +517,18 @@ class REST {
 
 		$response_data = [];
 
-		// $paged_option_names is not empty.
-		// Fetch values directly from DB without using get_option().
-		$placeholders = implode( ',', array_fill( 0, count( $paged_option_names ), '%s' ) );
-		$sql          = "
-			SELECT option_name, option_value
-			FROM {$wpdb->options}
-			WHERE option_name IN ( {$placeholders} )"; // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
-		$results = $wpdb->get_results( $wpdb->prepare( $sql, ...$paged_option_names ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$results = $this->get_option_rows( $paged_option_names );
 
 		foreach ( $results as $row ) {
 			$response_data[] = [
-				'name'     => $row->option_name,
-				'plugin'   => $this->get_plugin_name( $row->option_name ),
-				'value'    => maybe_serialize( $row->option_value ),
-				'size'     => $this->get_length( $row->option_value ),
-				'raw_size' => strlen( $row->option_value ),
-				'autoload' => 'no',
-				'count'    => $used_options[ $row->option_name ] ?? 0,
+				'name'      => $row->option_name,
+				'protected' => Protected_Options::is_protected( $row->option_name ),
+				'plugin'    => $this->get_plugin_name( $row->option_name ),
+				'value'     => $row->option_value,
+				'size'      => $this->get_length( $row->option_value ),
+				'raw_size'  => strlen( $row->option_value ),
+				'autoload'  => 'no',
+				'count'     => $used_options[ $row->option_name ] ?? 0,
 			];
 		}
 
@@ -495,10 +558,6 @@ class REST {
 	 * @return \WP_Error|\WP_REST_Response
 	 */
 	public function get_options_that_do_not_exist() {
-		if ( ! isset( $_SERVER['HTTP_X_WP_NONCE'] ) || ! wp_verify_nonce( \sanitize_text_field( \wp_unslash( $_SERVER['HTTP_X_WP_NONCE'] ) ), 'wp_rest' ) ) {
-			return new \WP_REST_Response( [ 'error' => 'Invalid nonce' ], 403 );
-		}
-
 		global $wpdb;
 
 		// Load used options from custom table (with counts).
@@ -544,15 +603,7 @@ class REST {
 		}
 
 		// Check which of them actually exist in the options table.
-		$option_names = array_keys( $non_autoloaded_keys );
-		$placeholders = implode( ',', array_fill( 0, count( $option_names ), '%s' ) );
-
-		$existing_option_names = $wpdb->get_col(  // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$wpdb->prepare(
-				"SELECT option_name FROM {$wpdb->options} WHERE option_name IN ($placeholders)", // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
-				...$option_names
-			)
-		);
+		$existing_option_names = array_column( $this->get_option_rows( array_keys( $non_autoloaded_keys ), false ), 'option_name' );
 		$existing_keys         = array_fill_keys( $existing_option_names, true );
 
 		// Build array of non-existing options (before any filtering).
@@ -560,10 +611,11 @@ class REST {
 		foreach ( $non_autoloaded_keys as $option => $count ) {
 			if ( ! isset( $existing_keys[ $option ] ) ) {
 				$non_existing_options[ $option ] = [
-					'name'        => $option,
+					'name'        => (string) $option,
+					'protected'   => Protected_Options::is_protected( (string) $option ),
 					'plugin'      => $this->get_plugin_name( $option ),
 					'count'       => $count,
-					'option_name' => $option,
+					'option_name' => (string) $option,
 				];
 			}
 		}
@@ -625,48 +677,48 @@ class REST {
 	}
 
 	/**
+	 * Fetch option rows in bounded queries.
+	 *
+	 * @param array<int|string> $names Option identifiers.
+	 * @param bool              $include_values Whether values are needed.
+	 * @return object[]
+	 */
+	private function get_option_rows( array $names, $include_values = true ) {
+		global $wpdb;
+		$rows    = [];
+		$columns = $include_values ? 'option_name, option_value' : 'option_name';
+		foreach ( array_chunk( $names, 500 ) as $chunk ) {
+			$slots = implode( ',', array_fill( 0, count( $chunk ), '%s' ) );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+			$rows = array_merge( $rows, $wpdb->get_results( $wpdb->prepare( "SELECT $columns FROM {$wpdb->options} WHERE option_name IN ($slots) ORDER BY option_name", $chunk ) ) );
+		}
+		return $rows;
+	}
+
+	/**
 	 * Update autoload status of an option.
 	 *
-	 * @param \WP_REST_Request $request The REST request object.
+	 * @param \WP_REST_Request<array<string, mixed>> $request The REST request object.
 	 *
 	 * @return \WP_Error|\WP_REST_Response
 	 */
 	public function update_option_autoload( $request ) {
-		$option_name  = $request['option_name'];
-		$autoload     = $request['autoload'];
-		$option_value = get_option( $option_name );
-
-		if ( ! in_array( $autoload, [ 'yes', 'on', 'no', 'off','auto', 'auto-on', 'auto-off' ], true ) ) {
-			return new \WP_Error( 'invalid_autoload_value', 'Invalid autoload value', [ 'status' => 400 ] );
-		}
-
-		if ( false === $option_value ) {
-			return new \WP_Error( 'option_not_found', 'Option does not exist', [ 'status' => 404 ] );
-		}
-
-		delete_option( $option_name );
-		$autoload_values = \wp_autoload_values_to_autoload();
-		$bool_autoload   = false;
-		if ( in_array( $autoload, $autoload_values, true ) ) {
-			$bool_autoload = true;
-		}
-		$succeeded = add_option( $option_name, $option_value, '', $bool_autoload );
-
-		if ( ! $succeeded ) {
-			return new \WP_Error( 'update_failed', 'Updating the option failed', [ 'status' => 400 ] );
-		}
-		return new \WP_REST_Response( [ 'success' => true ], 200 );
+		return $this->update_autoload( [ $request['option_name'] ], $request['autoload'] );
 	}
 
 	/**
 	 * Delete an option.
 	 *
-	 * @param \WP_REST_Request $request The REST request object.
+	 * @param \WP_REST_Request<array<string, mixed>> $request The REST request object.
 	 *
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function delete_option( $request ) {
 		$option_name = $request['option_name'];
+		if ( Protected_Options::is_mutation_protected( $option_name ) ) {
+			return new \WP_Error( 'option_protected', 'Option is protected', [ 'status' => 403 ] );
+		}
+
 		if ( delete_option( $option_name ) ) {
 			return new \WP_REST_Response( [ 'success' => true ], 200 );
 		}
@@ -676,18 +728,33 @@ class REST {
 	/**
 	 * Delete multiple options.
 	 *
-	 * @param \WP_REST_Request $request The REST request object.
+	 * @param \WP_REST_Request<array<string, mixed>> $request The REST request object.
 	 *
 	 * @return \WP_Error|\WP_REST_Response
 	 */
 	public function delete_options( $request ) {
-		if ( ! isset( $_SERVER['HTTP_X_WP_NONCE'] ) || ! \wp_verify_nonce( \sanitize_text_field( \wp_unslash( $_SERVER['HTTP_X_WP_NONCE'] ) ), 'wp_rest' ) ) {
-			return new \WP_REST_Response( [ 'error' => 'Invalid nonce' ], 403 );
-		}
-
 		$option_names = $request['option_names'];
+		// Preflight the entire batch before deleting anything.
 		foreach ( $option_names as $option_name ) {
-			delete_option( $option_name );
+			if ( Protected_Options::is_mutation_protected( $option_name ) ) {
+				return new \WP_Error( 'option_protected', 'Option is protected', [ 'status' => 403 ] );
+			}
+		}
+		$failed = [];
+		foreach ( array_unique( $option_names ) as $option_name ) {
+			if ( ! delete_option( $option_name ) ) {
+				$failed[] = $option_name;
+			}
+		}
+		if ( $failed ) {
+			return new \WP_Error(
+				'delete_failed',
+				'Some options could not be deleted',
+				[
+					'status'       => 400,
+					'option_names' => $failed,
+				]
+			);
 		}
 		return new \WP_REST_Response( [ 'success' => true ], 200 );
 	}
@@ -695,52 +762,75 @@ class REST {
 	/**
 	 * Set autoload status of multiple options.
 	 *
-	 * @param \WP_REST_Request $request The REST request object.
+	 * @param \WP_REST_Request<array<string, mixed>> $request The REST request object.
 	 *
 	 * @return \WP_Error|\WP_REST_Response
 	 */
 	public function set_autoload_options( $request ) {
-		if ( ! isset( $_SERVER['HTTP_X_WP_NONCE'] ) || ! \wp_verify_nonce( \sanitize_text_field( \wp_unslash( $_SERVER['HTTP_X_WP_NONCE'] ) ), 'wp_rest' ) ) {
-			return new \WP_REST_Response( [ 'error' => 'Invalid nonce' ], 403 );
-		}
+		return $this->update_autoload( $request['option_names'], $request['autoload'] );
+	}
 
-		$autoload = \sanitize_text_field( \wp_unslash( $request['autoload'] ) );
-
-		if ( ! in_array( $autoload, [ 'yes', 'on', 'no', 'off','auto', 'auto-on', 'auto-off' ], true ) ) {
-			return new \WP_Error( 'invalid_autoload_value', 'Invalid autoload value', [ 'status' => 400 ] );
-		}
-
-		$autoload_values = \wp_autoload_values_to_autoload();
-		$bool_autoload   = false;
-		if ( in_array( $autoload, $autoload_values, true ) ) {
-			$bool_autoload = true;
-		}
-
-		$option_names = $request['option_names'];
-
+	/**
+	 * Update autoload flags without reading or rewriting option values.
+	 *
+	 * @param string[] $option_names Exact option identifiers.
+	 * @param string   $state Requested autoload state.
+	 * @return \WP_Error|\WP_REST_Response
+	 */
+	private function update_autoload( array $option_names, string $state ) {
 		foreach ( $option_names as $option_name ) {
-			$option_value = get_option( $option_name );
-
-			// If the option does not exist, skip it.
-			if ( false === $option_value ) {
-				continue;
+			if ( Protected_Options::is_mutation_protected( $option_name ) ) {
+				return new \WP_Error( 'option_protected', 'Option is protected', [ 'status' => 403 ] );
 			}
+		}
 
-			delete_option( $option_name );
-			add_option( $option_name, $option_value, '', $bool_autoload );
+		$autoload = in_array( $state, \wp_autoload_values_to_autoload(), true );
+		$results  = \wp_set_option_autoload_values( array_fill_keys( $option_names, $autoload ) );
+		$failed   = [];
+		foreach ( $option_names as $option_name ) {
+			// Core returns false for unchanged rows too. Check the raw state, never the filtered value.
+			if ( empty( $results[ $option_name ] ) && $this->get_raw_autoload( $option_name ) !== ( $autoload ? 'on' : 'off' ) ) {
+				$failed[] = $option_name;
+			}
+		}
+		if ( $failed ) {
+			return new \WP_Error(
+				'update_failed',
+				'Some options could not be updated',
+				[
+					'status'       => 400,
+					'option_names' => $failed,
+				]
+			);
 		}
 		return new \WP_REST_Response( [ 'success' => true ], 200 );
 	}
 
 	/**
+	 * Read only the raw autoload state, without option filters.
+	 *
+	 * @param string $option_name Option name.
+	 * @return string|null
+	 */
+	private function get_raw_autoload( $option_name ) {
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		return $wpdb->get_var( $wpdb->prepare( "SELECT autoload FROM {$wpdb->options} WHERE option_name = %s", $option_name ) );
+	}
+
+	/**
 	 * Create an option with a false value.
 	 *
-	 * @param \WP_REST_Request $request  The REST request object.
+	 * @param \WP_REST_Request<array<string, mixed>> $request  The REST request object.
 	 *
 	 * @return \WP_Error|\WP_REST_Response
 	 */
 	public function create_option_false( $request ) {
 		$option_name = $request['option_name'];
+		if ( Protected_Options::is_mutation_protected( $option_name ) ) {
+			return new \WP_Error( 'option_protected', 'Option is protected', [ 'status' => 403 ] );
+		}
+
 		if ( add_option( $option_name, false, '', false ) ) {
 			return new \WP_REST_Response( [ 'success' => true ], 200 );
 		}
@@ -789,17 +879,10 @@ class REST {
 	 * }
 	 */
 	protected function get_pagination_params(): array {
-		if (
-			! isset( $_SERVER['HTTP_X_WP_NONCE'] ) ||
-			! wp_verify_nonce( sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_WP_NONCE'] ) ), 'wp_rest' )
-		) {
-			return [ 0, 25 ]; // Fallback default.
-		}
-
 		$offset = isset( $_GET['start'] ) ? intval( $_GET['start'] ) : 0;
 		$limit  = isset( $_GET['length'] ) ? intval( $_GET['length'] ) : 25;
 
-		return [ $offset, $limit ];
+		return [ max( 0, $offset ), max( 1, min( 500, $limit ) ) ];
 	}
 
 	/**
@@ -808,28 +891,19 @@ class REST {
 	 * @return array{0: string, 1: int} [ string $column, int $direction (SORT_ASC|SORT_DESC) ]
 	 */
 	public function get_sort_params(): array {
-		if (
-			! isset( $_SERVER['HTTP_X_WP_NONCE'] ) ||
-			! wp_verify_nonce( sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_WP_NONCE'] ) ), 'wp_rest' )
-		) {
-			return [ 'name', SORT_ASC ]; // Fallback default.
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Type and allowlist checked before use.
+		$index = $_GET['order'][0]['column'] ?? null;
+		if ( ! is_scalar( $index ) || ! ctype_digit( (string) $index ) ) {
+			return [ 'name', SORT_ASC ];
 		}
-
-		if (
-			! isset( $_GET['order'][0]['column'], $_GET['columns'] )
-			|| ! is_array( $_GET['columns'] )
-			|| ! isset( $_GET['columns'][ $_GET['order'][0]['column'] ]['data'] )
-		) {
-			return [ 'name', SORT_ASC ]; // Fallback default.
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Type and allowlist checked before use.
+		$column = $_GET['columns'][ (int) $index ]['data'] ?? 'name';
+		if ( ! is_string( $column ) || ! in_array( $column, [ 'name', 'plugin', 'size', 'count', 'autoload' ], true ) ) {
+			$column = 'name';
 		}
-
-		$column_index = isset( $_GET['order'][0]['column'] ) ? intval( $_GET['order'][0]['column'] ) : 0;
-		$column_data  = isset( $_GET['columns'][ $column_index ]['data'] ) ? \sanitize_text_field( \wp_unslash( $_GET['columns'][ $column_index ]['data'] ) ) : 'name';
-
-		$dir      = strtolower( \sanitize_text_field( \wp_unslash( $_GET['order'][0]['dir'] ?? 'asc' ) ) );
-		$dir_flag = $dir === 'desc' ? SORT_DESC : SORT_ASC;
-
-		return [ $column_data, $dir_flag ];
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Type and allowlist checked before use.
+		$direction = $_GET['order'][0]['dir'] ?? 'asc';
+		return [ $column, 'desc' === $direction ? SORT_DESC : SORT_ASC ];
 	}
 
 	/**

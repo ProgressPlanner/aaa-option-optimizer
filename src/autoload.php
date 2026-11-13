@@ -5,6 +5,10 @@
  * @package Progress_Planner\OptionOptimizer
  */
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 spl_autoload_register(
 	function ( $class_name ) {
 		$prefix = 'Progress_Planner\\OptionOptimizer\\';
