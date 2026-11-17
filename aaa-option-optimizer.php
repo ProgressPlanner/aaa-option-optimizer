@@ -8,6 +8,8 @@
  * Plugin URI: https://progressplanner.com/plugins/aaa-option-optimizer/
  * Description: Tracks autoloaded options usage and allows the user to optimize them.
  * Version: 1.7.1
+ * Requires at least: 6.7
+ * Requires PHP: 7.4
  * License: GPL-3.0+
  * Author: Team Progress Planner
  * Author URI: https://progressplanner.com/
