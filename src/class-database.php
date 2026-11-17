@@ -307,8 +307,10 @@ class Database {
 		$existing = [];
 		foreach ( array_chunk( $names, 500 ) as $chunk ) {
 			$selects = implode( ' UNION ALL ', array_fill( 0, count( $chunk ), 'SELECT %s AS n' ) );
+			// The table must come first: for non-ASCII names wpdb parses the first FROM to check the
+			// table's charset, and a leading subquery makes that check fail the whole query.
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Placeholders are generated above.
-			$found = $wpdb->get_col( $wpdb->prepare( "SELECT s.n FROM ($selects) s INNER JOIN %i t ON t.option_name = s.n", array_merge( array_map( 'strval', $chunk ), [ $table ] ) ) );
+			$found = $wpdb->get_col( $wpdb->prepare( "SELECT s.n FROM %i t INNER JOIN ($selects) s ON t.option_name = s.n", array_merge( [ $table ], array_map( 'strval', $chunk ) ) ) );
 			if ( $wpdb->last_error ) {
 				return false;
 			}
