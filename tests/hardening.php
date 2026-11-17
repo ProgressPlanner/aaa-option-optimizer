@@ -186,6 +186,12 @@ foreach ( [ [], true, 'invalid' ] as $bad ) {
 }
 
 foreach ( [ 'siteurl', 'SITEURL', 'sitéurl', 'active_plugins', $wpdb->prefix . 'user_roles', 'alloptions', 'notoptions', 'theme_mods_' . get_stylesheet(), strtoupper( 'theme_mods_' . get_stylesheet() ), 'auth_salt', 'NONCE_KEY', 'logged_in_salt' ] as $protected ) {
+	// Alias folding depends on the database: MySQL matches 'sitéurl' to 'siteurl', SQLite doesn't.
+	// Where the engine doesn't fold it, the name is a different, unprotected option and is skipped.
+	$resolved = $wpdb->get_var( $wpdb->prepare( "SELECT option_name FROM $wpdb->options WHERE option_name = %s", $protected ) );
+	if ( ! Protected_Options::is_protected( $protected ) && ( null === $resolved || ! Protected_Options::is_protected( $resolved ) ) ) {
+		continue;
+	}
 	foreach ( [ 'delete-option', 'create-option-false', 'update-autoload' ] as $route ) {
 		check(
 			403 === request(
