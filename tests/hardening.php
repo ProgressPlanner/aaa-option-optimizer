@@ -241,7 +241,6 @@ $_GET = [
 check( [ 'size', SORT_DESC ] === $rest->get_sort_params(), 'Valid sort without redundant nonce.' );
 $_GET = [];
 
-// Hold the lock on a separate connection to exercise real lock timeouts.
 Database::clear_tracked_options();
 Database::batch_insert( [ 'before_reset' => 2 ] );
 Database::mark_tracking_limited();
@@ -253,22 +252,18 @@ $source = [
 	],
 ];
 update_option( 'option_optimizer', $source, false );
+
+// A concurrent connection holding the old GET_LOCK name must not block or fail tracking writes.
 $other_connection = new \wpdb( DB_USER, DB_PASSWORD, DB_NAME, DB_HOST );
-$lock             = 'aaaoo_' . md5( DB_NAME . $table );
-check( '1' === (string) $other_connection->get_var( $other_connection->prepare( 'SELECT GET_LOCK(%s, 0)', $lock ) ), 'Acquire the contention fixture lock.' );
+$other_connection->get_var( $other_connection->prepare( 'SELECT GET_LOCK(%s, 0)', 'aaaoo_' . md5( DB_NAME . $table ) ) );
 try {
-	$response = request( 'migrate' );
-	check( 503 === $response->get_status() && false === $response->get_data()['success'], 'Migration lock timeout must report failure.' );
-	check( 2 === $response->get_data()['remaining'], 'Failed migration must report retained observations.' );
-	check( $source === get_option( 'option_optimizer' ), 'Lock timeout must preserve migration source.' );
-	check( 1 === (int) $wpdb->get_var( "SELECT COUNT(*) FROM $table" ), 'Failed migration must not insert rows.' );
-	check( 503 === request( 'reset' )->get_status(), 'Reset lock timeout must report failure.' );
-	check( 2 === (int) $wpdb->get_var( "SELECT access_count FROM $table WHERE option_name = 'before_reset'" ), 'Failed reset must retain tracking rows.' );
-	check( Database::is_tracking_limited(), 'Failed reset must retain incomplete state.' );
+	$started = microtime( true );
+	check( [ 'lock_free' => 1 ] === Database::batch_insert( [ 'lock_free' => 1 ] ), 'Tracking writes take no global lock.' );
+	check( microtime( true ) - $started < 0.5, 'Tracking writes never wait on a lock.' );
 } finally {
-	$other_connection->get_var( $other_connection->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) );
 	$other_connection->close();
 }
+$wpdb->query( "DELETE FROM $table WHERE option_name = 'lock_free'" );
 
 $fail_tracking_insert = static function ( $query ) use ( $table ) {
 	return str_starts_with( $query, "INSERT INTO $table " ) ? 'INSERT INTO aaaoo_missing_table VALUES (1)' : $query;
@@ -309,25 +304,45 @@ $reset_plugin->monitor_option_accesses_pre_option( false, 'after_reset_request' 
 $reset_plugin->update_tracked_options();
 check( 0 === (int) $wpdb->get_var( "SELECT COUNT(*) FROM $table" ), 'Shutdown must not repopulate a successful reset.' );
 
+// A failed tracking write loses at most that request's counts; it must not pause recommendations.
 Database::clear_tracked_options();
+$wpdb->suppress_errors( true );
+add_filter( 'query', $fail_tracking_insert );
+try {
+	check( false === Database::batch_insert( [ 'write_fails' => 1 ] ), 'Failed tracking INSERT reports failure.' );
+	check( ! Database::is_tracking_limited(), 'A failed write must not mark tracking incomplete.' );
+} finally {
+	remove_filter( 'query', $fail_tracking_insert );
+	$wpdb->suppress_errors( false );
+}
+
+// Capacity: new names beyond the limit are dropped and flagged; existing names keep counting.
 $observations = [];
-for ( $index = 0; $index < Database::MAX_TRACKED_OPTIONS + 1; ++$index ) {
+for ( $index = 0; $index < Database::MAX_TRACKED_OPTIONS; ++$index ) {
 	$observations[ 'dynamic_' . $index ] = 1;
 }
 Database::batch_insert( $observations );
-$table = Database::get_table_name();
-check( Database::MAX_TRACKED_OPTIONS === (int) $wpdb->get_var( "SELECT COUNT(*) FROM $table" ), 'Tracking storage bound.' );
-check( Database::is_tracking_limited(), 'Overflow must mark observations incomplete.' );
-check( [] === request( 'unused-options', [], 'GET' )->get_data()['data'], 'Do not recommend deletions from incomplete observations.' );
-Database::batch_insert(
+check( Database::MAX_TRACKED_OPTIONS === (int) $wpdb->get_var( "SELECT COUNT(*) FROM $table" ), 'Fill storage to the limit.' );
+check( ! Database::is_tracking_limited(), 'A full table alone, with nothing dropped, keeps recommendations.' );
+
+// Names that match a stored row only by case or accents are existing rows, not new ones.
+Database::batch_insert( [ 'DYNAMIC_0' => 2 ] );
+check( 3 === (int) $wpdb->get_var( "SELECT access_count FROM $table WHERE option_name = 'dynamic_0'" ), 'Collation alias updates the existing row at capacity.' );
+check( ! Database::is_tracking_limited(), 'Collation alias at capacity is not a dropped observation.' );
+check( Database::MAX_TRACKED_OPTIONS === (int) $wpdb->get_var( "SELECT COUNT(*) FROM $table" ), 'Collation alias adds no row.' );
+
+$written = Database::batch_insert(
 	[
-		'dynamic_0'       => 3,
+		'dynamic_1'       => 3,
 		'another_missing' => 1,
 	]
 );
-check( 4 === (int) $wpdb->get_var( "SELECT access_count FROM $table WHERE option_name = 'dynamic_0'" ), 'Existing counts still update at capacity.' );
-check( Database::MAX_TRACKED_OPTIONS === count( Database::get_tracked_options() ), 'Bounded reads.' );
-// A partial migration removes only committed keys and stops automatic retries.
+check( [ 'dynamic_1' => 3 ] === $written, 'Only the existing name is written at capacity.' );
+check( 4 === (int) $wpdb->get_var( "SELECT access_count FROM $table WHERE option_name = 'dynamic_1'" ), 'Existing counts still update at capacity.' );
+check( Database::is_tracking_limited(), 'A dropped new name marks observations incomplete.' );
+check( [] === request( 'unused-options', [], 'GET' )->get_data()['data'], 'Do not recommend deletions from incomplete observations.' );
+
+// Legacy data is migrated in full, even past the limit, so migration always finishes.
 update_option(
 	'option_optimizer',
 	[
@@ -339,31 +354,44 @@ update_option(
 	false
 );
 $response = request( 'migrate' );
-check( 503 === $response->get_status() && 1 === $response->get_data()['remaining'], 'Full storage must report a partial migration.' );
-check( [ 'zz_unmigrated' => 3 ] === get_option( 'option_optimizer' )['used_options'], 'Retain only unsaved observations after a partial migration.' );
-check( 11 === (int) $wpdb->get_var( "SELECT access_count FROM $table WHERE option_name = 'dynamic_0'" ), 'Commit the existing observation once.' );
-check( 503 === request( 'migrate' )->get_status(), 'Retry while full must report failure.' );
-check( 11 === (int) $wpdb->get_var( "SELECT access_count FROM $table WHERE option_name = 'dynamic_0'" ), 'Retry must not replay already migrated observations.' );
+check( 200 === $response->get_status() && 0 === $response->get_data()['remaining'], 'Migration completes at capacity.' );
+check( [] === get_option( 'option_optimizer' )['used_options'], 'Migration leaves no observations behind.' );
+check( 10 === (int) $wpdb->get_var( "SELECT access_count FROM $table WHERE option_name = 'dynamic_0'" ), 'Commit the existing observation once.' );
+check( 3 === (int) $wpdb->get_var( "SELECT access_count FROM $table WHERE option_name = 'zz_unmigrated'" ), 'Migrate the new observation past the limit.' );
+check( 200 === request( 'migrate' )->get_status(), 'Retry after completion is a no-op.' );
+check( 10 === (int) $wpdb->get_var( "SELECT access_count FROM $table WHERE option_name = 'dynamic_0'" ), 'Retry must not replay already migrated observations.' );
+
+// An oversized table is never pruned: reads return every row, and core rows survive.
+$rows = (int) $wpdb->get_var( "SELECT COUNT(*) FROM $table" );
+check( Database::MAX_TRACKED_OPTIONS + 1 === $rows, 'Table may exceed the soft limit.' );
+Database::batch_insert( [ 'dynamic_2' => 1 ] );
+check( $rows === (int) $wpdb->get_var( "SELECT COUNT(*) FROM $table" ), 'Writes never prune rows.' );
+check( $rows === count( Database::get_tracked_options() ), 'Reads are not truncated at the limit.' );
+check( $rows === count( Database::get_tracked_option_keys() ), 'Key reads are not truncated at the limit.' );
 
 Database::clear_tracked_options();
 check( ! Database::is_tracking_limited(), 'Reset clears incomplete state.' );
 
-// An old oversized table is pruned on the next write.
-$wpdb->query( "INSERT INTO $table (option_name, access_count) VALUES ('legacy_extra', 1)" );
-Database::batch_insert( $observations );
-$wpdb->query( "INSERT INTO $table (option_name, access_count) VALUES ('legacy_extra_two', 1)" );
-Database::batch_insert( [ 'legacy_extra' => 1 ] );
-check( Database::MAX_TRACKED_OPTIONS === (int) $wpdb->get_var( "SELECT COUNT(*) FROM $table" ), 'Prune legacy oversized storage.' );
-Database::clear_tracked_options();
-
+// A heavy request (well over 1,000 names) is normal and must not pause recommendations.
 $plugin = new Plugin();
-for ( $index = 0; $index < 1001; ++$index ) {
+for ( $index = 0; $index < 3000; ++$index ) {
 	$plugin->monitor_option_accesses_pre_option( false, 'request_' . $index );
 }
 $_GET['page'] = 'aaa-option-optimizer';
 $plugin->update_tracked_options();
-check( Database::is_tracking_limited(), 'Request cap must be visible.' );
-check( 1000 === (int) $wpdb->get_var( "SELECT COUNT(*) FROM $table" ), 'Frontend page parameter must not suppress tracking.' );
+check( ! Database::is_tracking_limited(), 'A heavy request is not an incomplete observation.' );
+check( 3000 === (int) $wpdb->get_var( "SELECT COUNT(*) FROM $table" ), 'Frontend page parameter must not suppress tracking.' );
 $_GET = [];
+
+// Only a request reading more names than storage holds is capped and flagged.
+Database::clear_tracked_options();
+$plugin = new Plugin();
+for ( $index = 0; $index <= Database::MAX_TRACKED_OPTIONS; ++$index ) {
+	$plugin->monitor_option_accesses_pre_option( false, 'huge_' . $index );
+}
+$plugin->update_tracked_options();
+check( Database::is_tracking_limited(), 'Request cap must be visible.' );
+check( Database::MAX_TRACKED_OPTIONS === (int) $wpdb->get_var( "SELECT COUNT(*) FROM $table" ), 'Request cap bounds one request.' );
+Database::clear_tracked_options();
 
 \WP_CLI::success( 'Hardening integration regressions passed.' );

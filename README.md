@@ -43,7 +43,7 @@ Essential WordPress options, including site URLs, active plugins, theme settings
 
 ### Why are unused-option recommendations paused?
 
-Tracking retains at most 10,000 distinct names and records at most 1,000 distinct names per request. When a limit is reached or a tracking write fails, the plugin marks observations incomplete and pauses unused-option recommendations. Existing recorded counts can still increase. Older oversized tables are reduced to the limit on the next tracking write. Reset tracking to start a fresh observation period.
+Tracking stores up to about 10,000 distinct names. The limit is checked without locking, so concurrent requests can push slightly past it. Once it is reached, names already recorded keep counting, but a new name is dropped, and the plugin then marks observations incomplete and pauses unused-option recommendations, because a dropped name could otherwise be reported as unused. Data migrated from older versions is kept in full, even past the limit. A failed tracking write does not pause recommendations; it loses at most that request's counts. Reset tracking to start a fresh observation period.
 
 ### How can I add recognized plugins?
 
