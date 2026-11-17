@@ -332,7 +332,7 @@ check( ! Database::is_tracking_limited(), 'Collation alias at capacity is not a 
 check( Database::MAX_TRACKED_OPTIONS === (int) $wpdb->get_var( "SELECT COUNT(*) FROM $table" ), 'Collation alias adds no row.' );
 // Non-ASCII names at capacity go through wpdb's charset check, which must still find the table.
 $wpdb->query( "UPDATE $table SET option_name = 'é😀_stored' WHERE option_name = 'dynamic_9999'" );
-check( [ 'É😀_STORED' => 1 ] === Database::batch_insert( [ 'É😀_STORED' => 1 ] ), 'Non-ASCII alias at capacity is written, not failed.' );
+check( [ 'é😀_STORED' => 1 ] === Database::batch_insert( [ 'é😀_STORED' => 1 ] ), 'Non-ASCII alias (ASCII case differs) at capacity is written, not failed.' );
 check( 2 === (int) $wpdb->get_var( "SELECT access_count FROM $table WHERE option_name = 'é😀_stored'" ), 'Non-ASCII alias updates the existing row.' );
 check( [] === Database::batch_insert( [ 'ñew_😀' => 1 ] ), 'New non-ASCII name at capacity is dropped, not failed.' );
 check( Database::is_tracking_limited(), 'Dropped non-ASCII name marks observations incomplete.' );
