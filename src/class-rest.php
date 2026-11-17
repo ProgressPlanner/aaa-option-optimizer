@@ -735,10 +735,8 @@ class REST {
 	public function delete_options( $request ) {
 		$option_names = $request['option_names'];
 		// Preflight the entire batch before deleting anything.
-		foreach ( $option_names as $option_name ) {
-			if ( Protected_Options::is_mutation_protected( $option_name ) ) {
-				return new \WP_Error( 'option_protected', 'Option is protected', [ 'status' => 403 ] );
-			}
+		if ( Protected_Options::get_mutation_protected( $option_names ) ) {
+			return new \WP_Error( 'option_protected', 'Option is protected', [ 'status' => 403 ] );
 		}
 		$failed = [];
 		foreach ( array_unique( $option_names ) as $option_name ) {
@@ -778,10 +776,8 @@ class REST {
 	 * @return \WP_Error|\WP_REST_Response
 	 */
 	private function update_autoload( array $option_names, string $state ) {
-		foreach ( $option_names as $option_name ) {
-			if ( Protected_Options::is_mutation_protected( $option_name ) ) {
-				return new \WP_Error( 'option_protected', 'Option is protected', [ 'status' => 403 ] );
-			}
+		if ( Protected_Options::get_mutation_protected( $option_names ) ) {
+			return new \WP_Error( 'option_protected', 'Option is protected', [ 'status' => 403 ] );
 		}
 
 		$autoload = in_array( $state, \wp_autoload_values_to_autoload(), true );
@@ -903,7 +899,7 @@ class REST {
 		}
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Type and allowlist checked before use.
 		$direction = $_GET['order'][0]['dir'] ?? 'asc';
-		return [ $column, 'desc' === $direction ? SORT_DESC : SORT_ASC ];
+		return [ $column, is_string( $direction ) && 'desc' === strtolower( $direction ) ? SORT_DESC : SORT_ASC ];
 	}
 
 	/**
