@@ -16,6 +16,8 @@ if ( ! defined( 'WP_CLI' ) || ! WP_CLI || ! defined( 'AAAOO_DISPOSABLE_TEST_SITE
 
 require_once dirname( __DIR__ ) . '/aaa-option-optimizer.php';
 Database::create_table();
+// Start from empty tracking data, so a previous failed run (e.g. a full table) can't skew results.
+Database::clear_tracked_options();
 wp_set_current_user( 1 );
 rest_get_server();
 
