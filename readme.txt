@@ -24,7 +24,7 @@ or turn off autoloading.
 
 == How It Works ==
 
-1. Install the plugin and browse your site normally for a few days.
+1. Install and activate the plugin, then browse your site normally for a few days.
 2. The plugin quietly records which autoloaded options are actually used
    during page rendering.
 3. Visit the settings screen to see every autoloaded option that was
