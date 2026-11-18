@@ -24,3 +24,5 @@ delete_transient( 'option_optimizer_batch' );
 
 // Delete the plugin option.
 delete_option( 'option_optimizer' );
+
+delete_option( 'aaa_option_optimizer_tracking_limited' );

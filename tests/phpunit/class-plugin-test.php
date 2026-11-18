@@ -176,17 +176,36 @@ class Plugin_Test extends Test_Case {
 	}
 
 	/**
-	 * Nothing is written while the plugin's own admin page is rendered.
+	 * Nothing is written while an administrator views the plugin's own admin page.
 	 *
 	 * @return void
 	 */
 	public function test_nothing_is_stored_on_the_plugin_admin_page() {
+		\wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+		if ( \is_multisite() ) {
+			\grant_super_admin( \get_current_user_id() );
+		}
+		\set_current_screen( 'tools_page_aaa-option-optimizer' );
 		$_GET['page'] = 'aaa-option-optimizer';
 
 		$this->plugin->monitor_option_accesses_pre_option( false, self::PREFIX . 'a' );
 		$this->plugin->update_tracked_options();
 
 		$this->assertSame( [], Database::get_tracked_options() );
+	}
+
+	/**
+	 * A front-end visitor can't switch tracking off by adding the admin page's query argument.
+	 *
+	 * @return void
+	 */
+	public function test_page_query_argument_does_not_stop_tracking_on_the_front_end() {
+		$_GET['page'] = 'aaa-option-optimizer';
+
+		$this->plugin->monitor_option_accesses_pre_option( false, self::PREFIX . 'a' );
+		$this->plugin->update_tracked_options();
+
+		$this->assertSame( [ self::PREFIX . 'a' => 1 ], Database::get_tracked_options() );
 	}
 
 	/**

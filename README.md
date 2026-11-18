@@ -33,6 +33,18 @@ starting the name with AAA made sense.
 
 Yes!! Backup your database.
 
+### Who can view option values?
+
+Every REST route requires `manage_options`. Option values can include API keys, SMTP passwords and licence keys, and the tables return these values to authorized administrators. This also applies to site administrators on multisite. Only enable the plugin where those administrators are trusted to inspect all site options.
+
+### Which actions are protected?
+
+Essential WordPress options, including site URLs, active plugins, the active theme's settings, salts and keys stored in the database, and the current site's roles option, cannot be deleted, created with a false value, or have their autoload state changed through this plugin. Single and bulk deletion require confirmation in the admin screen. Autoload changes preserve the stored value and use WordPress's cache-aware autoload API.
+
+### Why are unused-option recommendations paused?
+
+Tracking stores up to about 10,000 distinct names. The limit is checked without locking, so concurrent requests can push slightly past it. Once it is reached, names already recorded keep counting, but a new name is dropped, and the plugin then marks observations incomplete and pauses unused-option recommendations, because a dropped name could otherwise be reported as unused. Data migrated from older versions is kept in full, even past the limit. A failed tracking write does not pause recommendations; it loses at most that request's counts. Reset tracking to start a fresh observation period.
+
 ### How can I add recognized plugins?
 
 Please do a pull request via GitHub on [this file](https://github.com/ProgressPlanner/aaa-option-optimizer/blob/develop/known-plugins/known-plugins.json) in the plugin.
@@ -40,3 +52,9 @@ Please do a pull request via GitHub on [this file](https://github.com/ProgressPl
 ### How can I report security bugs?
 
 You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team help validate, triage and handle any security vulnerabilities. [Report a security vulnerability.](https://patchstack.com/database/vdp/aaa-option-optimizer)
+
+## Development checks
+
+Run `composer lint`, `composer check-cs`, `composer phpstan`, and `composer lint-known-plugins` with the development dependencies installed, and `npm run test:hardening:js` for the admin action regressions. The plugin-map validator requires an object keyed by plugin slug, with exactly a non-empty `name` and a non-empty array of unique string `option_prefixes` per entry.
+
+Run `wp eval-file /path/to/aaa-option-optimizer/tests/hardening.php` only on a disposable WordPress installation with an administrator at user ID 1 and `define( 'AAAOO_DISPOSABLE_TEST_SITE', true );` in its configuration. The test creates and deletes fixtures and resets tracking data. It covers REST validation, exact option names, protected options, failed autoload updates, raw-value preservation, malformed sorting, and tracking limits.

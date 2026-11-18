@@ -42,7 +42,7 @@
 			"@php -r \"exit( intval( is_null( json_decode( file_get_contents( './.wordpress-org/blueprints/blueprint.json' ) ) ) ) );\""
 		],
 		"lint-known-plugins": [
-			"@php -r \"exit( intval( is_null( json_decode( file_get_contents( './known-plugins/known-plugins.json' ) ) ) ) );\""
+			"@php scripts/validate-known-plugins.php"
 		],
 		"test": [
 			"@php ./vendor/phpunit/phpunit/phpunit"

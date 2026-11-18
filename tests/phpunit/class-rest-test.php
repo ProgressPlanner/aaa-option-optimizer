@@ -211,7 +211,7 @@ class REST_Test extends Test_Case {
 		);
 
 		$this->assertSame( 400, $response->get_status() );
-		$this->assertSame( 'invalid_autoload_value', $response->get_data()['code'] );
+		$this->assertSame( 'rest_invalid_param', $response->get_data()['code'] );
 		$this->assertAutoloaded( $name );
 		$this->assertSame( 'value', \get_option( $name ) );
 	}
@@ -234,7 +234,9 @@ class REST_Test extends Test_Case {
 			]
 		);
 
-		$this->assertSame( 404, $response->get_status() );
+		$this->assertSame( 400, $response->get_status() );
+		$this->assertSame( 'update_failed', $response->get_data()['code'] );
+		$this->assertSame( [ $name ], $response->get_data()['data']['option_names'] );
 		$this->assertNull( $this->get_autoload_flag( $name ) );
 	}
 
@@ -251,11 +253,11 @@ class REST_Test extends Test_Case {
 	}
 
 	/**
-	 * The bulk route changes every existing option and skips missing ones.
+	 * The bulk route changes every existing option and reports the missing ones.
 	 *
 	 * @return void
 	 */
-	public function test_set_autoload_options_changes_existing_options_only() {
+	public function test_set_autoload_options_changes_existing_options_and_reports_missing_ones() {
 		$this->log_in_as( 'administrator' );
 
 		$first   = self::PREFIX . 'bulk_1';
@@ -275,7 +277,9 @@ class REST_Test extends Test_Case {
 			]
 		);
 
-		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( 400, $response->get_status() );
+		$this->assertSame( 'update_failed', $response->get_data()['code'] );
+		$this->assertSame( [ $missing ], $response->get_data()['data']['option_names'] );
 		$this->assertNotAutoloaded( $first );
 		$this->assertNotAutoloaded( $second );
 		$this->assertNull( $this->get_autoload_flag( $missing ) );
@@ -287,31 +291,106 @@ class REST_Test extends Test_Case {
 	}
 
 	/**
-	 * The bulk routes need a REST nonce on top of the capability.
+	 * The bulk route succeeds when every option exists, also when nothing needs to change.
 	 *
 	 * @return void
 	 */
-	public function test_bulk_routes_require_a_nonce() {
+	public function test_set_autoload_options_succeeds_for_existing_options() {
 		$this->log_in_as( 'administrator' );
-		unset( $_SERVER['HTTP_X_WP_NONCE'] );
 
-		$name = self::PREFIX . 'nonce';
-		\add_option( $name, 'value', '', true );
+		$changed   = self::PREFIX . 'bulk_changed';
+		$unchanged = self::PREFIX . 'bulk_unchanged';
+		\add_option( $changed, 'value', '', true );
+		\add_option( $unchanged, 'value', '', false );
 
-		$set = $this->request(
+		$response = $this->request(
 			'set-autoload-options',
 			[
-				'option_names' => [ $name ],
+				'option_names' => [ $changed, $unchanged ],
 				'autoload'     => 'no',
 			]
 		);
-		$this->assertSame( 403, $set->get_status() );
 
-		$delete = $this->request( 'delete-options', [ 'option_names' => [ $name ] ] );
-		$this->assertSame( 403, $delete->get_status() );
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertNotAutoloaded( $changed );
+		$this->assertNotAutoloaded( $unchanged );
+	}
+
+	/**
+	 * Options WordPress can't run without can't be deleted, in any letter case.
+	 *
+	 * @return void
+	 */
+	public function test_protected_options_cannot_be_deleted() {
+		$this->log_in_as( 'administrator' );
+
+		$siteurl = \get_option( 'siteurl' );
+		$other   = self::PREFIX . 'beside_protected';
+		\add_option( $other, 'value' );
+
+		$this->assertSame( 403, $this->request( 'delete-option', [ 'option_name' => 'siteurl' ] )->get_status() );
+		$this->assertSame( 403, $this->request( 'delete-option', [ 'option_name' => 'SiteURL' ] )->get_status() );
+
+		// A protected name refuses the whole batch: nothing in it is deleted.
+		$response = $this->request( 'delete-options', [ 'option_names' => [ $other, 'siteurl' ] ] );
+
+		$this->assertSame( 403, $response->get_status() );
+		$this->assertSame( 'option_protected', $response->get_data()['code'] );
+		$this->assertNotNull( $this->get_autoload_flag( $other ) );
+		$this->assertNotNull( $this->get_autoload_flag( 'siteurl' ) );
+		$this->assertSame( $siteurl, \get_option( 'siteurl' ) );
+	}
+
+	/**
+	 * The autoload flag of a protected option can't be changed.
+	 *
+	 * @return void
+	 */
+	public function test_protected_options_keep_their_autoload_flag() {
+		$this->log_in_as( 'administrator' );
+
+		$before = $this->get_autoload_flag( 'siteurl' );
+		$other  = self::PREFIX . 'beside_protected';
+		\add_option( $other, 'value', '', true );
+
+		$single = $this->request(
+			'update-autoload',
+			[
+				'option_name' => 'siteurl',
+				'autoload'    => 'no',
+			]
+		);
+		$bulk   = $this->request(
+			'set-autoload-options',
+			[
+				'option_names' => [ $other, 'siteurl' ],
+				'autoload'     => 'no',
+			]
+		);
+
+		$this->assertSame( 403, $single->get_status() );
+		$this->assertSame( 403, $bulk->get_status() );
+		$this->assertSame( $before, $this->get_autoload_flag( 'siteurl' ) );
+		$this->assertAutoloaded( $other );
+	}
+
+	/**
+	 * Option names WordPress would trim, or that are not a list of strings, are rejected.
+	 *
+	 * @return void
+	 */
+	public function test_malformed_option_names_are_rejected() {
+		$this->log_in_as( 'administrator' );
+
+		$name = self::PREFIX . 'padded';
+		\add_option( $name, 'value', '', true );
+
+		$this->assertSame( 400, $this->request( 'delete-option', [ 'option_name' => ' ' . $name ] )->get_status() );
+		$this->assertSame( 400, $this->request( 'delete-option', [ 'option_name' => '' ] )->get_status() );
+		$this->assertSame( 400, $this->request( 'delete-options', [ 'option_names' => [] ] )->get_status() );
+		$this->assertSame( 400, $this->request( 'delete-options', [ 'option_names' => [ $name, ' ' . $name ] ] )->get_status() );
 
 		$this->assertAutoloaded( $name );
-		$this->assertSame( 'value', \get_option( $name ) );
 	}
 
 	/**
