@@ -106,7 +106,9 @@ jQuery( document ).ready( function () {
 			responsive: true,
 			columns: getColumns( selector ),
 			rowId( data ) {
-				return selector.substring( 1 ) + '-' + generateRowId( data.name );
+				return (
+					selector.substring( 1 ) + '-' + generateRowId( data.name )
+				);
 			},
 			initComplete() {
 				this.api().columns( 'source:name' ).every( filterSetup );
@@ -126,7 +128,9 @@ jQuery( document ).ready( function () {
 						json.tracking_limited &&
 						! jQuery( '#aaa-tracking-limited' ).length
 					) {
-						jQuery( '<p id="aaa-tracking-limited" role="status"></p>' )
+						jQuery(
+							'<p id="aaa-tracking-limited" role="status"></p>'
+						)
 							.text( aaaOptionOptimizer.i18n.trackingLimited )
 							.insertBefore( selector );
 					}
@@ -509,7 +513,11 @@ jQuery( document ).ready( function () {
 			) =>
 				( window.location = `${ window.location.href }&tracking_reset=true` ),
 			error: ( response ) => {
-				alert( response.responseJSON?.message || aaaOptionOptimizer.i18n.actionFailed ); // eslint-disable-line no-alert
+				// eslint-disable-next-line no-alert
+				alert(
+					response.responseJSON?.message ||
+						aaaOptionOptimizer.i18n.actionFailed
+				);
 			},
 		} );
 	} );
@@ -522,7 +530,6 @@ jQuery( document ).ready( function () {
 	function handleTableActions( e ) {
 		e.preventDefault();
 		const button = jQuery( this );
-		const table = button.closest( 'table' ).DataTable();
 		const optionName = button.attr( 'data-option' );
 
 		const requestData = { option_name: optionName };
@@ -533,7 +540,8 @@ jQuery( document ).ready( function () {
 			action = route = 'create-option-false';
 		} else if ( button.hasClass( 'delete-option' ) ) {
 			if (
-				! window.confirm( // eslint-disable-line no-alert
+				// eslint-disable-next-line no-alert
+				! window.confirm(
 					aaaOptionOptimizer.i18n.confirmDelete + '\n' + optionName
 				)
 			) {
@@ -548,6 +556,8 @@ jQuery( document ).ready( function () {
 			requestData.autoload = action === 'add-autoload' ? 'yes' : 'no';
 		}
 
+		const table = button.closest( 'table' ).DataTable();
+
 		jQuery.ajax( {
 			url: `${ aaaOptionOptimizer.root }aaa-option-optimizer/v1/${ route }`,
 			method: 'POST',
@@ -558,7 +568,11 @@ jQuery( document ).ready( function () {
 				updateRowOnSuccess( response, table, optionName, action ),
 			error: ( response ) => {
 				table.ajax.reload( null, false );
-				alert( response.responseJSON?.message || aaaOptionOptimizer.i18n.actionFailed ); // eslint-disable-line no-alert
+				// eslint-disable-next-line no-alert
+				alert(
+					response.responseJSON?.message ||
+						aaaOptionOptimizer.i18n.actionFailed
+				);
 			},
 		} );
 	}
@@ -682,9 +696,13 @@ jQuery( document ).ready( function () {
 
 			if (
 				bulkAction === 'delete' &&
-				! window.confirm( // eslint-disable-line no-alert
-					aaaOptionOptimizer.i18n.confirmDelete + '\n' +
-					selectedOptions.length + ' ' + aaaOptionOptimizer.i18n.selectedOptions
+				// eslint-disable-next-line no-alert
+				! window.confirm(
+					aaaOptionOptimizer.i18n.confirmDelete +
+						'\n' +
+						selectedOptions.length +
+						' ' +
+						aaaOptionOptimizer.i18n.selectedOptions
 				)
 			) {
 				return;
@@ -730,7 +748,11 @@ jQuery( document ).ready( function () {
 				},
 				error: ( response ) => {
 					table.DataTable().ajax.reload( null, false );
-					alert( response.responseJSON?.message || aaaOptionOptimizer.i18n.actionFailed ); // eslint-disable-line no-alert
+					// eslint-disable-next-line no-alert
+					alert(
+						response.responseJSON?.message ||
+							aaaOptionOptimizer.i18n.actionFailed
+					);
 					// eslint-disable-next-line no-console
 					console.error( 'Failed to delete options.', response );
 				},
@@ -812,7 +834,10 @@ jQuery( document ).ready( function () {
 					}
 				},
 				error( response ) {
-					statusText.text( response.responseJSON?.message || aaaOptionOptimizer.i18n.migrationError );
+					statusText.text(
+						response.responseJSON?.message ||
+							aaaOptionOptimizer.i18n.migrationError
+					);
 					button.prop( 'disabled', false );
 				},
 			} );
