@@ -71,7 +71,20 @@ class Activation_Test extends Test_Case {
 
 		\aaa_option_optimizer_deactivation();
 
-		$this->assertSame( $value, \get_option( 'option_optimizer' ) );
 		$this->assertNotAutoloaded( 'option_optimizer' );
+
+		\wp_cache_flush();
+		$this->assertSame( $value, \get_option( 'option_optimizer' ) );
+	}
+
+	/**
+	 * Deactivation does not create the plugin option when it is missing.
+	 *
+	 * @return void
+	 */
+	public function test_deactivation_does_not_create_the_plugin_option() {
+		\aaa_option_optimizer_deactivation();
+
+		$this->assertNull( $this->get_autoload_flag( 'option_optimizer' ) );
 	}
 }
