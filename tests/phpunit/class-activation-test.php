@@ -60,17 +60,14 @@ class Activation_Test extends Test_Case {
 	}
 
 	/**
-	 * Deactivation keeps the plugin option and its value.
-	 *
-	 * Note: the deactivation routine is also meant to stop autoloading the option, but it calls
-	 * update_option() with an unchanged value, which returns early without touching the autoload
-	 * flag. That is not asserted here; assert it once the routine is fixed.
+	 * Deactivation keeps the plugin option and its value, and stops autoloading it.
 	 *
 	 * @return void
 	 */
-	public function test_deactivation_keeps_the_plugin_option() {
+	public function test_deactivation_stops_autoloading_the_plugin_option() {
 		$value = [ 'starting_point_num' => 7 ];
-		\update_option( 'option_optimizer', $value, false );
+		\update_option( 'option_optimizer', $value, true );
+		$this->assertAutoloaded( 'option_optimizer' );
 
 		\aaa_option_optimizer_deactivation();
 

@@ -404,14 +404,15 @@ class REST_Test extends Test_Case {
 	 * @return void
 	 */
 	public function test_unused_options_lists_untracked_autoloaded_options() {
-		$this->log_in_as( 'administrator' );
-
 		$used           = self::PREFIX . 'used';
 		$unused         = self::PREFIX . 'unused';
 		$not_autoloaded = self::PREFIX . 'not_autoloaded';
 
-		// Write the tracking data first: it commits, the options below are rolled back.
+		// Write the tracking data first: it commits the test transaction, so the user and
+		// options created below must come after it to be rolled back.
 		Database::batch_insert( [ $used => 3 ] );
+
+		$this->log_in_as( 'administrator' );
 
 		\add_option( $used, 'value', '', true );
 		\add_option( $unused, 'value', '', true );
@@ -435,17 +436,18 @@ class REST_Test extends Test_Case {
 	 * @return void
 	 */
 	public function test_used_not_autoloaded_options_lists_tracked_options() {
-		$this->log_in_as( 'administrator' );
-
 		$autoloaded     = self::PREFIX . 'autoloaded';
 		$not_autoloaded = self::PREFIX . 'not_autoloaded';
 
+		// Commits the test transaction, so it has to run before the user and options are created.
 		Database::batch_insert(
 			[
 				$autoloaded     => 2,
 				$not_autoloaded => 5,
 			]
 		);
+
+		$this->log_in_as( 'administrator' );
 
 		\add_option( $autoloaded, 'value', '', true );
 		\add_option( $not_autoloaded, 'value', '', false );
