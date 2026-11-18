@@ -375,6 +375,72 @@ class REST_Test extends Test_Case {
 	}
 
 	/**
+	 * Other code can protect its own options through the filter.
+	 *
+	 * @return void
+	 */
+	public function test_filter_adds_protected_options() {
+		$this->log_in_as( 'administrator' );
+
+		$name = self::PREFIX . 'Filtered';
+		\add_option( $name, 'value', '', true );
+
+		\add_filter(
+			'aaa_option_optimizer_protected_options',
+			static function ( $names ) use ( $name ) {
+				$names[] = $name;
+				return $names;
+			}
+		);
+
+		$delete = $this->request( 'delete-option', [ 'option_name' => $name ] );
+		$bulk   = $this->request( 'delete-options', [ 'option_names' => [ $name ] ] );
+		$flip   = $this->request(
+			'update-autoload',
+			[
+				'option_name' => $name,
+				'autoload'    => 'no',
+			]
+		);
+
+		$this->assertSame( 403, $delete->get_status() );
+		$this->assertSame( 403, $bulk->get_status() );
+		$this->assertSame( 403, $flip->get_status() );
+		$this->assertAutoloaded( $name );
+		$this->assertSame( 'value', \get_option( $name ) );
+
+		// The list routes flag the option, so the admin screen hides its actions.
+		$rows = \wp_list_pluck( $this->request( 'all-options', [], 'GET' )->get_data()['data'], 'protected', 'name' );
+		$this->assertTrue( $rows[ $name ] );
+	}
+
+	/**
+	 * The filter can't remove built-in protection, and a broken return value is ignored.
+	 *
+	 * @return void
+	 */
+	public function test_filter_cannot_remove_built_in_protection() {
+		$this->log_in_as( 'administrator' );
+
+		\add_filter( 'aaa_option_optimizer_protected_options', '__return_empty_array' );
+		$this->assertSame( 403, $this->request( 'delete-option', [ 'option_name' => 'siteurl' ] )->get_status() );
+		\remove_filter( 'aaa_option_optimizer_protected_options', '__return_empty_array' );
+
+		\add_filter( 'aaa_option_optimizer_protected_options', '__return_false' );
+		$this->assertSame( 403, $this->request( 'delete-option', [ 'option_name' => 'siteurl' ] )->get_status() );
+		\remove_filter( 'aaa_option_optimizer_protected_options', '__return_false' );
+
+		\add_filter(
+			'aaa_option_optimizer_protected_options',
+			static function () {
+				return [ 123, null, '', [ 'nested' ] ];
+			}
+		);
+		$this->assertSame( 403, $this->request( 'delete-option', [ 'option_name' => 'siteurl' ] )->get_status() );
+		$this->assertNotNull( $this->get_autoload_flag( 'siteurl' ) );
+	}
+
+	/**
 	 * Option names WordPress would trim, or that are not a list of strings, are rejected.
 	 *
 	 * @return void

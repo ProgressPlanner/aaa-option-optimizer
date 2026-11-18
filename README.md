@@ -41,6 +41,8 @@ Every REST route requires `manage_options`. Option values can include API keys, 
 
 Essential WordPress options, including site URLs, active plugins, the active theme's settings, salts and keys stored in the database, and the current site's roles option, cannot be deleted, created with a false value, or have their autoload state changed through this plugin. Single and bulk deletion require confirmation in the admin screen. Autoload changes preserve the stored value and use WordPress's cache-aware autoload API.
 
+To protect more options, add their names with the `aaa_option_optimizer_protected_options` filter. The filter can only add names; it cannot remove the built-in protection.
+
 ### Why are unused-option recommendations paused?
 
 Tracking stores up to about 10,000 distinct names. The limit is checked without locking, so concurrent requests can push slightly past it. Once it is reached, names already recorded keep counting, but a new name is dropped, and the plugin then marks observations incomplete and pauses unused-option recommendations, because a dropped name could otherwise be reported as unused. Data migrated from older versions is kept in full, even past the limit. A failed tracking write does not pause recommendations; it loses at most that request's counts. Reset tracking to start a fresh observation period.

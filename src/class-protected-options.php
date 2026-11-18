@@ -174,8 +174,9 @@ class Protected_Options {
 	/**
 	 * Lowercased protected names, keyed for lookups.
 	 *
-	 * Names that depend on the current site (roles prefix, active theme) are added per call so
-	 * the map stays correct after switch_to_blog() or a theme switch within the request.
+	 * Names that depend on the current site (roles prefix, active theme) and names added through
+	 * the filter are added per call, so the map stays correct after switch_to_blog(), a theme
+	 * switch, or a filter added later in the request.
 	 *
 	 * @return array<string, true>
 	 */
@@ -195,6 +196,30 @@ class Protected_Options {
 		$names = self::$static_names;
 		$names[ strtolower( $wpdb->prefix . 'user_roles' ) ]      = true;
 		$names[ strtolower( 'theme_mods_' . \get_stylesheet() ) ] = true;
+
+		/**
+		 * Filters the list of protected option names.
+		 *
+		 * Use this to protect options that other code depends on, for example from an MU plugin.
+		 * Protected options can't be deleted, created with a false value, or have their autoload
+		 * state changed through this plugin. Names are matched case-insensitively.
+		 *
+		 * The filter can only add names: removing a built-in name from the list has no effect.
+		 *
+		 * @param string[] $option_names Lowercased protected option names.
+		 */
+		$filtered = \apply_filters( 'aaa_option_optimizer_protected_options', array_keys( $names ) );
+
+		// @phpstan-ignore-next-line function.alreadyNarrowedType -- Other code controls the return value, so its type can't be trusted.
+		if ( is_array( $filtered ) ) {
+			foreach ( $filtered as $name ) {
+				// @phpstan-ignore-next-line function.alreadyNarrowedType -- Same as above.
+				if ( is_string( $name ) && '' !== $name ) {
+					$names[ strtolower( $name ) ] = true;
+				}
+			}
+		}
+
 		return $names;
 	}
 
