@@ -1,0 +1,63 @@
+name: JS and CSS Lint
+
+on:
+  # Run on relevant pushes to select branches and on all relevant pull requests.
+  push:
+    branches:
+      - main
+      - develop
+      - 'release/[0-9]+.[0-9]+*'
+      - 'hotfix/[0-9]+.[0-9]+*'
+    paths:
+      - '**.js'
+      - '**.css'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/js-css-lint.yml'
+  pull_request:
+    paths:
+      - '**.js'
+      - '**.css'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/js-css-lint.yml'
+  # Allow manually triggering the workflow.
+  workflow_dispatch:
+
+# Cancels all previous workflow runs for the same branch that have not yet completed.
+concurrency:
+  # The concurrency group contains the workflow name and the branch name.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: 'Lint JS and CSS'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      # --ignore-scripts: nothing in the dependency tree needs to run code to lint,
+      # and it skips the husky `prepare` script.
+      - name: Install npm dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Lint JS
+        run: npm run lint:js
+
+      - name: Lint CSS
+        if: ${{ always() }}
+        run: npm run lint:css

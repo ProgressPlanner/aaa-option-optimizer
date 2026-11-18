@@ -743,8 +743,7 @@ jQuery( document ).ready( function () {
 		function migrateChunk() {
 			jQuery.ajax( {
 				url:
-					aaaOptionOptimizer.root +
-					'aaa-option-optimizer/v1/migrate',
+					aaaOptionOptimizer.root + 'aaa-option-optimizer/v1/migrate',
 				method: 'POST',
 				beforeSend: ( xhr ) =>
 					xhr.setRequestHeader(

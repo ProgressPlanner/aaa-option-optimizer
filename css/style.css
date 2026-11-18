@@ -2,58 +2,79 @@
 	margin-left: -5px;
 	border-spacing: 0;
 }
+
 .aaa-option-optimizer-tabs .dt-layout-cell.dt-start:has(.dt-length) {
 	display: flex;
 	justify-content: flex-start;
 	gap: 20px;
 }
 
-.aaa_option_table td, .aaa_option_table th {
+.aaa_option_table td,
+.aaa_option_table th {
 	padding: 5px 10px 5px 5px;
 	text-align: left;
 }
+
 .aaa_option_table .actions {
 	width: 50%;
 	text-align: right;
 }
+
 .aaa_option_table .actions .button {
 	margin-right: 10px;
 }
+
 .aaa_option_table select {
 	max-width: 20% !important;
 }
+
 /* Overrider for the Source <select> in the tfoot. */
 .aaa_option_table tfoot select {
 	max-width: 200px !important;
 }
-.aaa_option_table .actions .button-delete, .aaa-option-optimizer-reset .button-delete {
+
+/* Baseline: reordering these rules would change the cascade. */
+/* stylelint-disable no-descending-specificity */
+.aaa_option_table .actions .button-delete,
+.aaa-option-optimizer-reset .button-delete {
 	margin-right: 0;
 	color: #a00;
 	border-color: #a00;
 }
+
 .aaa-option-optimizer-reset .button-delete {
 	margin-bottom: 10px;
 }
-.aaa_option_table .actions .button span.dashicons, .aaa_option_table .button.dashicon span.dashicons {
+
+/* stylelint-enable no-descending-specificity */
+
+.aaa_option_table .actions .button span.dashicons,
+.aaa_option_table .button.dashicon span.dashicons {
 	padding: 0;
 	margin: 0 3px 0 0;
 }
+
 .aaa_option_table td span.num {
 	font-family: monospace;
 }
+
 .aaa_option_table tr:nth-child(even) {
 	background-color: #eee;
 }
+
 .aaa_option_table tr:nth-child(odd) {
 	background-color: #fff;
 }
+
 .aaa_option_table tr:hover {
 	background-color: #ddd !important;
 }
+
 div.dt-container .dt-input {
 	padding: 5px 20px 5px 10px !important;
 	max-width: none !important;
 }
+
 .aaa-option-optimizer-popover {
 	font-family: sans-serif;
 	overflow: visible;
@@ -64,6 +85,7 @@ div.dt-container .dt-input {
 	max-height: 80%;
 	text-align: left;
 }
+
 .aaa-option-optimizer-popover pre {
 	padding: 10px;
 	min-width: 300px;
@@ -75,9 +97,11 @@ div.dt-container .dt-input {
 	white-space: pre-wrap;
 	word-wrap: anywhere;
 }
+
 .aaa-option-optimizer-popover::backdrop {
 	background: rgba(0, 0, 0, 0.75);
 }
+
 .aaa-option-optimizer-popover__close {
 	background: none !important;
 	border: none;
@@ -88,62 +112,76 @@ div.dt-container .dt-input {
 	top: 0;
 	right: 0;
 }
+
 .aaa-option-optimizer-popover__close:hover {
 	cursor: pointer;
 }
+
 .aaa-option-optimizer-tabs {
 	clear: both;
 	display: flex;
 	flex-wrap: wrap;
 	max-width: 100%;
 	background: #e5e5e5;
-	box-shadow: 0 48px 80px -32px rgba(0,0,0,0.3);
+	box-shadow: 0 48px 80px -32px rgba(0, 0, 0, 0.3);
 }
+
 .aaa-option-optimizer-tabs .input {
 	position: absolute;
 	opacity: 0;
 }
+
 .aaa-option-optimizer-tabs .label {
 	width: 100%;
 	padding: 20px 30px;
 	background: #e5e5e5;
 	cursor: pointer;
-	font-weight: bold;
+	font-weight: 700;
 	font-size: 18px;
 	color: #7f7f7f;
 	transition: background 0.1s, color 0.1s;
 }
+
 .aaa-option-optimizer-tabs .label:hover {
 	background: #d8d8d8;
 }
+
 .aaa-option-optimizer-tabs .label:active {
 	background: #ccc;
 }
+
 .aaa-option-optimizer-tabs .input:focus + .label {
 	z-index: 1;
 }
+
 .aaa-option-optimizer-tabs .input:checked + .label {
 	background: #fff;
 	color: #000;
 }
+
 .aaa-option-optimizer-tabs .panel {
 	display: none;
 	box-sizing: border-box;
 	padding: 20px 30px 30px;
 	background: #fff;
 }
+
 .aaa-option-optimizer-tabs .input:checked + .label + .panel {
 	display: block;
 	width: 100%;
 }
+
 @media (min-width: 600px) {
+
 	.aaa-option-optimizer-tabs .panel {
 		order: 99;
 	}
+
 	.aaa-option-optimizer-tabs .label {
 		width: auto;
 	}
 }
+
 .aaa_option_table .source {
 	width: 20%;
 }
@@ -157,6 +195,7 @@ div.dt-container .dt-input {
 
 /* Version 6.9 compatibility */
 .branch-6-9 {
+
 	.aaa_option_table .actions .button span.dashicons,
 	.aaa_option_table .button.dashicon span.dashicons {
 		vertical-align: middle;
