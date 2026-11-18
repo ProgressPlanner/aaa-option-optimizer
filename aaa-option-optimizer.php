@@ -73,7 +73,7 @@ function aaa_option_optimizer_activation() {
  * @return void
  */
 function aaa_option_optimizer_deactivation() {
-	// update_option() returns early when the value is unchanged, without touching the autoload flag.
+	// update_option() ignores the autoload argument when the value is unchanged, so set it directly.
 	wp_set_option_autoload( 'option_optimizer', false );
 }
 

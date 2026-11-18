@@ -60,7 +60,7 @@ class Activation_Test extends Test_Case {
 	}
 
 	/**
-	 * Deactivation keeps the plugin option, but stops autoloading it.
+	 * Deactivation keeps the plugin option and its value, and stops autoloading it.
 	 *
 	 * @return void
 	 */
