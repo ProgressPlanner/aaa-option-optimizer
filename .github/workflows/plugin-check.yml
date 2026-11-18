@@ -1,0 +1,66 @@
+name: 'WordPress.org Plugin Check'
+on: # rebuild any PRs and main branch changes
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: 'WordPress.org Plugin Check'
+    runs-on: ubuntu-latest
+    steps:
+        - name: Checkout
+          uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+          with:
+            persist-credentials: false
+
+        - name: Setup PHP
+          uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+          with:
+            php-version: '8.3'
+            coverage: none
+            # Use a release archive instead of the mutable latest-build URL.
+            tools: wp-cli:2.12.0
+          env:
+            fail-fast: true
+
+        # setup-php stores the ephemeral Actions token in ~/.composer/auth.json
+        # as a github-oauth credential. Composer rejects that token whenever it
+        # happens to contain a character its validator dislikes ("Your github
+        # oauth token for github.com contains invalid characters",
+        # composer#12076), so this step failed on roughly half of all runs
+        # depending on the token minted for that run.
+        #
+        # dist-archive-command is a PUBLIC package and needs no auth, so the
+        # fix is to delete the stored credential before installing. Clearing
+        # the env vars alone does NOT work — they are already empty here, and
+        # the credential lives on disk (verified in progress-planner run 31784727273).
+        #
+        # Do NOT switch to the WP-CLI nightly to dodge this: it reports as
+        # wp-cli 3.0.0-alpha, and every released dist-archive-command requires
+        # wp-cli ^2 / ^2.13, so the install cannot resolve against it.
+        #
+        # Pinned to v3.1.0 deliberately: newest release accepting wp-cli ^2.
+        # v3.2.x requires ^2.13, which has no stable release (latest is 2.12.0).
+        - name: Install latest version of dist-archive-command
+          run: |
+            rm -f "$(composer config --global home 2>/dev/null)/auth.json"
+            wp package install wp-cli/dist-archive-command:v3.1.0
+
+        # Builds the same file set that is deployed to WordPress.org (see .distignore).
+        - name: Build plugin
+          run: |
+            wp dist-archive . ./${{ github.event.repository.name }}.zip
+            mkdir plugin-check-build
+            unzip ${{ github.event.repository.name }}.zip -d plugin-check-build
+
+        # v1.1.7 fixed the wp-env silent-startup failure ("Environment not
+        # initialized. Run `wp-env start` first.") that broke this job on newer
+        # runner images; v1.1.9 fixes a bundle regression in v1.1.8. Because
+        # that fix landed upstream, @wordpress/env needs no version pin here.
+        # https://github.com/WordPress/plugin-check-action/pull/590
+        - name: Run plugin check
+          uses: wordpress/plugin-check-action@10857da14b6c2246d15402b3e69f777edcf8c12e # v1.1.9
+          with:
+            build-dir: './plugin-check-build/${{ github.event.repository.name }}'

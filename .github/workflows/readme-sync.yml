@@ -1,0 +1,33 @@
+name: Sync readme.txt to WordPress.org
+
+# The plugin directory reads metadata from the stable tag's readme.
+# Update trunk and that tag together without publishing plugin code.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wordpress-org-aaa-option-optimizer
+  cancel-in-progress: false
+
+jobs:
+  sync-readme:
+    name: Sync readme.txt to SVN trunk and stable tag
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Subversion
+        run: sudo apt-get update && sudo apt-get install -y subversion
+
+      - name: Sync published readmes
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+        run: bash .github/scripts/sync-readme.sh

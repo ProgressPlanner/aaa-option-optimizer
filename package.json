@@ -16,10 +16,10 @@
 	"devDependencies": {
 		"@playwright/test": "^1.42.1",
 		"@wordpress/scripts": "*",
-		"@wordpress/stylelint-config": "^22.2.0",
 		"dotenv": "^16.4.5",
 		"eslint-plugin-eslint-comments": "3.1.2",
-		"husky": "^9.0.11"
+		"husky": "^9.0.11",
+		"stylelint": "^16.26.1"
 	},
 	"scripts": {
 		"test:hardening:js": "node --test tests/admin-hardening.test.cjs",

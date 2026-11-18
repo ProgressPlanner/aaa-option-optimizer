@@ -2,7 +2,7 @@
 Contributors: joostdevalk, aristath, filipi, progressplanner
 Tags: autoload, options, database, performance, cleanup
 Requires at least: 6.7
-Tested up to: 7.1
+Tested up to: 7.2
 Stable tag: 1.7.1
 Requires PHP: 7.4
 License: GPL-3.0-or-later
@@ -24,7 +24,7 @@ or turn off autoloading.
 
 == How It Works ==
 
-1. Install the plugin and browse your site normally for a few days.
+1. Install and activate the plugin, then browse your site normally for a few days.
 2. The plugin quietly records which autoloaded options are actually used
    during page rendering.
 3. Visit the settings screen to see every autoloaded option that was
