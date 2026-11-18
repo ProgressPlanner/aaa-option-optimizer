@@ -16,6 +16,8 @@ if ( ! defined( 'WP_CLI' ) || ! WP_CLI || ! defined( 'AAAOO_DISPOSABLE_TEST_SITE
 
 require_once dirname( __DIR__ ) . '/aaa-option-optimizer.php';
 Database::create_table();
+// Start from empty tracking data, so a previous failed run (e.g. a full table) can't skew results.
+Database::clear_tracked_options();
 wp_set_current_user( 1 );
 rest_get_server();
 
@@ -93,7 +95,10 @@ check(
 );
 // List responses must preserve the serialized bytes already stored in wp_options.
 Database::batch_insert( array_fill_keys( $names, 1 ) );
+// List routes paginate from $_GET (25 rows by default); fetch one full page so fixtures are present on busy sites.
+$_GET          = [ 'length' => 500 ];
 $listed_values = array_column( request( 'used-not-autoloaded-options', [], 'GET' )->get_data()['data'], 'value', 'name' );
+$_GET          = [];
 foreach ( $names as $name ) {
 	$stored_value = $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM $wpdb->options WHERE option_name = %s", $name ) );
 	check( $stored_value === ( $listed_values[ $name ] ?? null ), 'List response must not serialize the raw value again: ' . $name );
@@ -182,7 +187,13 @@ foreach ( [ [], true, 'invalid' ] as $bad ) {
 	);
 }
 
-foreach ( [ 'siteurl', 'SITEURL', 'sitéurl', 'active_plugins', $wpdb->prefix . 'user_roles', 'alloptions', 'notoptions' ] as $protected ) {
+foreach ( [ 'siteurl', 'SITEURL', 'sitéurl', 'active_plugins', $wpdb->prefix . 'user_roles', 'alloptions', 'notoptions', 'theme_mods_' . get_stylesheet(), strtoupper( 'theme_mods_' . get_stylesheet() ), 'auth_salt', 'NONCE_KEY', 'logged_in_salt' ] as $protected ) {
+	// Alias folding depends on the database: MySQL matches 'sitéurl' to 'siteurl', SQLite doesn't.
+	// Where the engine doesn't fold it, the name is a different, unprotected option and is skipped.
+	$resolved = $wpdb->get_var( $wpdb->prepare( "SELECT option_name FROM $wpdb->options WHERE option_name = %s", $protected ) );
+	if ( ! Protected_Options::is_protected( $protected ) && ( null === $resolved || ! Protected_Options::is_protected( $resolved ) ) ) {
+		continue;
+	}
 	foreach ( [ 'delete-option', 'create-option-false', 'update-autoload' ] as $route ) {
 		check(
 			403 === request(
@@ -209,6 +220,20 @@ foreach ( [ 'siteurl', 'SITEURL', 'sitéurl', 'active_plugins', $wpdb->prefix . 
 		check( null !== $wpdb->get_var( "SELECT option_name FROM $wpdb->options WHERE option_name = 'aaaoo_false'" ), 'Protected batch deleted an earlier option.' );
 	}
 }
+// Leftover mods of an inactive theme stay removable; only the active theme's are protected.
+add_option( 'theme_mods_aaaoo_inactive_theme', [ 'header_textcolor' => 'fff' ], '', false );
+check( ! Protected_Options::is_protected( 'theme_mods' ), 'The bare theme_mods name is not a core option.' );
+check( 200 === request( 'delete-option', [ 'option_name' => 'theme_mods_aaaoo_inactive_theme' ] )->get_status(), 'Inactive theme mods are removable.' );
+check(
+	200 === request(
+		'set-autoload-options',
+		[
+			'option_names' => [ 'aaaoo_false' ],
+			'autoload'     => 'no',
+		]
+	)->get_status(),
+	'Unprotected batch still passes the batch preflight.'
+);
 
 wp_set_current_user( 0 );
 check( 401 === request( 'delete-option', [ 'option_name' => 'aaaoo_false' ] )->get_status(), 'Anonymous mutation denied.' );
@@ -229,6 +254,18 @@ $_GET = [
 	'columns' => [],
 ];
 check( [ 'name', SORT_ASC ] === $rest->get_sort_params(), 'Array sort index must not throw.' );
+foreach ( [ 'DESC', 'Desc', 'desc' ] as $dir ) {
+	$_GET = [
+		'order'   => [
+			[
+				'column' => '0',
+				'dir'    => $dir,
+			],
+		],
+		'columns' => [ [ 'data' => 'size' ] ],
+	];
+	check( [ 'size', SORT_DESC ] === $rest->get_sort_params(), 'Sort direction is case-insensitive: ' . $dir );
+}
 $_GET = [
 	'order'   => [
 		[
