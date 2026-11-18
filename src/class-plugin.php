@@ -174,7 +174,9 @@ class Plugin {
 	 */
 	protected function add_option_usage( $option_name ) {
 		if ( ! array_key_exists( $option_name, $this->accessed_options ) ) {
-			if ( count( $this->accessed_options ) >= 1000 ) {
+			// Only a request reading more names than storage can hold is capped; reaching this means
+			// the observation really is incomplete.
+			if ( count( $this->accessed_options ) >= Database::MAX_TRACKED_OPTIONS ) {
 				$this->tracking_limited = true;
 				return;
 			}

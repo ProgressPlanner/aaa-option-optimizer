@@ -42,28 +42,14 @@ class Database {
 	/**
 	 * Whether unused-option recommendations would be incomplete.
 	 *
-	 * Also detects an oversized table from an older plugin version before the
-	 * next tracking write has had a chance to prune it.
+	 * True only after an observation was actually dropped because tracking storage was full,
+	 * or a single request read more names than can be stored. Transient write failures don't
+	 * set it: they lose at most one request's counts, which the next request records again.
 	 *
 	 * @return bool
 	 */
 	public static function is_tracking_limited() {
-		global $wpdb;
-		if ( \get_option( 'aaa_option_optimizer_tracking_limited', false ) ) {
-			return true;
-		}
-		$table = self::get_table_name();
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		return null !== $wpdb->get_var( $wpdb->prepare( 'SELECT option_name FROM %i LIMIT 1 OFFSET %d', $table, self::MAX_TRACKED_OPTIONS - 1 ) );
-	}
-
-	/**
-	 * Lock name scoped to this database and blog.
-	 *
-	 * @return string
-	 */
-	private static function get_tracking_lock() {
-		return 'aaaoo_' . md5( ( defined( 'DB_NAME' ) ? DB_NAME : '' ) . self::get_table_name() );
+		return (bool) \get_option( 'aaa_option_optimizer_tracking_limited', false );
 	}
 
 	/**
@@ -200,9 +186,10 @@ class Database {
 		// Take a chunk of options to migrate.
 		$chunk = \array_slice( $option_data['used_options'], 0, self::MIGRATION_CHUNK_SIZE, true );
 
-		// Remove only observations that were committed; failed or capacity-limited
-		// writes must leave the remaining source data available for a retry.
-		$written = self::batch_insert( $chunk );
+		// Legacy observations were already stored in full, so they are migrated without the
+		// capacity limit; otherwise a large legacy dataset could never finish migrating.
+		// Remove only committed observations, so a failed write can be retried.
+		$written = self::batch_insert( $chunk, 500, false );
 		if ( false === $written ) {
 			return [
 				'success'   => false,
@@ -223,15 +210,6 @@ class Database {
 			\delete_transient( 'aaa_option_optimizer_migration_total' );
 		}
 
-		if ( count( $written ) < count( $chunk ) ) {
-			return [
-				'success'   => false,
-				'remaining' => $remaining,
-				'total'     => (int) $total,
-				'message'   => \__( 'Tracking storage is full. Unmigrated observations have been retained.', 'aaa-option-optimizer' ),
-			];
-		}
-
 		return [
 			'success'   => true,
 			'remaining' => $remaining,
@@ -250,85 +228,97 @@ class Database {
 	 * VALUES list; with per-request access order, concurrent requests lock
 	 * the same rows in different orders and deadlock each other.
 	 *
+	 * The capacity limit is soft: it is checked without a lock, so concurrent
+	 * requests near the limit can each add their new names and overshoot it
+	 * slightly. Taking a global lock on every request costs far more than a
+	 * few extra rows, and isn't portable beyond MySQL.
+	 *
 	 * @param array<string, int> $options    Array of option_name => count.
 	 * @param int                $chunk_size Number of options per query. Default 500.
+	 * @param bool               $enforce_cap Whether new names are limited to MAX_TRACKED_OPTIONS. Default true.
 	 *
 	 * @return array<string, int>|false Committed observations, or false on a write failure.
 	 */
-	public static function batch_insert( $options, $chunk_size = 500 ) {
+	public static function batch_insert( $options, $chunk_size = 500, $enforce_cap = true ) {
 		global $wpdb;
 		if ( empty( $options ) ) {
 			return [];
 		}
 
-		$table = self::get_table_name();
-		$lock  = self::get_tracking_lock();
-		// Serialize capacity checks and writes across concurrent requests.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		if ( '1' !== (string) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 1)', $lock ) ) ) {
-			self::mark_tracking_limited();
-			return false;
-		}
+		\ksort( $options, SORT_STRING );
+		$chunk_size = max( 1, min( 500, (int) $chunk_size ) );
+		$accepted   = $options;
 
-		try {
+		if ( $enforce_cap ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$count = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table ) );
+			$count = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', self::get_table_name() ) );
 			if ( null === $count ) {
-				self::mark_tracking_limited();
 				return false;
 			}
-			$count   = (int) $count;
-			$limited = false;
-			if ( $count >= self::MAX_TRACKED_OPTIONS ) {
-				self::mark_tracking_limited();
-			}
-			if ( $count > self::MAX_TRACKED_OPTIONS ) {
-				// Bound tables created by older versions too. Never infer unused options after pruning.
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				if ( false === $wpdb->query( $wpdb->prepare( 'DELETE FROM %i ORDER BY created_at ASC, option_name ASC LIMIT %d', $table, $count - self::MAX_TRACKED_OPTIONS ) ) ) {
-					return false;
-				}
-				$count = self::MAX_TRACKED_OPTIONS;
-			}
+			$remaining = self::MAX_TRACKED_OPTIONS - (int) $count;
 
-			\ksort( $options, SORT_STRING );
-			$remaining = max( 0, self::MAX_TRACKED_OPTIONS - $count );
-			$accepted  = [];
-			foreach ( array_chunk( $options, 500, true ) as $chunk ) {
-				$names = array_keys( $chunk );
-				$slots = implode( ',', array_fill( 0, count( $names ), '%s' ) );
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				$existing = array_fill_keys( $wpdb->get_col( $wpdb->prepare( "SELECT option_name FROM %i WHERE option_name IN ($slots)", array_merge( [ $table ], $names ) ) ), true );
-				if ( $wpdb->last_error ) {
-					self::mark_tracking_limited();
+			// Below the limit with room for every name: no need to tell new names from existing ones.
+			if ( count( $options ) > $remaining ) {
+				$existing = self::get_existing_names( array_keys( $options ) );
+				if ( false === $existing ) {
 					return false;
 				}
-				foreach ( $chunk as $name => $accesses ) {
+				$accepted = [];
+				$dropped  = false;
+				foreach ( $options as $name => $accesses ) {
 					if ( isset( $existing[ $name ] ) ) {
 						$accepted[ $name ] = $accesses;
 					} elseif ( $remaining > 0 ) {
 						$accepted[ $name ] = $accesses;
 						--$remaining;
 					} else {
-						$limited = true;
+						$dropped = true;
 					}
 				}
-			}
-			if ( $limited ) {
-				self::mark_tracking_limited();
-			}
-
-			if ( $accepted && ! self::write_chunks( $accepted, max( 1, min( 500, $chunk_size ) ) ) ) {
-				if ( ! self::last_error_is_deadlock() || ! self::write_chunks( $accepted, max( 1, min( 500, $chunk_size ) ) ) ) {
+				if ( $dropped ) {
 					self::mark_tracking_limited();
-					return false;
 				}
 			}
-			return $accepted;
-		} finally {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) );
 		}
+
+		if ( $accepted && ! self::write_chunks( $accepted, $chunk_size ) ) {
+			if ( ! self::last_error_is_deadlock() || ! self::write_chunks( $accepted, $chunk_size ) ) {
+				return false;
+			}
+		}
+		return $accepted;
+	}
+
+	/**
+	 * Find which submitted names already have a row, using the table's own collation.
+	 *
+	 * The submitted names are joined against the table in SQL, so a name that differs from a
+	 * stored row only by case or accents counts as existing, exactly as the primary key and
+	 * ON DUPLICATE KEY UPDATE treat it. Comparing the returned rows in PHP would not.
+	 *
+	 * @param string[] $names Submitted option names.
+	 *
+	 * @return array<string, true>|false Submitted names that match a row, or false on a query failure.
+	 */
+	private static function get_existing_names( array $names ) {
+		global $wpdb;
+
+		$table    = self::get_table_name();
+		$existing = [];
+		foreach ( array_chunk( $names, 500 ) as $chunk ) {
+			$selects = implode( ' UNION ALL ', array_fill( 0, count( $chunk ), 'SELECT %s AS n' ) );
+			// The table must come first: for non-ASCII names wpdb parses the first FROM to check the
+			// table's charset, and a leading subquery makes that check fail the whole query.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Placeholders are generated above.
+			$found = $wpdb->get_col( $wpdb->prepare( "SELECT s.n FROM %i t INNER JOIN ($selects) s ON t.option_name = s.n", array_merge( [ $table ], array_map( 'strval', $chunk ) ) ) );
+			if ( $wpdb->last_error ) {
+				return false;
+			}
+			foreach ( $found as $name ) {
+				$existing[ $name ] = true;
+			}
+		}
+		return $existing;
 	}
 
 	/**
@@ -409,7 +399,7 @@ class Database {
 		$table_name = self::get_table_name();
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is safe (from constant).
-		$results = $wpdb->get_results( $wpdb->prepare( 'SELECT option_name, access_count FROM %i ORDER BY option_name LIMIT %d', $table_name, self::MAX_TRACKED_OPTIONS ), ARRAY_A );
+		$results = $wpdb->get_results( $wpdb->prepare( 'SELECT option_name, access_count FROM %i', $table_name ), ARRAY_A );
 
 		if ( empty( $results ) ) {
 			return [];
@@ -434,7 +424,7 @@ class Database {
 		$table_name = self::get_table_name();
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is safe (from constant).
-		$option_names = $wpdb->get_col( $wpdb->prepare( 'SELECT option_name FROM %i ORDER BY option_name LIMIT %d', $table_name, self::MAX_TRACKED_OPTIONS ) );
+		$option_names = $wpdb->get_col( $wpdb->prepare( 'SELECT option_name FROM %i', $table_name ) );
 
 		if ( empty( $option_names ) ) {
 			return [];
@@ -450,21 +440,11 @@ class Database {
 	 */
 	public static function clear_tracked_options() {
 		global $wpdb;
-		$lock = self::get_tracking_lock();
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		if ( '1' !== (string) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 1)', $lock ) ) ) {
+		if ( false === $wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', self::get_table_name() ) ) ) {
 			return false;
 		}
-		try {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			if ( false !== $wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', self::get_table_name() ) ) ) {
-				\delete_option( 'aaa_option_optimizer_tracking_limited' );
-				return ! \get_option( 'aaa_option_optimizer_tracking_limited', false );
-			}
-			return false;
-		} finally {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) );
-		}
+		\delete_option( 'aaa_option_optimizer_tracking_limited' );
+		return ! \get_option( 'aaa_option_optimizer_tracking_limited', false );
 	}
 }

@@ -283,7 +283,7 @@ class Admin_Page {
 			<p><?php \esc_html_e( 'Option values may contain passwords, API keys and licence keys. Anyone with permission to manage options can view these values through this plugin. Only grant access to trusted administrators.', 'aaa-option-optimizer' ); ?></p>
 
 			<?php if ( Database::is_tracking_limited() ) : ?>
-			<div class="notice notice-warning"><p><?php \esc_html_e( 'Tracking reached its storage or request limit, or a tracking write failed. Unused-option recommendations are paused because observations are incomplete. Reset tracking to start a new observation period.', 'aaa-option-optimizer' ); ?></p></div>
+			<div class="notice notice-warning"><p><?php \esc_html_e( 'Tracking storage is full, so some options read since the last reset were not recorded. Unused-option recommendations are paused because they could list options that are in use. Reset tracking to start a new observation period.', 'aaa-option-optimizer' ); ?></p></div>
 			<?php endif; ?>
 
 			<?php if ( $migration_status['needs_migration'] ) : ?>
