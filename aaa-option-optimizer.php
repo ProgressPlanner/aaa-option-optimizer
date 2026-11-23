@@ -4,10 +4,12 @@
  *
  * @package Progress_Planner\OptionOptimizer
  *
- * Plugin Name: Autoload Optimizer
+ * Plugin Name: AAA Autoload Optimizer
  * Plugin URI: https://progressplanner.com/plugins/aaa-option-optimizer/
  * Description: Tracks autoloaded options usage and allows the user to optimize them.
- * Version: 1.6.1
+ * Version: 1.7.1
+ * Requires at least: 6.7
+ * Requires PHP: 7.4
  * License: GPL-3.0+
  * Author: Team Progress Planner
  * Author URI: https://progressplanner.com/
@@ -71,8 +73,8 @@ function aaa_option_optimizer_activation() {
  * @return void
  */
 function aaa_option_optimizer_deactivation() {
-	$aaa_option_value = get_option( 'option_optimizer' );
-	update_option( 'option_optimizer', $aaa_option_value, false );
+	// update_option() ignores the autoload argument when the value is unchanged, so set it directly.
+	wp_set_option_autoload( 'option_optimizer', false );
 
 	wp_clear_scheduled_hook( Progress_Planner\OptionOptimizer\Known_Plugins::CRON_HOOK );
 }

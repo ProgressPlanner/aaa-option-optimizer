@@ -1,14 +1,18 @@
 <?php
 /**
- * Admin page functionality for AAA Option Optimizer.
+ * Admin page functionality for AAA Autoload Optimizer.
  *
  * @package Progress_Planner\OptionOptimizer
  */
 
 namespace Progress_Planner\OptionOptimizer;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
- * Admin page functionality for AAA Option Optimizer.
+ * Admin page functionality for AAA Autoload Optimizer.
  */
 class Admin_Page {
 
@@ -225,8 +229,8 @@ class Admin_Page {
 	 */
 	public function add_admin_page() {
 		\add_management_page(
-			__( 'AAA Option Optimizer', 'aaa-option-optimizer' ),
-			__( 'Option Optimizer', 'aaa-option-optimizer' ),
+			__( 'AAA Autoload Optimizer', 'aaa-option-optimizer' ),
+			__( 'Autoload Optimizer', 'aaa-option-optimizer' ),
 			'manage_options',
 			'aaa-option-optimizer',
 			[ $this, 'render_admin_page_ajax' ]
@@ -249,7 +253,7 @@ class Admin_Page {
 			'aaa-option-optimizer',
 			plugin_dir_url( AAA_OPTION_OPTIMIZER_FILE ) . 'css/style.css',
 			[],
-			'2.0.1'
+			'2.0.2'
 		);
 
 		\wp_enqueue_script(
@@ -299,6 +303,10 @@ class Admin_Page {
 					'showValue'              => \esc_html__( 'Show', 'aaa-option-optimizer' ),
 					'addAutoload'            => \esc_html__( 'Add autoload', 'aaa-option-optimizer' ),
 					'removeAutoload'         => \esc_html__( 'Remove autoload', 'aaa-option-optimizer' ),
+					'confirmDelete'          => \__( 'Permanently delete the selected option(s)? This cannot be undone. Make sure you have a database backup.', 'aaa-option-optimizer' ),
+					'selectedOptions'        => \__( 'options selected', 'aaa-option-optimizer' ),
+					'trackingLimited'        => \__( 'Tracking is incomplete. Reset tracking and collect fresh observations before reviewing unused options.', 'aaa-option-optimizer' ),
+					'actionFailed'           => \__( 'The action could not be completed.', 'aaa-option-optimizer' ),
 					'deleteOption'           => \esc_html__( 'Delete', 'aaa-option-optimizer' ),
 					'createOptionFalse'      => \esc_html__( 'Create option with value false', 'aaa-option-optimizer' ),
 					'unknownLabel'           => \esc_html__( 'Unknown', 'aaa-option-optimizer' ),
@@ -329,7 +337,7 @@ class Admin_Page {
 					'reportFailed'           => \esc_html__( 'Submission failed. Please try again.', 'aaa-option-optimizer' ),
 					'reportPrivacyNote'      => \esc_html__( 'We send the option name, the prefix and the slug you provide, and your site address. Never the option value.', 'aaa-option-optimizer' ),
 					'reportConsentLabel'     => \esc_html__( 'I agree to send this report to option-optimizer-api.progressplanner.com, and to let the plugin keep the known-plugins list up to date daily.', 'aaa-option-optimizer' ),
-					'noAutoloadedButNotUsed' => \esc_html__( 'All autoloaded options are in use.', 'aaa-option-optimizer' ),
+					'noAutoloadedButNotUsed' => \esc_html__( 'No unused autoloaded options to display.', 'aaa-option-optimizer' ),
 					'noUsedButNotAutoloaded' => \esc_html__( 'All options that are used are autoloaded.', 'aaa-option-optimizer' ),
 					'noOptionsSelected'      => \esc_html__( 'No options selected.', 'aaa-option-optimizer' ),
 					'bulkActions'            => \esc_html__( 'Bulk actions', 'aaa-option-optimizer' ),
@@ -438,7 +446,12 @@ class Admin_Page {
 		$migration_status = Database::get_migration_status();
 		?>
 		<div class="wrap">
-			<h1><?php \esc_html_e( 'AAA Option Optimizer', 'aaa-option-optimizer' ); ?></h1>
+			<h1><?php \esc_html_e( 'AAA Autoload Optimizer', 'aaa-option-optimizer' ); ?></h1>
+			<p><?php \esc_html_e( 'Option values may contain passwords, API keys and licence keys. Anyone with permission to manage options can view these values through this plugin. Only grant access to trusted administrators.', 'aaa-option-optimizer' ); ?></p>
+
+			<?php if ( Database::is_tracking_limited() ) : ?>
+			<div class="notice notice-warning"><p><?php \esc_html_e( 'Tracking storage is full, so some options read since the last reset were not recorded. Unused-option recommendations are paused because they could list options that are in use. Reset tracking to start a new observation period.', 'aaa-option-optimizer' ); ?></p></div>
+			<?php endif; ?>
 
 			<?php if ( $migration_status['needs_migration'] ) : ?>
 			<div id="aaa-migration-notice" class="notice notice-warning">
@@ -473,7 +486,7 @@ class Admin_Page {
 				<label class="label" for="tab-1"><?php \esc_html_e( 'Unused, but autoloaded', 'aaa-option-optimizer' ); ?></label>
 				<div class="panel">
 					<h2 id="unused-autoloaded"><?php \esc_html_e( 'Unused, but autoloaded', 'aaa-option-optimizer' ); ?></h2>
-					<p><?php \esc_html_e( 'The following options are autoloaded on each pageload, but AAA Option Optimizer has not been able to detect them being used.', 'aaa-option-optimizer' ); ?></p>
+					<p><?php \esc_html_e( 'The following options are autoloaded on each pageload, but AAA Autoload Optimizer has not been able to detect them being used.', 'aaa-option-optimizer' ); ?></p>
 
 					<table style="width:100%" id="unused_options_table" class="aaa_option_table">
 						<thead>
@@ -514,7 +527,7 @@ class Admin_Page {
 				<div class="panel">
 					<?php // Render differences. ?>
 					<h2 id="used-not-autoloaded"><?php \esc_html_e( 'Used, but not autoloaded options', 'aaa-option-optimizer' ); ?></h2>
-					<p><?php \esc_html_e( 'The following options are *not* autoloaded on each pageload, but AAA Option Optimizer has detected that they are being used. If one of the options below has been called a lot and is not very big, you might consider adding autoload to that option.', 'aaa-option-optimizer' ); ?></p>
+					<p><?php \esc_html_e( 'The following options are *not* autoloaded on each pageload, but AAA Autoload Optimizer has detected that they are being used. If one of the options below has been called a lot and is not very big, you might consider adding autoload to that option.', 'aaa-option-optimizer' ); ?></p>
 					<table style="width:100%;" id="used_not_autoloaded_table" class="aaa_option_table">
 						<thead>
 							<tr>
@@ -556,7 +569,7 @@ class Admin_Page {
 				<label class="label" for="tab-3"><?php \esc_html_e( 'Requested options that do not exist', 'aaa-option-optimizer' ); ?></label>
 				<div class="panel">
 					<h2 id="requested-do-not-exist"><?php \esc_html_e( 'Requested options that do not exist', 'aaa-option-optimizer' ); ?></h2>
-					<p><?php \esc_html_e( 'The following options are requested sometimes, but AAA Option Optimizer has detected that they do not exist. If one of the options below has been called a lot, it might help to create it with a value of false.', 'aaa-option-optimizer' ); ?></p>
+					<p><?php \esc_html_e( 'The following options are requested sometimes, but AAA Autoload Optimizer has detected that they do not exist. If one of the options below has been called a lot, it might help to create it with a value of false.', 'aaa-option-optimizer' ); ?></p>
 					<table width="100%" id="requested_do_not_exist_table" class="aaa_option_table">
 						<thead>
 							<tr>
@@ -711,7 +724,7 @@ class Admin_Page {
 					<?php
 					printf(
 						/* translators: %s is the host the data is fetched from. */
-						\esc_html__( 'When enabled, the plugin fetches an updated known-plugins list once a day from %s, and sends your plugin and WordPress version so we can keep anonymous usage statistics. No site identity is sent. When disabled, only the list bundled with the plugin is used.', 'aaa-option-optimizer' ),
+						\esc_html__( 'When enabled, the plugin fetches an updated known-plugins list once a day from %s, and sends your plugin and WordPress version so we can keep anonymous usage statistics. The request does not include your site URL; the service receives your server IP address when it connects. When disabled, only the list bundled with the plugin is used.', 'aaa-option-optimizer' ),
 						'<code>option-optimizer-api.progressplanner.com</code>'
 					);
 					?>

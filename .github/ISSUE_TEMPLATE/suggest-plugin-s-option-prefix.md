@@ -1,6 +1,6 @@
 ---
 name: Suggest plugin's option prefix
-about: AAA Option Optimizer lists the plugin to which an option belongs, if it recognizes
+about: AAA Autoload Optimizer lists the plugin to which an option belongs, if it recognizes
   it.
 title: "[Plugin Identification] Suggest plugin's option prefix"
 labels: enhancement

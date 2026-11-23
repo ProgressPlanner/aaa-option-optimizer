@@ -30,3 +30,4 @@ delete_option( 'aaa_option_optimizer_known_plugins' );
 
 // Clear the daily refresh cron event (defense-in-depth; deactivation already does this).
 wp_clear_scheduled_hook( 'aaa_option_optimizer_refresh_known_plugins' );
+delete_option( 'aaa_option_optimizer_tracking_limited' );

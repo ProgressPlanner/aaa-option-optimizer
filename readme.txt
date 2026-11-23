@@ -1,9 +1,9 @@
-=== Autoload Optimizer ===
+=== AAA Autoload Optimizer ===
 Contributors: joostdevalk, aristath, filipi, progressplanner
 Tags: autoload, options, database, performance, cleanup
-Requires at least: 6.4
-Tested up to: 7.0
-Stable tag: 1.6.1
+Requires at least: 6.7
+Tested up to: 7.2
+Stable tag: 1.7.1
 Requires PHP: 7.4
 License: GPL-3.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -18,13 +18,13 @@ those options belong to plugins you removed long ago, or simply don't need
 to be autoloaded. The result: a bigger database query, slower page loads,
 and wasted server resources.
 
-**Autoload Optimizer** tracks which autoloaded options your site actually
+**AAA Autoload Optimizer** tracks which autoloaded options your site actually
 uses, then shows you the ones it doesn't — so you can safely remove them
 or turn off autoloading.
 
 == How It Works ==
 
-1. Install the plugin and browse your site normally for a few days.
+1. Install and activate the plugin, then browse your site normally for a few days.
 2. The plugin quietly records which autoloaded options are actually used
    during page rendering.
 3. Visit the settings screen to see every autoloaded option that was
@@ -74,11 +74,11 @@ accurate measurement.
 = Automatic installation =
 
 1. In your WordPress dashboard, go to **Plugins → Add New**.
-2. Search for **Autoload Optimizer**.
+2. Search for **AAA Autoload Optimizer**.
 3. Click **Install Now**, then **Activate**.
 4. Browse your site normally for a few days — or visit every page
    manually if you're in a hurry.
-5. Go to **Tools → Option Optimizer** to review and optimize your
+5. Go to **Tools → Autoload Optimizer** to review and optimize your
    autoloaded options.
 
 = Manual installation =
@@ -130,6 +130,15 @@ disable autoloading instead of deleting — it's the safer choice.
 Yes, always back up your database before optimizing. Disabling autoload
 is safe and reversible, but deleting options is permanent.
 
+= Why are some option names not tracked? =
+
+Names that can't be real options are ignored: empty names and names longer
+than 191 characters. Developers can exclude more names with the
+`aaa_option_optimizer_is_trackable_option_name` filter, which receives
+whether the name should be tracked and the option name. Keep in mind that
+an autoloaded option excluded this way will be listed as unused. The 191
+character limit can't be changed.
+
 = Where can I report bugs? =
 
 Please use [the GitHub repository](https://github.com/ProgressPlanner/aaa-option-optimizer/)
@@ -168,7 +177,7 @@ WordPress.org terms of service: https://wordpress.org/about/privacy/
 
 = Known-plugins mapping and origin reporting (option-optimizer-api.progressplanner.com) =
 
-**This is off until you opt in.** Once you enable "Keep the known-plugins list up to date automatically" (on the plugin's settings tab, or by agreeing in the Report popover), the plugin fetches an updated list of recognized plugins once a day from `https://option-optimizer-api.progressplanner.com/known-plugins.json`. This lets the plugin identify newly-added plugins as the maintained list grows, without requiring a plugin update. With this request the plugin sends your plugin version and WordPress version, so the maintainers can keep anonymous usage statistics. No site identity is sent. Until you opt in, only the list bundled with the plugin is used and no request is made. The fetch URL can be overridden, or the feature disabled, via the `aaa_option_optimizer_known_plugins_url` filter.
+**This is off until you opt in.** Once you enable "Keep the known-plugins list up to date automatically" (on the plugin's settings tab, or by agreeing in the Report popover), the plugin fetches an updated list of recognized plugins once a day from `https://option-optimizer-api.progressplanner.com/known-plugins.json`. This lets the plugin identify newly-added plugins as the maintained list grows, without requiring a plugin update. With this request the plugin sends your plugin version and WordPress version, so the maintainers can keep anonymous usage statistics. The request does not include your site URL; the service receives your server IP address when it connects. Until you opt in, only the list bundled with the plugin is used and no request is made. The fetch URL can be overridden, or the feature disabled, via the `aaa_option_optimizer_known_plugins_url` filter.
 
 When you submit a "Report origin" form, the plugin sends the option name you reported, the option prefix shown in the form, the wp.org plugin slug you supplied, and your site's hostname to `https://option-optimizer-api.progressplanner.com/submit`. The submission is recorded as a GitHub issue for a maintainer to review and add to the recognized plugins list. The site hostname is hashed before storage and never published. The option name and slug appear in the public GitHub issue. Submissions only happen when you click Submit on the Report form; nothing is sent automatically.
 
@@ -176,13 +185,43 @@ The endpoint is operated by the plugin maintainers. The submission URL can be ov
 
 == Changelog ==
 
-= 1.7.0 =
+= Unreleased =
 
 * Add "Report origin" feature: for options whose source plugin is unknown, users can submit the matching wp.org slug to help maintainers expand the recognized plugins list. Submissions land as GitHub issues for maintainer review; no auto-merge.
 * The "Report origin" slug field suggests the plugins installed on your site, so the slug can be picked from a list instead of typed. The field still accepts a typed slug or wp.org URL, so options left behind by a plugin that has since been deleted remain reportable. Suggestions are read locally and never sent anywhere.
 * When an unrecognized option names a plugin installed on the site, the Report form opens with that plugin already filled in and verified, so a plugin the recognized-plugins list only partly covers takes one click to report. The guess is made locally from the installed plugin list and is only ever a starting point -- the slug is still verified against wordpress.org, and it can be changed or cleared.
 * "Report origin" also submits the option prefix the plugin appears to use, alongside the option name, so a single report can cover every option sharing that prefix instead of just the one reported. The prefix is prefilled from the option name and can be corrected, or cleared to report only that option.
-* Recognized-plugins list can refresh once a day in the background from the maintainers' server, so the list grows for users without requiring plugin updates. This is opt-in: enable it on the settings tab or agree in the Report popover. The refresh sends only your plugin and WordPress version for anonymous statistics; no site identity is sent.
+* Recognized-plugins list can refresh once a day in the background from the maintainers' server, so the list grows for users without requiring plugin updates. This is opt-in: enable it on the settings tab or agree in the Report popover. The refresh sends only your plugin and WordPress version for anonymous statistics; the request excludes your site URL, but the service receives your server IP address.
+
+= 1.7.1 =
+
+Security:
+
+* Hardened the escaping of option data in the admin screens
+  ([CVE-2026-119211](https://www.cve.org/CVERecord?id=CVE-2026-119211)).
+
+Bug fixes:
+
+* Fix the autoload toggle and delete button not updating rows when the
+  table columns are collapsed on smaller screens.
+* Fix tables on hidden tabs not fitting their panel.
+* Show the correct autoload button for options with the "off" and
+  "auto-off" autoload values.
+* Fix bulk delete for option names that contain a dot.
+* Fix duplicate element ids when the same option appears in more than
+  one table.
+
+Enhancements:
+
+* Add the `aaa_option_optimizer_is_trackable_option_name` filter to
+  exclude option names from tracking.
+
+= 1.7.0 =
+
+* Rename the plugin to AAA Autoload Optimizer.
+* Fix database deadlocks when concurrent requests write tracked options.
+* Fix a fatal error when W3 Total Cache's database cache is active.
+* Readme improvements.
 
 = 1.6.1 =
 
@@ -298,6 +337,10 @@ caused sorting not to work for some people.
 Initial release on GitHub and WordPress.org.
 
 == Upgrade Notice ==
+
+= 1.7.0 =
+The plugin is now called AAA Autoload Optimizer. Also fixes bugs with
+concurrent requests and W3 Total Cache.
 
 = 1.6.1 =
 Fixes a potential fatal error from infinite recursion in option

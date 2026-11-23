@@ -7,6 +7,10 @@
 
 namespace Progress_Planner\OptionOptimizer;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Class Known_Plugins
  *
@@ -46,12 +50,16 @@ class Known_Plugins {
 	 * @return array<string, array<string, mixed>>
 	 */
 	public function get(): array {
+		if ( ! self::has_consent() ) {
+			return $this->load_bundled();
+		}
+
 		if ( null !== $this->list ) {
 			return $this->list;
 		}
 
 		$cached = \get_option( self::CACHE_KEY );
-		if ( \is_array( $cached ) && ! empty( $cached ) ) {
+		if ( $this->is_valid_mapping( $cached ) ) {
 			$this->list = $cached;
 			return $this->list;
 		}
@@ -64,8 +72,8 @@ class Known_Plugins {
 	 * Refresh the cached mapping from the remote URL.
 	 *
 	 * Sends the plugin and WordPress versions so the maintainers can keep
-	 * anonymous usage statistics for the maintained mapping. No site identity
-	 * is transmitted.
+	 * anonymous usage statistics for the maintained mapping. No site URL is included in the payload or User-Agent. The service still
+	 * receives the server IP address as part of the connection.
 	 *
 	 * @return bool True when a fresh copy was stored, false otherwise.
 	 */
@@ -80,16 +88,22 @@ class Known_Plugins {
 		 *
 		 * Allows users to redirect or disable the remote fetch.
 		 *
-		 * @param string $url The remote URL.
+		 * @param string|false $url The remote URL, or false to disable refresh.
 		 */
 		$url = \apply_filters( 'aaa_option_optimizer_known_plugins_url', self::REMOTE_URL );
 
-		$response = \wp_remote_post(
+		if ( ! is_string( $url ) || '' === $url ) {
+			return false;
+		}
+
+		$response = \wp_safe_remote_post(
 			$url,
 			[
-				'timeout' => 10,
-				'headers' => [ 'Content-Type' => 'application/json' ],
-				'body'    => (string) \wp_json_encode( $this->stats_payload() ),
+				'timeout'             => 10,
+				'user-agent'          => 'AAA-Option-Optimizer',
+				'limit_response_size' => 2 * MB_IN_BYTES,
+				'headers'             => [ 'Content-Type' => 'application/json' ],
+				'body'                => (string) \wp_json_encode( $this->stats_payload() ),
 			]
 		);
 
@@ -104,12 +118,46 @@ class Known_Plugins {
 		$body = \wp_remote_retrieve_body( $response );
 		$data = \json_decode( $body, true );
 
-		if ( ! \is_array( $data ) || empty( $data ) ) {
+		if ( ! $this->is_valid_mapping( $data ) ) {
 			return false;
 		}
 
 		\update_option( self::CACHE_KEY, $data, false );
 		$this->list = $data;
+		return true;
+	}
+
+	/**
+	 * Validate remote and stored data before the mapper consumes it.
+	 *
+	 * @param mixed $data Decoded mapping.
+	 * @return bool
+	 */
+	private function is_valid_mapping( $data ): bool {
+		if ( ! is_array( $data ) || ! $data ) {
+			return false;
+		}
+
+		foreach ( $data as $slug => $plugin ) {
+			if ( ! is_string( $slug ) || ! preg_match( '/^[a-z0-9][a-z0-9_-]*$/D', $slug ) || ! is_array( $plugin ) ) {
+				return false;
+			}
+			if ( ! isset( $plugin['name'] ) || ! is_string( $plugin['name'] ) || '' === trim( $plugin['name'] ) ) {
+				return false;
+			}
+			if ( ! isset( $plugin['option_prefixes'] ) || ! is_array( $plugin['option_prefixes'] ) || ! $plugin['option_prefixes'] ) {
+				return false;
+			}
+			if ( array_keys( $plugin['option_prefixes'] ) !== range( 0, count( $plugin['option_prefixes'] ) - 1 ) ) {
+				return false;
+			}
+			foreach ( $plugin['option_prefixes'] as $prefix ) {
+				if ( ! is_string( $prefix ) || '' === trim( $prefix ) || preg_match( '/[\x00-\x1f\x7f]/', $prefix ) || mb_strlen( $prefix ) > 191 ) {
+					return false;
+				}
+			}
+		}
+
 		return true;
 	}
 
@@ -146,6 +194,6 @@ class Known_Plugins {
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading a file bundled with the plugin.
 		$data = \json_decode( (string) \file_get_contents( $path ), true );
-		return \is_array( $data ) ? $data : [];
+		return $this->is_valid_mapping( $data ) ? $data : [];
 	}
 }

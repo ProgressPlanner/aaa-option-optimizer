@@ -1,14 +1,18 @@
 <?php
 /**
- * Plugin functionality for AAA Option Optimizer.
+ * Plugin functionality for AAA Autoload Optimizer.
  *
  * @package Progress_Planner\OptionOptimizer
  */
 
 namespace Progress_Planner\OptionOptimizer;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
- * Core functionality of AAA Option Optimizer.
+ * Core functionality of AAA Autoload Optimizer.
  */
 class Plugin {
 	/**
@@ -34,11 +38,18 @@ class Plugin {
 	protected $is_processing = false;
 
 	/**
-	 * Whether the plugin should reset the option_optimizer data.
+	 * Whether a successful reset should suppress tracking writes for this request.
 	 *
 	 * @var boolean
 	 */
 	protected $should_reset = false;
+
+	/**
+	 * Whether the request exceeded the observation budget.
+	 *
+	 * @var bool
+	 */
+	protected $tracking_limited = false;
 
 	/**
 	 * Initializes the plugin.
@@ -103,14 +114,18 @@ class Plugin {
 	}
 
 	/**
-	 * Sets the 'should_reset' property.
+	 * Reset tracking immediately and suppress this request's shutdown write.
 	 *
-	 * @param boolean $should_reset Whether the plugin should reset the option_optimizer data.
+	 * @param boolean $should_reset Whether a successful reset should suppress tracking writes for this request.
 	 *
-	 * @return void
+	 * @return bool Whether the reset succeeded.
 	 */
 	public function reset( $should_reset = true ) {
+		if ( $should_reset && ! Database::clear_tracked_options() ) {
+			return false;
+		}
 		$this->should_reset = $should_reset;
+		return true;
 	}
 
 	/**
@@ -122,6 +137,11 @@ class Plugin {
 	 */
 	public function monitor_option_accesses_legacy( $tag ) {
 		if ( $this->is_processing ) {
+			return;
+		}
+
+		// The option page capability filter is not an option access, and its tag suffix comes from the request.
+		if ( str_starts_with( $tag, 'option_page_capability_' ) ) {
 			return;
 		}
 
@@ -166,6 +186,16 @@ class Plugin {
 	 */
 	protected function add_option_usage( $option_name ) {
 		if ( ! array_key_exists( $option_name, $this->accessed_options ) ) {
+			// Only a request reading more names than storage can hold is capped; reaching this means
+			// the observation really is incomplete.
+			if ( count( $this->accessed_options ) >= Database::MAX_TRACKED_OPTIONS ) {
+				$this->tracking_limited = true;
+				return;
+			}
+			// Only validate the first access in a request, repeat accesses are already known to be valid.
+			if ( ! $this->is_trackable_option_name( $option_name ) ) {
+				return;
+			}
 			$this->accessed_options[ $option_name ] = 0;
 		}
 
@@ -182,20 +212,51 @@ class Plugin {
 	}
 
 	/**
+	 * Whether an accessed option name should be tracked.
+	 *
+	 * Only names that can't exist in the options table are rejected. Any other name can be a
+	 * real option, and an untracked option would be reported as unused.
+	 *
+	 * @param string $option_name Name of the option being accessed.
+	 *
+	 * @return bool
+	 */
+	protected function is_trackable_option_name( $option_name ) {
+		// The option_name column is VARCHAR(191) here and in wp_options, which counts characters, not bytes. Not filterable.
+		if ( $option_name === '' || \mb_strlen( $option_name ) > 191 ) {
+			return false;
+		}
+
+		/**
+		 * Filters whether an accessed option name should be tracked.
+		 *
+		 * Option names are always escaped on output, regardless of this filter. Note that an
+		 * autoloaded option excluded here will be listed as "Unused, but autoloaded".
+		 *
+		 * @param bool   $is_trackable Whether the name should be tracked. Default true.
+		 * @param string $option_name  The option name.
+		 */
+		return (bool) \apply_filters( 'aaa_option_optimizer_is_trackable_option_name', true, $option_name );
+	}
+
+	/**
 	 * Update the tracked options at the end of the page load.
 	 *
 	 * @return void
 	 */
 	public function update_tracked_options() {
 		// phpcs:ignore WordPress.Security.NonceVerification -- not doing anything.
-		if ( isset( $_GET['page'] ) && $_GET['page'] === 'aaa-option-optimizer' ) {
+		if ( \is_admin() && \current_user_can( 'manage_options' ) && isset( $_GET['page'] ) && $_GET['page'] === 'aaa-option-optimizer' ) {
 			return;
 		}
 
-		// Handle reset.
+		// A successful synchronous reset must not be undone by shutdown tracking.
 		if ( $this->should_reset ) {
-			Database::clear_tracked_options();
 			return;
+		}
+
+		if ( $this->tracking_limited ) {
+			Database::mark_tracking_limited();
 		}
 
 		// Write accessed options directly to the custom table.
