@@ -42,6 +42,10 @@ jobs:
             wp_version: 'latest'
             multisite: true
 
+          - php_version: '8.5'
+            wp_version: 'latest'
+            multisite: false
+
     name: "Integration Test: PHP ${{ matrix.php_version }} | WP ${{ matrix.wp_version }}${{ matrix.multisite == true && ' (+ ms)' || '' }}"
 
     services:
