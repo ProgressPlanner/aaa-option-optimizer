@@ -46,6 +46,10 @@ jobs:
         - name: Install latest version of dist-archive-command
           run: |
             rm -f "$(composer config --global home 2>/dev/null)/auth.json"
+            # Without a token Composer may fall back to cloning over SSH, and the
+            # runner has no key ("Permission denied (publickey)"). HTTPS works for
+            # this public repository.
+            git config --global url."https://github.com/".insteadOf "git@github.com:"
             wp package install wp-cli/dist-archive-command:v3.1.0
 
         # Builds the same file set that is deployed to WordPress.org (see .distignore).
