@@ -117,6 +117,54 @@ class REST {
 	public function register_rest_routes() {
 		\register_rest_route(
 			'aaa-option-optimizer/v1',
+			'/set-consent',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ $this, 'set_consent' ],
+				'permission_callback' => function () {
+					return current_user_can( 'manage_options' );
+				},
+				'args'                => [
+					'consent' => [
+						'required' => true,
+						'type'     => 'boolean',
+					],
+				],
+			]
+		);
+
+		\register_rest_route(
+			'aaa-option-optimizer/v1',
+			'/record-report',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ $this, 'record_report' ],
+				'permission_callback' => function () {
+					return current_user_can( 'manage_options' );
+				},
+				'args'                => [
+					'option_name' => [
+						'required' => true,
+						'type'     => 'string',
+					],
+					'slug'        => [
+						'required' => true,
+						'type'     => 'string',
+					],
+					'plugin_name' => [
+						'required' => false,
+						'type'     => 'string',
+					],
+					'prefix'      => [
+						'required' => false,
+						'type'     => 'string',
+					],
+				],
+			]
+		);
+
+		\register_rest_route(
+			'aaa-option-optimizer/v1',
 			'/update-autoload',
 			[
 				'methods'             => 'POST',
@@ -278,6 +326,42 @@ class REST {
 	}
 
 	/**
+	 * Set the user's consent to contacting our servers.
+	 *
+	 * Persists the flag into the plugin settings and (un)schedules the daily
+	 * known-plugins refresh to match, so granting consent from the Report
+	 * popover takes effect immediately.
+	 *
+	 * @param WP_REST_Request $request The REST request.
+	 *
+	 * @return \WP_REST_Response
+	 */
+	public function set_consent( $request ) {
+		$consent = (bool) $request->get_param( 'consent' );
+
+		$option                                    = \get_option( Admin_Page::OPTION_NAME, [] );
+		$option['settings']                        = isset( $option['settings'] ) ? $option['settings'] : [];
+		$option['settings']['remote_data_consent'] = $consent;
+		\update_option( Admin_Page::OPTION_NAME, $option );
+
+		if ( $consent ) {
+			if ( ! \wp_next_scheduled( Known_Plugins::CRON_HOOK ) ) {
+				\wp_schedule_event( \time(), 'daily', Known_Plugins::CRON_HOOK );
+			}
+		} elseif ( \wp_next_scheduled( Known_Plugins::CRON_HOOK ) ) {
+			\wp_clear_scheduled_hook( Known_Plugins::CRON_HOOK );
+		}
+
+		return new \WP_REST_Response(
+			[
+				'success' => true,
+				'consent' => $consent,
+			],
+			200
+		);
+	}
+
+	/**
 	 * Migrate a chunk of data from old format to custom table.
 	 *
 	 * @return \WP_REST_Response
@@ -285,6 +369,39 @@ class REST {
 	public function migrate_chunk() {
 		$result = Database::migrate_chunk();
 		return new \WP_REST_Response( $result, $result['success'] ? 200 : 503 );
+	}
+
+	/**
+	 * Record that an unknown option has been reported from this site.
+	 *
+	 * The report itself goes to an external endpoint which never reports back,
+	 * so this only remembers that the user sent one -- enough for the table to
+	 * say so after a reload instead of offering "Report" as though nothing had
+	 * happened. Re-reporting stays possible so a wrong slug can be corrected.
+	 *
+	 * @param WP_REST_Request $request The REST request.
+	 *
+	 * @return \WP_REST_Response
+	 */
+	public function record_report( $request ) {
+		$option_name = \sanitize_text_field( (string) $request->get_param( 'option_name' ) );
+		$slug        = \sanitize_key( (string) $request->get_param( 'slug' ) );
+		$plugin_name = \sanitize_text_field( (string) $request->get_param( 'plugin_name' ) );
+		$prefix      = \sanitize_text_field( (string) $request->get_param( 'prefix' ) );
+
+		if ( '' === $option_name || '' === $slug ) {
+			return new \WP_REST_Response(
+				[
+					'success' => false,
+					'error'   => 'option_name and slug are required.',
+				],
+				400
+			);
+		}
+
+		Admin_Page::record_reported_option( $option_name, $slug, $plugin_name, $prefix );
+
+		return new \WP_REST_Response( [ 'success' => true ], 200 );
 	}
 
 	/**
@@ -300,13 +417,14 @@ class REST {
 		$options = $wpdb->get_results( "SELECT option_name, option_value, autoload FROM $wpdb->options" );
 		foreach ( $options as $option ) {
 			$output[] = [
-				'name'      => $option->option_name,
-				'protected' => Protected_Options::is_protected( $option->option_name ),
-				'plugin'    => $this->get_plugin_name( $option->option_name ),
-				'value'     => $option->option_value,
-				'size'      => $this->get_length( $option->option_value ),
-				'raw_size'  => strlen( $option->option_value ),
-				'autoload'  => $option->autoload,
+				'name'         => $option->option_name,
+				'protected'    => Protected_Options::is_protected( $option->option_name ),
+				'plugin'       => $this->get_plugin_name( $option->option_name ),
+				'plugin_known' => $this->is_plugin_known( $option->option_name ),
+				'value'        => $option->option_value,
+				'size'         => $this->get_length( $option->option_value ),
+				'raw_size'     => strlen( $option->option_value ),
+				'autoload'     => $option->autoload,
 			];
 		}
 		return new \WP_REST_Response( [ 'data' => $output ], 200 );
@@ -396,13 +514,14 @@ class REST {
 			// Format output.
 			foreach ( $results as $row ) {
 				$response_data[] = [
-					'name'      => $row->option_name,
-					'protected' => Protected_Options::is_protected( $row->option_name ),
-					'plugin'    => $this->get_plugin_name( $row->option_name ),
-					'value'     => $row->option_value,
-					'size'      => $this->get_length( $row->option_value ),
-					'raw_size'  => strlen( $row->option_value ),
-					'autoload'  => 'yes',
+					'name'         => $row->option_name,
+					'protected'    => Protected_Options::is_protected( $row->option_name ),
+					'plugin'       => $this->get_plugin_name( $row->option_name ),
+					'plugin_known' => $this->is_plugin_known( $row->option_name ),
+					'value'        => $row->option_value,
+					'size'         => $this->get_length( $row->option_value ),
+					'raw_size'     => strlen( $row->option_value ),
+					'autoload'     => 'yes',
 				];
 			}
 
@@ -521,14 +640,15 @@ class REST {
 
 		foreach ( $results as $row ) {
 			$response_data[] = [
-				'name'      => $row->option_name,
-				'protected' => Protected_Options::is_protected( $row->option_name ),
-				'plugin'    => $this->get_plugin_name( $row->option_name ),
-				'value'     => $row->option_value,
-				'size'      => $this->get_length( $row->option_value ),
-				'raw_size'  => strlen( $row->option_value ),
-				'autoload'  => 'no',
-				'count'     => $used_options[ $row->option_name ] ?? 0,
+				'name'         => $row->option_name,
+				'protected'    => Protected_Options::is_protected( $row->option_name ),
+				'plugin'       => $this->get_plugin_name( $row->option_name ),
+				'plugin_known' => $this->is_plugin_known( $row->option_name ),
+				'value'        => $row->option_value,
+				'size'         => $this->get_length( $row->option_value ),
+				'raw_size'     => strlen( $row->option_value ),
+				'autoload'     => 'no',
+				'count'        => $used_options[ $row->option_name ] ?? 0,
 			];
 		}
 
@@ -611,11 +731,12 @@ class REST {
 		foreach ( $non_autoloaded_keys as $option => $count ) {
 			if ( ! isset( $existing_keys[ $option ] ) ) {
 				$non_existing_options[ $option ] = [
-					'name'        => (string) $option,
-					'protected'   => Protected_Options::is_protected( (string) $option ),
-					'plugin'      => $this->get_plugin_name( $option ),
-					'count'       => $count,
-					'option_name' => (string) $option,
+					'name'         => (string) $option,
+					'protected'    => Protected_Options::is_protected( (string) $option ),
+					'plugin'       => $this->get_plugin_name( $option ),
+					'plugin_known' => $this->is_plugin_known( $option ),
+					'count'        => $count,
+					'option_name'  => (string) $option,
 				];
 			}
 		}
@@ -934,6 +1055,17 @@ class REST {
 	 */
 	private function get_plugin_name( $option ) {
 		return $this->map_plugin_to_options->get_plugin_name( $option );
+	}
+
+	/**
+	 * Whether the option's source plugin is known.
+	 *
+	 * @param string $option The option name.
+	 *
+	 * @return bool
+	 */
+	private function is_plugin_known( $option ) {
+		return $this->map_plugin_to_options->is_known( $option );
 	}
 
 	/**

@@ -75,6 +75,8 @@ function aaa_option_optimizer_activation() {
 function aaa_option_optimizer_deactivation() {
 	// update_option() ignores the autoload argument when the value is unchanged, so set it directly.
 	wp_set_option_autoload( 'option_optimizer', false );
+
+	wp_clear_scheduled_hook( Progress_Planner\OptionOptimizer\Known_Plugins::CRON_HOOK );
 }
 
 /**

@@ -104,3 +104,117 @@ test( 'failed reset displays the server error without redirecting to success', (
 	assert.deepEqual( ui.alerts, [ 'Tracking could not be reset.' ] );
 	assert.equal( ui.window.location.href, 'http://example.test/admin' );
 } );
+
+function setupReports( optionName = 'sample_option' ) {
+	const handlers = new Map();
+	const requests = [];
+	const timers = new Map();
+	let timerId = 0;
+	function element( initial = '' ) {
+		const values = new Map();
+		let value = initial;
+		const el = {
+			length: 1,
+			attr: ( key, next ) => next === undefined ? values.get( key ) : ( values.set( key, next ), el ),
+			data: ( key, next ) => next === undefined ? values.get( key ) : ( values.set( key, next ), el ),
+			removeData: ( key ) => { values.delete( key ); return el; },
+			removeAttr: () => el,
+			val: ( next ) => next === undefined ? value : ( value = next, el ),
+			prop: ( key, next ) => next === undefined ? values.get( key ) : ( values.set( key, next ), el ),
+			text: () => el,
+			html: () => el,
+			empty: () => el,
+		};
+		return el;
+	}
+	const input = element( 'old-plugin' );
+	const submit = element();
+	const list = element();
+	const popover = element();
+	popover.attr( 'data-option', optionName );
+	input.closest = submit.closest = () => popover;
+	popover.find = ( selector ) => ( {
+		'.aaa-report-input': input,
+		'.aaa-report-submit': submit,
+		'.aaa-report-list': list,
+	} )[ selector ] || element();
+	const trigger = element();
+	trigger.attr( 'popovertarget', 'report' );
+	function jQuery( selector ) {
+		if ( selector && typeof selector === 'object' && selector.attr ) return selector;
+		const stub = {
+			length: 0,
+			hide: () => stub,
+			ready: ( fn ) => fn(),
+			on: ( event, filter, fn ) => { handlers.set( `${ event }:${ filter }`, fn || filter ); return stub; },
+		};
+		return stub;
+	}
+	jQuery.ajax = ( args ) => {
+		const request = { args };
+		requests.push( request );
+		const deferred = {
+			done( fn ) { request.done = fn; return deferred; },
+			fail( fn ) { request.fail = fn; return deferred; },
+		};
+		return deferred;
+	};
+	runInNewContext( readFileSync( join( __dirname, '../js/admin-script.js' ), 'utf8' ), {
+		jQuery,
+		document: {
+			getElementById: () => popover,
+			createElement: () => ( { set innerHTML( value ) { this.value = value; } } ),
+		},
+		window: { location: { hostname: 'example.test' }, requestAnimationFrame() {} },
+		aaaOptionOptimizer: { root: '/', reportUrl: 'https://reports.example/submit', hasRemoteConsent: true, i18n: {} },
+		setTimeout: ( fn ) => { timers.set( ++timerId, fn ); return timerId; },
+		clearTimeout: ( id ) => timers.delete( id ),
+	} );
+	return {
+		input, submit, requests,
+		open() { handlers.get( 'click:.aaa-report-trigger' ).call( trigger ); },
+		edit( value ) {
+			input.val( value );
+			handlers.get( 'input:.aaa-report-input' ).call( input, { originalEvent: { inputType: 'insertText' } } );
+		},
+		send() { handlers.get( 'click:.aaa-report-submit' ).call( submit ); },
+		verify() {
+			for ( const [ id, fn ] of Array.from( timers ) ) { timers.delete( id ); fn(); }
+		},
+	};
+}
+
+test( 'editing a verified slug blocks submission until the new value is verified', () => {
+	const ui = setupReports();
+	ui.open();
+	ui.requests[ 0 ].done( { name: 'Old Plugin' } );
+	assert.equal( ui.submit.prop( 'disabled' ), false );
+	ui.edit( 'new-plugin' );
+	assert.equal( ui.submit.prop( 'disabled' ), true );
+	ui.send();
+	assert.equal( ui.requests.length, 1 );
+	ui.verify();
+	ui.requests[ 1 ].done( { name: 'New Plugin' } );
+	ui.send();
+	assert.equal( JSON.parse( ui.requests[ 2 ].args.data ).slug, 'new-plugin' );
+} );
+
+test( 'a response for the previous input cannot re-enable submission', () => {
+	const ui = setupReports();
+	ui.open();
+	ui.edit( 'new-plugin' );
+	ui.requests[ 0 ].done( { name: 'Old Plugin' } );
+	assert.equal( ui.submit.prop( 'disabled' ), true );
+	ui.send();
+	assert.equal( ui.requests.length, 1 );
+} );
+
+test( 'reports preserve numeric and JSON-like option names as strings', () => {
+	for ( const optionName of [ '123', 'true', '["foo"]', 'a<b>c' ] ) {
+		const ui = setupReports( optionName );
+		ui.open();
+		ui.requests[ 0 ].done( { name: 'Old Plugin' } );
+		ui.send();
+		assert.equal( JSON.parse( ui.requests[ 1 ].args.data ).option_name, optionName );
+	}
+} );
